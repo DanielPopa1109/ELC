@@ -86,8 +86,8 @@ GPSChnCount=0
 
 [UserVariables]
 Count=2
-u0=LoadRequestStatus,,,User,1,0,0,255,1,,-1,,,-1,-1,MA__
-u1=NM3RSPN1,,,User,1,0,0,255,18,,-1,,,-1,-1,MA__
+u0=LoadRequestStatus,,,User,1,0,0,255,0,,-1,,,-1,-1,MA__
+u1=NM3RSPN1,,,User,1,0,0,255,0,,-1,,,-1,-1,MA__
 
 [PluginManager]
 ExternalCount=0
@@ -170,14 +170,14 @@ ChnCANCount=1
 PropertyHeight=298
 PropertyVisible=1
 HWChnCount=2
-UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,348,8614274920485636229,0
+UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,351,8614274920485636229,0
 UIFilter=
 DBFiles0=.\DB\CAN\ZGW_CAN_3.pdbc
 DBOri0=..\ZGW_CAN_3.dbc
 ChnCAN0=0
 
 [SysVarMgmt]
-UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,100,7951682827132674604,0
+UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,113,7951682827132674604,0
 UIFilter=
 
 [TfrmSystemVarMgmt]
@@ -185,7 +185,7 @@ TreeView=0
 AutoDecideTree=1
 
 [CANRBS]
-UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,91,3543221743599890058,0
+UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,101,3543221743599890058,0
 UIFilter=
 ShowTopology=1
 TopoWidth=225
@@ -194,7 +194,7 @@ DisplayRxSignals=1
 GridWidth=250
 
 [CANStat]
-UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,37,6864330728912059365,0
+UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,39,6864330728912059365,0
 UIFilter=
 
 [TfrmBasePluginSingle.TfrmSecurity]
@@ -229,7 +229,7 @@ ConstantsWidths=50,200,482
 UsersWidths=50,200,50
 
 [MeasSetup]
-UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,45,8013874373361339603,0
+UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,54,8013874373361339603,0
 UIFilter=
 Zoom=1
 
@@ -301,11 +301,11 @@ HiddenCount=6
 f0=TfrmCANStatistics,0,1089,0,308,371,0,0,284,820,1
 h0=TfrmCANFDTransmit,0,656,174,1061,564,0,0,1061,564,1
 h1=TfrmSystemVarMgmt,0,156,79,802,747,156,156,802,747,1
-f1=TfrmCANFDTransmit,0,1397,0,515,371,0,0,1061,564,1
+f1=TfrmGraphics,0,0,371,1916,432,0,0,1088,606,1
 h2=TfrmCANStatistics,0,781,215,308,156,0,0,284,820,1
-f2=TfrmGraphics,0,0,371,1916,432,0,0,1088,606,1
-f3=TfrmCANFDTrace,0,0,0,781,371,0,0,1107,398,1
-f4=TfrmPanel,0,781,0,308,371,0,0,950,488,1
+f2=TfrmCANFDTransmit,0,1397,0,515,371,0,0,1061,564,1
+f3=TfrmPanel,0,781,0,308,371,0,0,950,488,1
+f4=TfrmCANFDTrace,0,0,0,781,371,0,0,1107,398,1
 h3=TfrmMeasurementSetup,0,0,0,836,524,0,0,836,524,1
 h4=TfrmCANRBS,0,0,0,1131,566,0,0,1131,566,1
 h5=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
@@ -355,14 +355,14 @@ Pg2=Script
 [Pg1]
 Count=3
 f0=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
-f1=TfrmCANFDTrace,1,1223,1,630,819,0,0,1107,398,1
+f1=TfrmDiagnostics,0,0,0,1223,820,0,0,1652,543,1
 HiddenCount=3
 h0=TfrmCANFDTrace,1,1270,1,630,819,0,0,1107,398,1
 h1=TfrmCANFDTrace,0,1223,0,673,820,0,0,781,371,1
 h2=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
 h3=TfrmPanel,1,0,0,950,488,0,0,950,488,1
 h4=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
-f2=TfrmDiagnostics,0,0,0,1223,820,0,0,1652,543,1
+f2=TfrmCANFDTrace,1,1223,1,630,819,0,0,1107,398,1
 
 [Pg2]
 Count=1

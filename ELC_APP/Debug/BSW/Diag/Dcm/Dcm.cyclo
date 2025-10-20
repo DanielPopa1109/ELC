@@ -1,0 +1,8 @@
+../BSW/Diag/Dcm/Dcm.c:47:6:Dcm_SendHistogramISO_TP	5
+../BSW/Diag/Dcm/Dcm.c:40:6:Dcm_RC_ReadHistograms	1
+../BSW/Diag/Dcm/Dcm.c:81:6:Dcm_ProgrammingSession	1
+../BSW/Diag/Dcm/Dcm.c:99:6:Dcm_SendNrc	1
+../BSW/Diag/Dcm/Dcm.c:114:6:Dcm_HardReset	1
+../BSW/Diag/Dcm/Dcm.c:131:6:Dcm_ReadSWV	2
+../BSW/Diag/Dcm/Dcm.c:149:6:Dcm_RC_HealSupply	1
+../BSW/Diag/Dcm/Dcm.c:169:6:Dcm_main	15

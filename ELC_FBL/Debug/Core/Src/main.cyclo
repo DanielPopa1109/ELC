@@ -1,0 +1,16 @@
+../Core/Src/main.c:237:6:SystemClock_Config	1
+../Core/Src/main.c:326:8:Nvm_GetPage	4
+../Core/Src/main.c:304:8:FBL_NvM_EraseFlash_APPL	2
+../Core/Src/main.c:331:8:FBL_NvM_FlashWriteData	3
+../Core/Src/main.c:352:6:FBL_NvM_FlashReadData	2
+../Core/Src/main.c:359:6:FBL_DiagService_DSC_RequestDownload	1
+../Core/Src/main.c:386:6:FBL_DiagService_DSC_TransferData	2
+../Core/Src/main.c:418:6:FBL_DiagService_DSC_RequestTransferExit	1
+../Core/Src/main.c:443:6:FBL_DiagService_RAR_MassEraseAPPL	1
+../Core/Src/main.c:476:6:FBL_JumpToAppl	1
+../Core/Src/main.c:163:5:main	4
+../Core/Src/main.c:498:6:FBL_DiagService_ER_HardReset	1
+../Core/Src/main.c:505:6:FBL_DiagService_DSC_Programming	10
+../Core/Src/main.c:99:6:HAL_CAN_RxFifo0MsgPendingCallback	4
+../Core/Src/main.c:67:6:HAL_CAN_RxFifo0FullCallback	1
+../Core/Src/main.c:587:6:Error_Handler	1
