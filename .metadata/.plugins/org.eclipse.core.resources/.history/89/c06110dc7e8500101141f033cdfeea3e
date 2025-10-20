@@ -1,0 +1,48 @@
+#include <stdint.h>
+#include "EcuM.h"
+
+#define DEM_NO_DTCS 14u
+#define DEM_NO_FF 3u
+
+typedef enum
+{
+	NO_ERROR = 0U,
+	UNDERVOLTAGE_KL30 = 1U,
+	OVERVOLTAGE_KL30 = 2U,
+	UNDERVOLTAGE_CLS = 3U,
+	OVERCURRENT_CLS = 4U,
+	UNDERVOLTAGE_L1 = 5U,
+	OVERCURRENT_L1 = 6U,
+	LOCKSUPPLY_L1 = 7U,
+	VOLTAGE_50P_IN_OFF_STATE = 8U,
+	VOLTAGE_LOW_IN_OFF_STATE = 9U,
+	SHORT_TO_KL30_IN_OFF_STATE = 1U,
+	VOLTAGE_50P_IN_ON_STATE = 11U,
+	SHORT_TO_KL30_IN_ON_STATE = 12U,
+}Dem_RsnList_t;
+
+typedef struct
+{
+	uint8_t id;
+	uint8_t status;
+	uint8_t locksupply_ff[DEM_NO_FF];
+	uint8_t s2btststat_ff[DEM_NO_FF];
+	uint8_t swstate_ff[DEM_NO_FF];
+	uint8_t cmdstat_ff[DEM_NO_FF];
+	uint8_t keepawakereason_ff[DEM_NO_FF];
+	uint8_t keepawakereason2_ff[DEM_NO_FF];
+	uint8_t retrycnt_ff[DEM_NO_FF];
+	Dem_RsnList_t reason_ff[DEM_NO_FF];
+	uint16_t vfbl1_ff[DEM_NO_FF];
+	uint16_t vfbt30_ff[DEM_NO_FF];
+	uint16_t isensel1_ff[DEM_NO_FF];
+	uint16_t timeoutcntlin_ff[DEM_NO_FF];
+	uint32_t alivetime_ff[DEM_NO_FF];
+	FaultInfo_t resetdata_ff[DEM_NO_FF];
+	uint8_t padding1;
+}Dem_Dtc_t;
+
+extern Dem_Dtc_t Dem_Dtc_FullBlock[DEM_NO_DTCS];
+
+extern void Dem_SetDtc(uint8_t id, uint8_t status, uint8_t reason);
+extern void Dem_ClearDtc();

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="selection" value="SMon_UpdateHistograms"/>
+		<item key="wrap" value="true"/>
+		<item key="casesensitive" value="false"/>
+		<item key="wholeword" value="false"/>
+		<item key="incremental" value="false"/>
+		<item key="isRegEx" value="false"/>
+		<list key="findhistory">
+			<item value="SMon_UpdateHistograms"/>
+			<item value="SMon_CLS_Failure"/>
+			<item value="SMon_P_LowDisTimeCyc"/>
+			<item value="SMon_P_DischargeTimeCycles"/>
+			<item value="SMon_L1_UVStatus"/>
+			<item value="SMon_VfbT30"/>
+			<item value="SMon_P_CLSTime"/>
+			<item value="SMon_P_WaitTimeCPC"/>
+			<item value="SMon_P_LowVoltage"/>
+			<item value="SMon_P_ShortToPlusVoltageTh"/>
+			<item value="SMon_P_LongDischargeTimeCycles"/>
+			<item value="localRequestPhysicalStatus"/>
+			<item value=""/>
+			<item value="Dcm_ActiveSessionState"/>
+			<item value="plocalSMon_SWState"/>
+		</list>
+		<list key="replacehistory">
+			<item value="SMon_CmdStat"/>
+			<item value="SMon_LockSupply"/>
+			<item value="localSMon_LockSupply"/>
+			<item value="SMon_ErrStat2"/>
+			<item value="SMon_ErrStat"/>
+			<item value="SMon_CounterUVL1"/>
+			<item value="SMon_CounterOVKL30"/>
+			<item value="SMon_CounterUVKL30"/>
+			<item value="SMon_MainCnt"/>
+			<item value="SMon_SWState"/>
+			<item value="SMon_ValidMeasFlag"/>
+			<item value="localSMon_ErrStat2"/>
+			<item value="localSMon_ErrStat"/>
+			<item value="localSMon_ValidMeasFlag"/>
+			<item value="SMon_P_WaitTimeOVUV"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="1294"/>
+		<item key="DIALOG_Y_ORIGIN" value="292"/>
+		<item key="DIALOG_WIDTH" value="322"/>
+		<item key="DIALOG_HEIGHT" value="391"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+</section>

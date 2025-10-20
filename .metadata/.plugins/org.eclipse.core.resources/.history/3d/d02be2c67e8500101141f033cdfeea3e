@@ -1,0 +1,14 @@
+#include "stdint.h"
+
+#ifndef ECUM_H_
+#define ECUM_H_
+
+typedef struct
+{
+	uint8_t reset;
+	uint8_t info;
+} FaultInfo_t;
+
+extern void EcuM_main();
+
+#endif /* ECUM_H_ */

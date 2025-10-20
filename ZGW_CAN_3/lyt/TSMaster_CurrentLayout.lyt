@@ -1,0 +1,375 @@
+﻿[TSMaster]
+DebugMode=0
+DisableResize=0
+LogVerbose=6
+Bounds=1920,0,3856,1048
+Maximized=1
+AutoGenConstDef=0
+AutoGenDBConstDef=0
+DisableCrashDialog=0
+UseOutputDbg=1
+SelTxSgn=1
+DisplayHex=1
+DisplaySym=1
+Skin=
+SkinPalette=
+ColorfulMDI=0
+DelConfOnFormDel=1
+AutoSaveBeforeRun=0
+AutoCopyDBToLocal=0
+CustomFont=
+TraceFont=
+AutoHandleCANUB=1
+AutoHandleFlexRayUB=1
+AutoSavePrj=0
+DelHistoryConfOnSave=1
+DisableToast=0
+DisplayFormByPage=0
+ShowTabGroups=1
+Magnetic=1
+AppName=TSMaster
+
+[OnlineReplay]
+CANCount=0
+
+[TsRPC]
+Actv=1
+SizeBytes=1048576
+
+[TsRPCIP]
+Enabled=0
+Port=2809
+Proto=0
+FileCnt=0
+
+[TTsSimManager]
+FullSim=0
+Speed=1
+Step=0.1
+
+[MeasurementController]
+MCount=12
+M0=0,1,58,-1,0,TfrmCANFDTransmit,CAN / CAN FD Transmit
+M1=0,1,209,-1,1,TfrmCANFDTrace,CAN / CAN FD Trace
+M2=0,1,241,-1,2,TfrmPanel,Panel 3661
+M3=0,1,3,-1,3,TfrmSystemVarMgmt,System Variable Management
+M4=0,1,177,-1,4,TfrmGraphics,Graphics
+M5=1,1,209,-1,5,TfrmCANFDTrace,CAN / CAN FD Trace [#2]
+M6=0,1,405,-1,6,TfrmDiagnostics,Diagnostic
+M7=0,1,214,-1,7,TfrmCANStatistics,CAN Statistics
+M8=0,1,165,-1,8,TfrmCCodeEditor,C Code Editor [CCode2175]
+M9=0,1,245,-1,9,TfrmMeasurementSetup,Measurement Setup
+M10=0,1,79,-1,10,TfrmCANRBS,CAN Remaining Bus Simulation
+M11=0,1,62,-1,11,TfrmCANDatabase,CAN Database
+M12=0,1,165,-1,12,TfrmCCodeEditor,C Code Editor [CCode2175]
+M13=0,1,405,-1,13,TfrmDiagnosticsDTCAnalysis,DTC Analysis
+M14=1,1,241,-1,14,TfrmPanel,Panel 8438
+M15=0,1,245,-1,15,TfrmMeasurementSetup,Measurement Setup
+M16=0,1,356,-1,16,TfrmNumeric,Numeric Display
+
+[SystemMsgOptions]
+MaxLines=100000
+UICommon=0,-1,0,0,U3lzdGVtIE1lc3NhZ2Vz,100,148,8646644542652949210,0
+UIFilter=
+
+[ChannelMappings]
+CANChnCount=1
+CAN0=0,0,3,0,0,3,0,500,2000,TSMaster,TC1001
+LINChnCount=0
+FlexRayChnCount=0
+EthernetChnCount=0
+AIChnCount=0
+AOChnCount=0
+DIChnCount=0
+DOChnCount=0
+GPSChnCount=0
+
+[UserVariables]
+Count=2
+u0=LoadRequestStatus,,,User,1,0,0,255,1,,-1,,,-1,-1,MA__
+u1=NM3RSPN1,,,User,1,0,0,255,18,,-1,,,-1,-1,MA__
+
+[PluginManager]
+ExternalCount=0
+
+[BusStatistics]
+Enabled=1
+
+[app_conn_callback_before_connect]
+Measurement Controller=100
+Signal Server=100
+TSMaster Main Application=100
+FlexRay RBS=100
+CoSimController=100
+J1939 TP=100
+CAN RBS=100
+Ethernet RBS=100
+Channel Selection=100
+MDI Manager=100
+FlexRay RBS Controller=100
+CAN / CAN FD Trace 1=100
+Graphics=100
+CAN / CAN FD Trace 2=100
+
+[app_conn_callback_after_connect]
+FlexRay RBS=100
+Ribbon Manager=100
+MDI Manager=100
+TSMaster Main Application=100
+CAN RBS=100
+MP Library Manager=100
+Measurement Comment Manager=100
+LIN RBS=100
+J1939 TP=100
+Ethernet RBS=100
+Graphics=100
+Measurement Setup=100
+
+[app_conn_callback_before_disconnect]
+Signal Server=100
+J1939 TP=100
+MDI Manager=100
+LIN RBS=100
+
+[app_conn_callback_after_disconnect]
+Ribbon Manager=100
+MDI Manager=100
+TSMaster Main Application=100
+Bus Log Engine=100
+MP Library Manager=100
+CoSimController=100
+CAN RBS=100
+Ethernet RBS=100
+Measurement Controller=100
+FlexRay RBS=100
+CAN Transmit=100
+CAN / CAN FD Trace 1=100
+Graphics=100
+CAN / CAN FD Trace 2=100
+Measurement Setup=100
+
+[app_hw_selector_conf]
+FEnableTSync=0
+FActiveWirelessOBD=
+FEnableTSWirelessOBD=0
+DeviceCount=0
+FEnableEthernetInterfaceDevice=0
+FNetIfNum=0
+
+[HWModeConfig]
+FHWRealVehicleMeasurementMode=0
+
+[MpGen]
+CAN_ZGW_CAN_3=1
+CAN_ZGW_CAN_3Alias=
+
+[CAN_Databases]
+DBFilesCount=1
+DBOriCount=1
+ChnCANCount=1
+PropertyHeight=298
+PropertyVisible=1
+HWChnCount=2
+UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,348,8614274920485636229,0
+UIFilter=
+DBFiles0=.\DB\CAN\ZGW_CAN_3.pdbc
+DBOri0=..\ZGW_CAN_3.dbc
+ChnCAN0=0
+
+[SysVarMgmt]
+UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,100,7951682827132674604,0
+UIFilter=
+
+[TfrmSystemVarMgmt]
+TreeView=0
+AutoDecideTree=1
+
+[CANRBS]
+UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,91,3543221743599890058,0
+UIFilter=
+ShowTopology=1
+TopoWidth=225
+IgnoreDisabled=1
+DisplayRxSignals=1
+GridWidth=250
+
+[CANStat]
+UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,37,6864330728912059365,0
+UIFilter=
+
+[TfrmBasePluginSingle.TfrmSecurity]
+UICommon=0,-1,0,0,U2VjdXJpdHkgTWFuYWdlcg__,100,-1,4749890704195234270,0
+UIFilter=
+
+[hw_app_chn_0]
+VIRTUAL_CAN_conf={"FControllerType":0,"FClockMHz":1386082976,"FTSeg1Abr":119,"FTSeg2Abr":40,"FSjwAbr":40,"FPrescalerAbr":1225286288,"FTSeg1Dbr":29,"FTSeg2Dbr":10,"FSjwDbr":10,"FPrescalerDbr":397236,"FArbitrationBaudrateBps":1000000,"FDataBaudrateBps":2000000,"FSamplingPointMul10Percent":245}
+VIRTUAL_CAN_FilterEn=0
+VIRTUAL_CAN_FilterStr=XXXXXXXXXXX
+TSVirtual_CAN_FilterEn=0
+TSVirtual_CAN_FilterStr=XXXXXXXXXXX
+CAN_MINI_INTL_TS_CCAN2_CANBaud=500
+CAN_MINI_INTL_TS_CCAN2_Samp=1
+CAN_MINI_INTL_TS_CCAN2_BTR0=16
+CAN_MINI_INTL_TS_CCAN2_BTR1=4
+CAN_MINI_INTL_TS_CCAN2_SJW=1
+CAN_MINI_INTL_TS_CCAN2_Prescaler=4
+CAN_MINI_INTL_TS_CCAN2_CMode=0
+CAN_MINI_INTL_TS_CCAN2_FilterIdx=0
+CAN_MINI_INTL_TS_CCAN2_FilterStr=XXXXXXXXXXX
+CAN_MINI_INTL_TS_CCAN2_Term120=1
+CAN_MINI_INTL_TS_CCAN2_FAutoRecoverFromBusOff=1
+
+[TfrmSystemVarMgmt1]
+TreeView=0
+AutoDecideTree=1
+
+[TfrmTSConstantManager]
+PageIdx=0
+ConstantsWidths=50,200,482
+UsersWidths=50,200,50
+
+[MeasSetup]
+UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,45,8013874373361339603,0
+UIFilter=
+Zoom=1
+
+[MDIInstances]
+TfrmBasePluginSingle.TfrmLicenseClient=0
+TfrmSystemMsgs=0
+TfrmGraphics=1
+TfrmCANStatistics=1
+TfrmCANDatabase=1
+TfrmHardware=0
+TfrmLogging=0
+TfrmPlayback=0
+TfrmCANFDTrace=2
+TfrmCANFDTransmit=1
+TfrmLINTrace=0
+TfrmLINTransmit=0
+TfrmLINDatabase=0
+TfrmChannelMapping=0
+TfrmCCodeEditor=1
+TfrmSettings=0
+TfrmCANRBS=1
+TfrmMPLibrary=0
+TfrmSystemVarMgmt=1
+TfrmMeasurementSetup=1
+TfrmMeasurementDataFilter=0
+TfrmLINRBS=0
+TfrmTSAppHost=0
+TfrmAutomotiveFileConverter=0
+TfrmSignalMapping=0
+TfrmSymbolValue=0
+TfrmSTIM=0
+TfrmFormDocker=0
+TfrmNumeric=0
+TfrmAppManager=0
+TfrmProjectSettings=0
+TfrmSignalTester=0
+TfrmTsRPC=0
+TfrmTSWebServer=0
+TfrmDeployTSMaster=0
+TfrmInitValues=0
+TfrmMpLibBuilder=0
+TfrmAutoSARE2EViewer=0
+TfrmUserEvents=0
+TfrmTAC=0
+TfrmFlexRayDatabase=0
+TfrmFlexRayTrace=0
+TfrmFlexRayTransmit=0
+TfrmFlexRayRBS=0
+TfrmFlexRayClusterMonitor=0
+TfrmEthernetDatabase=0
+TfrmASN1Database=0
+TfrmEthernetTrace=0
+TfrmEthernetTransmit=0
+TfrmEthernetPackageBuilder=0
+TfrmTCPIPStack=0
+TfrmEthernetRBS=0
+TfrmPanel=1
+TfrmDiagnostics=1
+TfrmDiagnosticsDB=0
+TfrmDiagnosticsDTCAnalysis=0
+TfrmDiagnosticsActionPanel=0
+TfrmDiagnosticsDOIP=0
+TfrmScopeUI=0
+TfrmBasePluginSingle.TfrmSecurity=0
+
+[Pg0]
+Count=5
+HiddenCount=6
+f0=TfrmCANStatistics,0,1089,0,308,371,0,0,284,820,1
+h0=TfrmCANFDTransmit,0,656,174,1061,564,0,0,1061,564,1
+h1=TfrmSystemVarMgmt,0,156,79,802,747,156,156,802,747,1
+f1=TfrmCANFDTransmit,0,1397,0,515,371,0,0,1061,564,1
+h2=TfrmCANStatistics,0,781,215,308,156,0,0,284,820,1
+f2=TfrmGraphics,0,0,371,1916,432,0,0,1088,606,1
+f3=TfrmCANFDTrace,0,0,0,781,371,0,0,1107,398,1
+f4=TfrmPanel,0,781,0,308,371,0,0,950,488,1
+h3=TfrmMeasurementSetup,0,0,0,836,524,0,0,836,524,1
+h4=TfrmCANRBS,0,0,0,1131,566,0,0,1131,566,1
+h5=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
+h6=TfrmNumeric,0,0,0,1611,399,0,0,915,399,1
+
+[RTL_Form_Position_MDI]
+TfrmSystemMsgs=0,0,1294,328
+TfrmCANDatabase=0,0,1016,631
+CANFDTransmit=1397,0,1912,371
+CANFDTraceOptions=0,0,781,371
+PanelOptions=781,0,1089,371
+TfrmSystemVarMgmt=234,234,1036,981
+TfrmCANRBS=0,0,1131,566
+Graphics=0,371,1916,803
+CANFDTraceOptions1=1223,1,1853,820
+TfrmDiagnostics=0,0,1223,820
+TfrmCANStatistics=1089,0,1397,371
+TfrmBasePluginSingle.TfrmSecurity=0,0,1164,659
+CCodeEditor=156,156,1186,841
+TfrmDiagnosticsDTCAnalysis=78,78,1744,653
+PanelOptions1=0,0,1190,488
+TfrmMeasurementSetup=0,0,836,524
+TfrmNumeric=0,0,1611,399
+
+[RTL_Form_Position]
+TfrmTSMaster_0=1920,0,3856,1048
+TfrmCANDatabase1=1920,96,2936,727
+TfrmHardware=2478,215,3282,816
+TfrmSystemVarMgmt1=1920,38,2722,785
+TfrmCANDatabase=1920,96,2936,727
+
+[PageLayouts]
+DisableResize=0
+Tabbed=0
+PageCnt=3
+ActiveIdx=0
+Pg0=TST
+ScreenWidth=1920
+ScreenHeight=1080
+MainBounds=1912,-8,3848,1040
+PixelsPerInch=96
+AppLeftP=1912
+AppTopP=-8
+Pg1=DIAG
+Pg2=Script
+
+[Pg1]
+Count=3
+f0=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
+f1=TfrmCANFDTrace,1,1223,1,630,819,0,0,1107,398,1
+HiddenCount=3
+h0=TfrmCANFDTrace,1,1270,1,630,819,0,0,1107,398,1
+h1=TfrmCANFDTrace,0,1223,0,673,820,0,0,781,371,1
+h2=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
+h3=TfrmPanel,1,0,0,950,488,0,0,950,488,1
+h4=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
+f2=TfrmDiagnostics,0,0,0,1223,820,0,0,1652,543,1
+
+[Pg2]
+Count=1
+HiddenCount=2
+f0=TfrmCCodeEditor,0,-4,0,1902,820,52,52,1030,685,1
+f1=TfrmSystemVarMgmt,0,260,79,802,747,260,260,802,747,1
+h0=TfrmCANStatistics,0,0,0,284,820,0,0,284,401,1
+h1=TfrmSystemVarMgmt,0,260,79,802,747,260,260,802,747,1
+h2=TfrmSystemVarMgmt,0,260,79,802,747,260,260,802,747,1
+

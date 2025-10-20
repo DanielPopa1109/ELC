@@ -1,0 +1,593 @@
+#include "SMon.h"
+#include "tim.h"
+#include "main.h"
+#include "Dem.h"
+
+uint8_t SMon_ExternalChargerDetected = 0u; // Charge of battery mode
+uint8_t SMon_WupLineState = 0u; // SYS_WKUP
+uint8_t SMon_SWState = 0u; // EcuM SW state
+uint8_t SMon_KeepAwakeReason = 0u; // event ongoing
+uint8_t SMon_KeepAwakeReason2 = 0u; // event ongoing
+uint8_t SMon_ValidMeasFlag = 0u; // ADC valid measurement
+extern uint8_t Dem_Dtc_IdList[DEM_NO_DTCS];
+uint32_t SMon_ISenseL1 = 0xFFFFu; // I Sense L1
+uint16_t SMon_VfbL1 = 0xFFFFu; // Voltage Feedback L1/CLS
+uint16_t SMon_VfbT30 = 0xFFFFu; // Voltage Feedback KL30
+uint32_t SMon_MainCnt = 0u; // Main Counter
+
+uint8_t SMon_ShortToPlusTest __attribute((section(".ncr"))); // Discharge Test Status
+uint8_t SMon_CmdStat __attribute((section(".ncr"))); // LIN Command Status
+uint8_t SMon_L1ST __attribute((section(".ncr"))); // L1 Status
+uint8_t SMon_ErrStat __attribute((section(".ncr"))); // Error State
+uint8_t SMon_ErrStat2 __attribute((section(".ncr"))); // Error State
+uint8_t SMon_RetryCnt __attribute((section(".ncr"))); // Retry Counter
+uint8_t SMon_LockSupply __attribute((section(".ncr"))); // Lock Supply Output
+uint32_t SMon_I2TCounter __attribute((section(".ncr"))); // I2T Counter
+uint32_t SMon_CounterUVKL30 __attribute((section(".ncr"))); // UV Counter For De-Bounce
+uint32_t SMon_CounterOVKL30 __attribute((section(".ncr"))); // OV Counter For De-Bounce
+uint32_t SMon_CounterUVL1 __attribute((section(".ncr"))); // UV L1 Counter  For De-Bounce
+
+uint8_t SMon_P_Rtcntmax = 10u; // Retry Counter Parameter
+uint8_t SMon_P_CLSTime = 10u; // CLS Duration Parameter
+uint8_t SMon_P_WaitTimeOVUV = 60u; // OV UV De-bounce Time Parameter
+uint8_t SMon_P_WaitTimeCPC = 9u; // Wait Before Changing States For CPC Parameter
+uint8_t SMon_P_I2TDecrementPercentFactor = 95u; // Cooling Off Factor Parameter
+uint16_t SMon_P_RetryWaitTime = 101u; // Wait Between Retries Parameter
+uint16_t SMon_P_DischargeTimeCycles = 1386u; // ~50% Starting Voltage Discharge Time Parameter
+uint16_t SMon_P_LowDisTimeCyc = 5510u; // 5TAU Discharge Time Parameter
+uint16_t SMon_P_LowVoltage = 800u; // 5TAU Voltage Threshold Parameter
+uint16_t SMon_P_ShortToPlusVoltageTh = 11340u; // Short To Plus Voltage Threshold Parameter
+uint16_t SMon_P_UV_KL30 = 11800u; // UV KL30 TH Parameter
+uint16_t SMon_P_OV_KL30 = 16000u; // OV KL30 TH Parameter
+uint16_t SMon_P_UV_L1 = 9500u; // UV L1 TH Parameter
+uint16_t SMon_P_UV_CLS = 1000u; // Threshold For CLS OUT To Be After 5ms Parameter
+uint16_t SMon_P_ISenseNominal = 10500u; // Nominal Current Parameter
+uint16_t SMon_P_ISenseMax = 30000u; // Maximum Current Parameter
+uint32_t SMon_P_LongDischargeTimeCycles = 210800u; // Maximum Discharge Time Parameter
+uint32_t SMon_P_I2TRating = 225000u; // I2T Rating Parameter
+
+void SMon_main();
+
+void SMon_main()
+{
+	static uint8_t localCLSFlag = 0u; // CLS status flag - not started / running / done
+	static uint8_t localCPCFlag = 0u; // CPC status flag - off / on
+	static uint8_t localHealAttempt = 0u; // heal attempt flag to count retry attempts
+	static uint8_t plocalSMon_SWState = 0u; // previous SW state
+	static uint16_t localCombinedStat = 0u; // combined error status
+	static uint32_t localCLSCounter = 0u; // time to wait with CLS active before changing CPC flag states
+	static uint32_t localCPCCounter = 0u; // time to wait with CPC counter before changing CPC flag states
+	static uint32_t localDischargeTimer = 0u; // normal discharge counter
+	static uint32_t localLowDisTimer = 0u; // very low voltage discharge counter
+	static uint32_t localS2BCounter = 0u; // longer case discharge time counter
+	static uint32_t localT30P50 = 0u; // 50% of KL30
+	static uint32_t localHealCnt = 0u; // wait time before retries
+	static uint32_t localCommandOffTimer = 0u; // wait time for commanded on short to plus test
+
+	__disable_irq(); // disable interrupts
+
+	SMon_WupLineState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0); // evaluate communication or hardware wake-up status
+	localT30P50 = ((SMon_VfbT30 * 5u) / 10u); // get 50% of T30
+
+	if(SMon_VfbL1 >= localT30P50) // compare supply to see if the load was on
+	{
+		SMon_L1ST = 1u; // command on
+	}
+	else
+	{
+		SMon_L1ST = 0u; // command off
+	}
+
+	if(2u == SMon_SWState
+			&& 1u == plocalSMon_SWState
+			&& 0u == SMon_ExternalChargerDetected
+			&& ((((SMon_ErrStat & (1u << 0u)))
+					|| ((SMon_ErrStat & (1u << 1u)))))) // transition from run to post-run and no external charger connected and no UV/OV errors
+	{
+		SMon_ShortToPlusTest = 1u; // start short to plus test
+	}
+	else
+	{
+		SMon_ShortToPlusTest = 0u; // reset short to plus test status
+		localDischargeTimer = 0u; // reset normal discharge counter
+		localLowDisTimer = 0u; // reset very low voltage discharge counter
+		localS2BCounter = 0u; // reset longer case discharge time counter
+	}
+
+	__enable_irq(); // enable interrupts
+
+	if(1u == SMon_ValidMeasFlag) // if ADC measurements are done
+	{
+		SMon_ErrStat &= ~(1u << 7u); // switch lock supply error off
+
+		if(SMon_P_UV_KL30 <= SMon_VfbT30 && SMon_P_OV_KL30 >= SMon_VfbT30) // UV OV checks
+		{
+			// normal voltage
+			SMon_ErrStat &= ~(1u << 0u); // clear errors
+			SMon_ErrStat &= ~(1u << 1u); // clear errors
+			SMon_CounterUVKL30 = 0u; // reset counters
+			SMon_CounterOVKL30 = 0u; // reset counters
+		}
+		else
+		{
+			if(SMon_P_UV_KL30 > SMon_VfbT30) // under-voltage
+			{
+				if(0u == SMon_CounterUVKL30) // "first call"
+				{
+					SMon_CounterUVKL30 = SMon_MainCnt; // time-stamp
+				}
+				else
+				{
+					if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - SMon_CounterUVKL30)) // de-bounce for UV
+					{
+						SMon_ErrStat |= (1u << 0u); // set error status
+					}
+					else
+					{
+						/* Do nothing. */
+					}
+				}
+			}
+			else
+			{
+				SMon_CounterUVKL30 = 0u; // reset counter
+			}
+
+			if(SMon_P_OV_KL30 < SMon_VfbT30) // over-voltage
+			{
+				if(0u == SMon_CounterOVKL30) // "first call"
+				{
+					SMon_CounterOVKL30 = SMon_MainCnt; // time-stamp
+				}
+				else
+				{
+					if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - SMon_CounterOVKL30)) // de-bounce for OV - 300ms
+					{
+						SMon_ErrStat |= (1u << 1u); // set error status
+					}
+					else
+					{
+						/* Do nothing. */
+					}
+				}
+			}
+			else
+			{
+				SMon_CounterOVKL30 = 0u; // reset counter
+			}
+		}
+
+		if(1u == localCLSFlag) // CLS ongoing
+		{
+			if(SMon_P_UV_CLS <= SMon_VfbL1) // voltage is rising, no error
+			{
+				SMon_ErrStat &= ~(1u << 3u); // clear error status
+			}
+			else
+			{
+				SMon_ErrStat |= (1u << 3u); // set error status
+			}
+		}
+		else if(2u == localCLSFlag) // CLS is done
+		{
+			if(SMon_P_UV_L1 <= SMon_VfbL1 && SMon_VfbL1 >= localT30P50) // No UV on output
+			{
+				SMon_ErrStat &= ~(1u << 5u); // clear error status
+				SMon_ErrStat2 &= ~(1u << 4u); // clear error status
+				SMon_CounterUVL1 = 0u; // reset counter
+			}
+			else
+			{
+				if(SMon_VfbL1 >= localT30P50)
+				{
+					SMon_ErrStat2 &= ~(1u << 4u); // clear error status
+
+					if(0u == SMon_CounterUVL1) // "first call"
+					{
+						SMon_CounterUVL1 = SMon_MainCnt; // time-stamp
+					}
+					else
+					{
+						if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - SMon_CounterUVL1)) // de-bounce for UV - 300ms
+						{
+							SMon_ErrStat |= (1u << 5u); // set error status
+						}
+						else
+						{
+							/* Do nothing. */
+						}
+					}
+				}
+				else
+				{
+					SMon_ErrStat2 |= (1u << 4u);
+				}
+			}
+
+			if(SMon_P_ISenseNominal < SMon_ISenseL1) // current is above nominal
+			{
+				SMon_I2TCounter += SMon_ISenseL1 * SMon_ISenseL1 * 5u; // I2t accumulation
+			}
+			else
+			{
+				SMon_I2TCounter = ((SMon_I2TCounter * SMon_P_I2TDecrementPercentFactor) / 100u); // Cooling off
+			}
+
+			if(SMon_P_I2TRating > SMon_I2TCounter) // I2T below rating
+			{
+				SMon_ErrStat &= ~(1u << 6u); // clear error status
+			}
+			else
+			{
+				SMon_ErrStat |= (1u << 6u); // set error status
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		SMon_ErrStat = 0xFFu; // ADC measurements invalid
+		SMon_ErrStat2 = 0xFFu; // ADC measurements invalid
+	}
+
+	if(0u == SMon_LockSupply) // if supply is not locked
+	{
+		if(0u == SMon_ShortToPlusTest) // if discharge test is not ongoing
+		{
+			/* Do nothing. */
+		}
+		else // short-to-plus test ongoing
+		{
+			if(1u == SMon_ValidMeasFlag) // ADC measurements valid
+			{
+				if(2u == SMon_CmdStat) // commanded off
+				{
+					if(0u == localDischargeTimer) // "first call"
+					{
+						localDischargeTimer = SMon_MainCnt; // time-stamp
+						localLowDisTimer = SMon_MainCnt; // time-stamp
+						localS2BCounter = SMon_MainCnt; // time-stamp
+					}
+					else
+					{
+						switch(SMon_ShortToPlusTest) // short-to-plus test phases
+						{
+						case 1u: // 50% of voltage discharge time check
+							if(SMon_P_DischargeTimeCycles <= (SMon_MainCnt - localDischargeTimer)) // de-bounce of SMon_P_DischargeTimeCycles milliseconds
+							{
+								if(localT30P50 <= SMon_VfbL1 && SMon_P_ShortToPlusVoltageTh > SMon_VfbL1) // 50% of current voltage comparison and less than short to plus voltage
+								{
+									SMon_ShortToPlusTest = 2u; // go-to next phase
+									SMon_ErrStat2 |= (1u << 0u); // set error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							else
+							{
+								if(localT30P50 > SMon_VfbL1) // abort this test phase
+								{
+									SMon_ShortToPlusTest = 2u; // go-to next phase
+									SMon_ErrStat2 &= ~(1u << 0u); // clear error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							break;
+						case 2u:
+							if(SMon_P_LowDisTimeCyc <= (SMon_MainCnt - localLowDisTimer)) // de-bounce of SMon_P_LowDisTimeCyc milliseconds
+							{
+								if(SMon_P_LowVoltage <= SMon_VfbL1 && localT30P50 > SMon_VfbL1) // to be less than 50% of start voltage and more than 800 mV
+								{
+									SMon_ErrStat2 |= (1u << 1u); // set error status
+									SMon_ErrStat2 &= ~(1u << 0u); // clear error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							else
+							{
+								if(SMon_P_LowVoltage > SMon_VfbL1) // abort this test phase
+								{
+									SMon_ShortToPlusTest = 3u; // go-to next phase
+									SMon_ErrStat2 &= ~(1u << 1u); // clear error status
+									SMon_ErrStat2 &= ~(1u << 0u); // clear error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							break;
+						case 3u:
+							if(SMon_P_LongDischargeTimeCycles <= (SMon_MainCnt - localS2BCounter)) // worst case wait time 1054 seconds
+							{
+								if(SMon_P_ShortToPlusVoltageTh <= SMon_VfbL1) // shorted-to-plus
+								{
+									SMon_ErrStat2 |= (1u << 2u); // set error status
+									SMon_ErrStat2 &= ~(1u << 1u); // clear error status
+									SMon_ErrStat2 &= ~(1u << 0u); // clear error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							else
+							{
+								if(SMon_P_LowVoltage > SMon_VfbL1) // abort this test phase
+								{
+									SMon_ShortToPlusTest = 4u; // finish short to plus test
+									SMon_ErrStat2 &= ~(1u << 2u); // clear error status
+									SMon_ErrStat2 &= ~(1u << 1u); // clear error status
+									SMon_ErrStat2 &= ~(1u << 0u); // clear error status
+								}
+								else
+								{
+									/* Do nothing. */
+								}
+							}
+							break;
+						default: // do nothing
+							break;
+						}
+					}
+				}
+				else // commanded on
+				{
+					if(0u == localCommandOffTimer) // "first call"
+					{
+						localCommandOffTimer = SMon_MainCnt; // time-stamp
+						SMon_L1ST = 0u; // switch off load
+					}
+					else
+					{
+						if(2u <= (SMon_MainCnt - localCommandOffTimer)) // 10 ms wait time
+						{
+							SMon_L1ST = 1u; // switch on load
+
+							if(SMon_P_ShortToPlusVoltageTh >= SMon_VfbL1) // check voltage feedback
+							{
+								SMon_ErrStat2 &= ~(1u << 3u); // voltage OK, clear error status
+								SMon_ShortToPlusTest = 4u;
+							}
+							else
+							{
+								SMon_ErrStat2 |= (1u << 3u); // voltage NOK, set error status
+								SMon_ShortToPlusTest = 4u;
+							}
+						}
+						else
+						{
+							SMon_L1ST = 0u; // switch off load
+						}
+					}
+				}
+			}
+			else
+			{
+				SMon_ErrStat = 0xFFu; // ADC measurements invalid
+				SMon_ErrStat2 = 0xFFu; // ADC measurements invalid
+			}
+		}
+	}
+	else
+	{
+		SMon_L1ST = 0u; // switch load off
+		SMon_ErrStat |= (1u << 7u); // set error status
+	}
+
+	if(0u == SMon_I2TCounter) // cooled off
+	{
+		SMon_ErrStat &= ~(1u << 4u); // reset error
+		SMon_ErrStat &= ~(1u << 6u); // reset error
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if((((SMon_ErrStat & (1u << 0u))) || ((SMon_ErrStat & (1u << 1u))))) // if OV/UV KL30 errors are present
+	{
+		SMon_L1ST = 0u; // switch off load
+	}
+	else if((((SMon_ErrStat & (1u << 4u))) || ((SMon_ErrStat & (1u << 6u))))) // if over-current is present
+	{
+		if(0u == localHealAttempt) // "first call"
+		{
+			localHealAttempt = 1u; // set flag
+			SMon_RetryCnt++; // increment retry count
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(0u == localHealCnt && 1u == localHealAttempt) // "first call"
+		{
+			localHealCnt = SMon_MainCnt; // time-stamp
+		}
+		else
+		{
+			if(SMon_P_RetryWaitTime < (SMon_MainCnt - localHealCnt)) // wait SMon_P_RetryWaitTime time
+			{
+				localHealCnt = 0u; // reset flags
+				localHealAttempt = 0u; // reset flags
+				SMon_L1ST = 1u; // switch on load
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+
+		if(SMon_P_Rtcntmax == SMon_RetryCnt) // enough retries
+		{
+			SMon_LockSupply = 1u; // switch off supply
+			SMon_L1ST = 0u; // switch off supply
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		localHealAttempt = 0u; // reset flags
+		localHealCnt = 0u; // reset flags
+
+		if(1u == SMon_CmdStat) // commanded on
+		{
+			if(0u == localCPCFlag) // CPC off
+			{
+				localCPCFlag = 1u; // CPC ongoing
+				localCPCCounter = SMon_MainCnt; // time-stamp
+				htim1.Instance->CCR1 = 257u; // switch on CPC
+			}
+			else if(1u == localCPCFlag) // CPC ongoing
+			{
+				if(SMon_P_WaitTimeCPC <= (SMon_MainCnt - localCPCCounter)) // de-bounce time 50ms
+				{
+					localCPCFlag = 2u; // CPC finished
+					localCPCCounter = 0u; // reset counter
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+			}
+			else if(2u == localCPCFlag) // CPC finished
+			{
+				if(0u == localCLSFlag) // CLS off
+				{
+					if(0u == localCLSCounter) // "first call"
+					{
+						localCLSCounter = SMon_MainCnt; // time-stamp
+						localCLSFlag = 1u; // CLS ongoing
+
+						__disable_irq(); // disable interrupts
+						HAL_GPIO_WritePin(ENCLS_GPIO_Port, ENCLS_Pin, 1u); // switch on CLS circuit
+						__enable_irq(); // enable interrupts
+					}
+					else
+					{
+						/* Do nothing. */
+					}
+				}
+				else if(1u == localCLSFlag) // CLS ongoing
+				{
+					if(SMon_P_CLSTime <= (SMon_MainCnt - localCLSCounter)) // de-bounce time 50ms
+					{
+						localCLSCounter = 0u; // reset counter
+						localCLSFlag = 2u; // CLS finished
+						__disable_irq(); // disable interrupts
+						HAL_GPIO_WritePin(ENCLS_GPIO_Port, ENCLS_Pin, 0u); // switch off CLS circuit
+						HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 1u); // switch on L1 circuit
+						__enable_irq(); // enable interrupts
+					}
+					else
+					{
+						/* Do nothing. */
+					}
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else if(2u == SMon_CmdStat) // commanded off
+		{
+			SMon_L1ST = 0u; // switch off load
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(0u == SMon_ShortToPlusTest || 4u == SMon_ShortToPlusTest) // if short-to-plus test is not ongoing
+	{
+		SMon_KeepAwakeReason2 &= ~(1u << 0u); // remove keep awake reason
+	}
+	else
+	{
+		SMon_KeepAwakeReason2 |= (1u << 0u); // set keep awake reason
+	}
+
+	if(0u == SMon_L1ST) // if load needs to be switched off
+	{
+		__disable_irq(); // disable interrupts
+		localCPCFlag = 0u; // reset flag
+		localCLSFlag = 0u; // reset flag
+		SMon_CounterUVL1 = 0u; // reset counter
+		localCLSCounter = 0u; // reset counter
+		localCPCCounter = 0u; // reset counter
+		htim1.Instance->CCR1 = 0u; // switch off CPC
+		HAL_GPIO_WritePin(ENCLS_GPIO_Port, ENCLS_Pin, 0u); // switch off CLS
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
+		__enable_irq(); // enable interrupts
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	__disable_irq(); // disable interrupts
+
+	if(1u == SMon_ValidMeasFlag)
+	{
+		SMon_KeepAwakeReason = SMon_ErrStat; // copy keep awake reason 1
+		SMon_KeepAwakeReason2 |= (SMon_ErrStat2 << 0u) << 1u; // copy keep awake reason 2
+		for(uint8_t i = 0u; i < 13u; i++) // handle error bits
+		{
+			localCombinedStat = SMon_ErrStat | (SMon_ErrStat2 << 8u); // get the 16 error bits
+
+			if(1u == SMon_ShortToPlusTest || 2u == SMon_ShortToPlusTest || 3u == SMon_ShortToPlusTest)
+			{
+				if(9u <= i && 13u >= i)
+				{
+					continue;
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+
+			if((localCombinedStat & (1u << i))) // check for set bit
+			{
+				Dem_SetDtc(Dem_Dtc_IdList[i], 1u, i + 1u); // set DTC
+			}
+			else
+			{
+				Dem_SetDtc(Dem_Dtc_IdList[i], 0u, i + 1u); // heal DTC
+			}
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	__enable_irq(); // enable interrupts
+
+	SMon_MainCnt++; // increment counter
+}

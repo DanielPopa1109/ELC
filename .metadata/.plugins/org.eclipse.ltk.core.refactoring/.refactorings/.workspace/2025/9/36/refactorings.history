@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;SPM_FBL&apos; to &apos;ELC_FBL&apos;" description="Rename resource &apos;SPM_FBL&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/SPM_FBL" name="ELC_FBL" stamp="1756710017778" updateReferences="true"/>&#x0A;<refactoring comment="Delete 2 resources" deleteContents="false" description="Delete 2 resources" element1="/ELC_APP" element2="/ELC_FBL" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="2" stamp="1756718049679"/>
+</session>

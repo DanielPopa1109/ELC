@@ -1,0 +1,94 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: ELC ZGW
+
+
+BO_ 1023 Networkmanagement3_RequestStatus: 1 ZGW
+ SG_ NM3RS_PN1 : 0|8@1+ (1,0) [0|255] ""  ELC
+
+BO_ 1795 Diag703: 8 ZGW
+
+BO_ 1794 Diag702: 8 ZGW
+
+BO_ 514 CANStandardBus_SystemDateAndTime: 7 ZGW
+ SG_ CSB_SDAT_Year : 0|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Second : 40|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Month : 8|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Minute : 32|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Millisecond : 48|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Hour : 24|8@1+ (1,0) [0|255] ""  ELC
+ SG_ CSB_SDAT_Day : 16|8@1+ (1,0) [0|255] ""  ELC
+
+BO_ 1777 LoadTracing3: 5 ELC
+ SG_ LoadTrace_S2BErrorStatus : 32|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadTrace_WupStat : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_RetryCnt : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_LockSupply : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_I2TError : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 1776 LoadTracing2: 8 ELC
+ SG_ LoadTrace_L1_UVStatus : 56|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_CLS_Failure : 48|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_I2TCounter_Byte3 : 40|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_I2TCounter_Byte2 : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_I2TCounter_Byte1 : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_I2TCounter_Byte0 : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_ECU_OV : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_ECU_UV : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 1775 LoadTracing: 8 ELC
+ SG_ LoadTrace_Voltage_Byte2 : 56|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_Voltage_Byte1 : 48|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_T30Voltage_Byte2 : 40|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_T30Voltage_Byte1 : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_Current_Byte3 : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_Current_Byte2 : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_Current_Byte1 : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_Current_Byte0 : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 81 LoadStatus: 1 ELC
+ SG_ LoadPhysicalStatus : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 80 LoadRequest: 1 ZGW
+ SG_ LoadStatusRequest : 0|8@1+ (1,0) [0|255] ""  ELC
+
+
+
+BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
+BA_DEF_  "BusType" STRING ;
+BA_DEF_DEF_  "MultiplexExtEnabled" "No";
+BA_DEF_DEF_  "BusType" "CAN";
+

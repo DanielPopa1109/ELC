@@ -1,0 +1,364 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "can.h"
+#include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef enum
+{
+	DEFAULT = 0U,
+	EXTENDED = 1U,
+	PROGRAMMING = 2U,
+	CALIBRATION = 4U,
+	HARDRESET = 5U,
+	JUMPTOAPPL = 7U
+}FBL_DSC_t;
+#define SESSIONSTATUS_ADDR 					0x20004f98
+#define APPL_START_ADDRESS 					0x8002000
+#define NCR_START_ADDRESS 					0x20004f80
+#define NCR_END_ADDRESS   					0x20004fff
+#define NCR_SIZE          					(NCR_END_ADDRESS - NCR_START_ADDRESS + 1)
+uint8 FBL_RxFrame[8] = {0};
+uint8 FBL_TxFrame[8] = {0};
+CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
+CAN_TxHeaderTypeDef FBL_TxHeader = {0, 0, 0, 0, 0, 0};
+uint32 FBL_TxMailbox = 0;
+uint32* FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
+FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
+uint32 FBL_ProgrammingData = 0;
+uint32 FBL_ProgrammingIndex = 0;
+uint32 FBL_ProgrammingAddress = 0;
+uint32 ROM_APPL_START_ADDR_storedValue = 0;
+uint32 ROM_APPL_START_ADDR = 0x8003C00;
+uint32 FBL_DSC_Status = 0;
+void FBL_JumpToAppl(void);
+void FBL_DiagService_ER_SoftReset(void);
+void FBL_DiagService_ER_HardReset(void);
+void FBL_DiagService_DSC_Programming(void);
+void FBL_DiagService_DSC_CodingSession(void);
+void FBL_DiagService_DSC_Calibration(void);
+void FBL_DiagService_DSC_RequestDownload(void);
+void FBL_DiagService_DSC_TransferData(void);
+void FBL_DiagService_DSC_RequestTransferExit(void);
+void FBL_DiagService_RAR_MassEraseAPPL(void);
+void FBL_DiagService_RAR_MassEraseCALIBRATION(void);
+void FBL_DiagService_RDBI_ReadActiveDiagnosticSession(void);
+void FBL_NvM_FlashReadData(uint32 StartSectorAddress, uint32 *RxBuf, uint16 numberofwords);
+uint32 FBL_NvM_FlashWriteData(uint32 StartSectorAddress, uint32 *Data, uint16 numberofwords);
+uint32 FBL_NvM_EraseFlash_APPL(void);
+uint32 FBL_NvM_EraseFlash_CALIBRATION(void);
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
+{
+	/* Pending and full callbacks used to make sure no message is lost. */
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &FBL_RxHeader, FBL_RxFrame);
+	switch(FBL_DSC_State)
+	{
+	case PROGRAMMING:
+		FBL_DiagService_DSC_Programming();
+		break;
+	case CALIBRATION:
+		FBL_DiagService_DSC_Calibration();
+		break;
+	case HARDRESET:
+		FBL_DiagService_ER_HardReset();
+		break;
+	default:/* Default case to allow programming in case of faulty application software. */
+		if(FBL_RxFrame[1] == 0x10 &&
+				FBL_RxFrame[2] == 0x02)
+		{
+			FBL_TxHeader.DLC = FBL_RxHeader.DLC;
+			FBL_TxHeader.StdId = FBL_RxHeader.StdId + 1;
+			FBL_TxFrame[0] = FBL_RxFrame[0];
+			FBL_TxFrame[1] = FBL_RxFrame[1] + 0x40;
+			FBL_TxFrame[2] = FBL_RxFrame[2];
+			FBL_DSC_State = PROGRAMMING;
+			HAL_CAN_AddTxMessage(hcan, &FBL_TxHeader, FBL_TxFrame, &FBL_TxMailbox);
+			FBL_DiagService_DSC_Programming();
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+		break;
+	}
+}
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	/* Pending and full callbacks used to make sure no message is lost. */
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &FBL_RxHeader, FBL_RxFrame);
+	switch(FBL_DSC_State)
+	{
+	case PROGRAMMING:
+		FBL_DiagService_DSC_Programming();
+		break;
+	case CALIBRATION:
+		FBL_DiagService_DSC_Calibration();
+		break;
+	case HARDRESET:
+		FBL_DiagService_ER_HardReset();
+		break;
+	default:
+		if(FBL_RxFrame[1] == 0x10 &&
+				FBL_RxFrame[2] == 0x02)
+		{
+			FBL_TxHeader.DLC = FBL_RxHeader.DLC;
+			FBL_TxHeader.StdId = FBL_RxHeader.StdId + 1;
+			FBL_TxFrame[0] = FBL_RxFrame[0];
+			FBL_TxFrame[1] = FBL_RxFrame[1] + 0x40;
+			FBL_TxFrame[2] = FBL_RxFrame[2];
+			FBL_DSC_State = PROGRAMMING;
+			HAL_CAN_AddTxMessage(hcan, &FBL_TxHeader, FBL_TxFrame, &FBL_TxMailbox);
+			FBL_DiagService_DSC_Programming();
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+		break;
+	}
+}
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_NVIC_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void)
+{
+
+	/* USER CODE BEGIN 1 */
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_CAN_Init();
+
+	/* Initialize interrupts */
+	MX_NVIC_Init();
+	/* USER CODE BEGIN 2 */
+	FBL_ProgrammingAddress = 0;
+	FBL_ProgrammingIndex = 0;
+	FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
+	if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
+	{
+		FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
+		FBL_DSC_Status = *FBL_DSC_Pointer;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+	if((FBL_DSC_Status == PROGRAMMING)
+			|| (FBL_DSC_Status == CALIBRATION))
+	{
+		FBL_DSC_State = FBL_DSC_Status;
+	}
+	else
+	{
+		if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
+		{
+			if((RCC->CSR & RCC_CSR_PORRSTF) != 0)
+			{
+				for(uint32* addr = ((uint32_t*)NCR_START_ADDRESS); addr <= ((uint32_t*)NCR_END_ADDRESS); addr++) *addr = 0;
+				/* Reset the flag. */
+				RCC->CSR |= RCC_CSR_PORRSTF;
+				RCC->CSR |= RCC_CSR_RMVF;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+			FBL_JumpToAppl();
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1)
+	{
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
+}
+
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void)
+{
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
+
+/**
+ * @brief NVIC Configuration.
+ * @retval None
+ */
+static void MX_NVIC_Init(void)
+{
+	/* RCC_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(RCC_IRQn);
+	/* FLASH_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(FLASH_IRQn);
+	/* PVD_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(PVD_IRQn);
+	/* CAN1_SCE_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+	/* CAN1_RX1_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void)
+{
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1)
+	{
+	}
+	/* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+	/* USER CODE BEGIN 6 */
+	/* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

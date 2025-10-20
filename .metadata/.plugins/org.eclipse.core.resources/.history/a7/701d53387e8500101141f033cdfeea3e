@@ -1,0 +1,8 @@
+#include "stdint.h"
+
+#ifndef ECUM_H_
+#define ECUM_H_
+
+extern void EcuM_main();
+
+#endif /* ECUM_H_ */

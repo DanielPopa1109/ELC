@@ -1,0 +1,307 @@
+#include "Dcm.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "Dem.h"
+
+uint8_t Dcm_RxData[8u];
+uint8_t Dcm_TxData[8u];
+uint8_t Dcm_CDTCS_Status = 1u;
+extern uint8_t SMon_CmdStat __attribute((section(".ncr"))); // LIN Command Status
+extern uint8_t SMon_ErrStat __attribute((section(".ncr"))); // Error State
+extern uint8_t SMon_ErrStat2 __attribute((section(".ncr"))); // Error State
+extern uint8_t SMon_RetryCnt __attribute((section(".ncr"))); // Retry Counter
+extern uint8_t SMon_LockSupply __attribute((section(".ncr"))); // Lock Supply Output
+uint32_t Dcm_AliveCounter __attribute((section(".ncr")));
+uint8_t Dcm_ActiveSessionState __attribute((section(".ncr")));
+uint8_t Dcm_SWV[4u] = {40u, 40u, 0xFFu, 0xFFu};
+
+void Dcm_main();
+void Dcm_ProgrammingSession();
+void Dcm_HardReset();
+void Dcm_ControlDTCSetting();
+void Dcm_ReadSWV();
+void Dcm_ReadADS();
+void Dcm_ReadAliveTime();
+void Dcm_CDTCI();
+void Dcm_RDTCI();
+void Dcm_RC_HealSupply();
+
+void Dcm_ProgrammingSession()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_ActiveSessionState = Dcm_RxData[2u];
+
+	EcuM_PerformReset(0u, 0u);
+}
+
+void Dcm_HardReset()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+
+	EcuM_PerformReset(0u, 0u);
+}
+
+void Dcm_ControlDTCSetting()
+{
+	Dcm_CDTCS_Status = Dcm_RxData[2u];
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+
+}
+
+void Dcm_ReadSWV()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_SWV[0u];
+	Dcm_TxData[5u] = Dcm_SWV[1u];
+	Dcm_TxData[6u] = Dcm_SWV[2u];
+	Dcm_TxData[7u] = Dcm_SWV[3u];
+
+}
+
+void Dcm_ReadADS()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 1u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_ActiveSessionState;
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+
+}
+
+void Dcm_ReadAliveTime()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = (uint8_t)(Dcm_AliveCounter >> 24u);
+	Dcm_TxData[5u] = (uint8_t)(Dcm_AliveCounter >> 16u);
+	Dcm_TxData[6u] = (uint8_t)(Dcm_AliveCounter >> 8u);
+	Dcm_TxData[7u] = (uint8_t)(Dcm_AliveCounter);
+
+}
+
+void Dcm_CDTCI()
+{
+	Dem_ClearDtc();
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+
+}
+
+void Dcm_RDTCI()
+{
+	for (uint8_t dtcIdx = 0u; dtcIdx < DEM_NO_DTCS; dtcIdx++)
+	{
+		Dem_Dtc_t *dtc = &Dem_Dtc_FullBlock[dtcIdx];
+
+		for (uint8_t i = 0u; i < DEM_NO_FF; i++)
+		{
+			Dcm_TxData[0u] = dtc->id;
+			Dcm_TxData[1u] = dtc->status;
+			Dcm_TxData[2u] = dtc->locksupply_ff[i];
+			Dcm_TxData[3u] = dtc->s2btststat_ff[i];
+			Dcm_TxData[4u] = dtc->swstate_ff[i];
+			Dcm_TxData[5u] = dtc->cmdstat_ff[i];
+			Dcm_TxData[6u] = dtc->keepawakereason_ff[i];
+			Dcm_TxData[7u] = dtc->keepawakereason2_ff[i];
+
+
+
+			Dcm_TxData[0] = dtc->retrycnt_ff[i];
+			Dcm_TxData[1] = (uint8_t)(dtc->reason_ff[i]);
+			Dcm_TxData[2] = (uint8_t)(dtc->vfbl1_ff[i] >> 8u);
+			Dcm_TxData[3] = (uint8_t)(dtc->vfbl1_ff[i] & 0xFFu);
+			Dcm_TxData[4] = (uint8_t)(dtc->vfbt30_ff[i] >> 8u);
+			Dcm_TxData[5] = (uint8_t)(dtc->vfbt30_ff[i] & 0xFFu);
+			Dcm_TxData[6] = (uint8_t)(dtc->isensecls_ff[i] >> 8u);
+			Dcm_TxData[7] = (uint8_t)(dtc->isensecls_ff[i] & 0xFFu);
+
+
+
+			Dcm_TxData[0u] = (uint8_t)(dtc->isensel1_ff[i] >> 8u);
+			Dcm_TxData[1u] = (uint8_t)(dtc->isensel1_ff[i] & 0xFFu);
+			Dcm_TxData[2u] = (uint8_t)(dtc->timeoutcntlin_ff[i] >> 8u);
+			Dcm_TxData[3u] = (uint8_t)(dtc->timeoutcntlin_ff[i] & 0xFFu);
+			Dcm_TxData[4u] = (uint8_t)(dtc->alivetime_ff[i] >> 24u);
+			Dcm_TxData[5u] = (uint8_t)(dtc->alivetime_ff[i] >> 16u);
+			Dcm_TxData[6u] = (uint8_t)(dtc->alivetime_ff[i] >> 8u);
+			Dcm_TxData[7u] = (uint8_t)(dtc->alivetime_ff[i] & 0xFFu);
+
+
+
+			uint8_t *fi_ptr = (uint8_t *)&dtc->resetdata_ff[i];
+
+			for (uint8_t j = 0u; j < sizeof(FaultInfo_t); j += 8u)
+			{
+				for (uint8_t k = 0u; k < 8u; k++)
+				{
+					if ((j + k) < sizeof(FaultInfo_t))
+					{
+						Dcm_TxData[k] = fi_ptr[j + k];
+					}
+					else
+					{
+						Dcm_TxData[k] = 0u; // Padding
+					}
+				}
+
+			}
+		}
+	}
+}
+
+void Dcm_RC_HealSupply()
+{
+	SMon_ErrStat = 0u;
+	SMon_ErrStat2 = 0u;
+	SMon_RetryCnt = 0u;
+	SMon_LockSupply = 0u;
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+
+}
+
+void Dcm_main()
+{
+	static uint32_t Dcm_MainCounter = 0u;
+
+	if(0u == Dcm_MainCounter)
+	{
+		Dcm_ActiveSessionState = 0u;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	Dcm_AliveCounter += 5;
+
+	if(0x85u == Dcm_RxData[1u])
+	{
+		Dcm_ControlDTCSetting();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x02 == Dcm_RxData[2u] && 0u == SMon_CmdStat)
+	{
+		Dcm_ProgrammingSession();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x86u == Dcm_RxData[3u] && 0xF1u == Dcm_RxData[2u] && 0x22u == Dcm_RxData[1u])
+	{
+		Dcm_ReadADS();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x11u == Dcm_RxData[1u] && 0x01u == Dcm_RxData[2u])
+	{
+		Dcm_HardReset();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x14u == Dcm_RxData[1u])
+	{
+		Dcm_CDTCI();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x19u == Dcm_RxData[1u])
+	{
+		Dcm_RDTCI();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x05u == Dcm_RxData[3u] && 0x00u == Dcm_RxData[2u] && 0x22u == Dcm_RxData[1u])
+	{
+		Dcm_ReadAliveTime();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x05u == Dcm_RxData[3u] && 0xF1 == Dcm_RxData[2u] && 0x80 == Dcm_RxData[1u])
+	{
+		Dcm_ReadAliveTime();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x40u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	{
+		Dcm_RC_HealSupply();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_RxData[i] = 0u;
+		Dcm_TxData[i] = 0u;
+	}
+
+	Dcm_MainCounter++;
+}

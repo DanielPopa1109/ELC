@@ -1,0 +1,16 @@
+﻿[PanelSettings]
+PanelLayout=2
+PanelName=Panel 8438
+DisplayVarLinks=0
+DisplayVarNames=1
+EatFirstClick=0
+
+[FormSettings]
+Width=640
+Height=480
+Title=Panel 8438
+Backcolor=16777215
+AllowSnapGuideLine=1
+
+[ControlNames]
+ControlsCount=0
