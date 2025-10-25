@@ -43,7 +43,7 @@ void CanH_MainFunction(void)
 	{
 		if(FULL_COMMUNICATION == CanH_CommunicationState)
 		{
-			if(CanH_MainCounter % 202 == 0)
+			if(CanH_MainCounter % 200 == 0)
 			{
 				CanH_TxData[0] = SMon_L1ST;
 				CanH_TxHeader.DLC = 1;
@@ -58,7 +58,7 @@ void CanH_MainFunction(void)
 				/* Do nothing. */
 			}
 
-			if(CanH_MainCounter != 0)
+			if(CanH_MainCounter % 2 == 0)
 			{
 				CanH_TxData[0] = (uint8_t)(SMon_ISenseL1);
 				CanH_TxData[1] = (uint8_t)(SMon_ISenseL1 >> 8u);
@@ -102,7 +102,7 @@ void CanH_MainFunction(void)
 				/* Do nothing. */
 			}
 
-			if(CanH_MainCounter % 201 == 0)
+			if(CanH_MainCounter % 10 == 0)
 			{
 				CanH_TxData[0] = SMon_I2TError;
 				CanH_TxData[1] = SMon_LockSupply;
@@ -141,8 +141,6 @@ void CanH_MainFunction(void)
 	}
 
 	CanH_NoCommCounter++;
-	CanH_MainCounter++;
-
 	CanH_MainCounter++;
 
 	for(uint8_t i = 0; i < 8; i++)

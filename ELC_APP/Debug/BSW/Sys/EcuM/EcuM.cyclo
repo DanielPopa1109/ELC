@@ -1,5 +1,0 @@
-../Drivers/CMSIS/Include/core_cm3.h:1762:34:__NVIC_SystemReset	1
-../BSW/Sys/EcuM/EcuM.c:89:6:EcuM_GoSleep	1
-../BSW/Sys/EcuM/EcuM.c:25:6:EcuM_main	10
-../BSW/Sys/EcuM/EcuM.c:169:6:EcuM_ProcessTimerInterrupt	1
-../BSW/Sys/EcuM/EcuM.c:181:6:EcuM_PerformReset	0

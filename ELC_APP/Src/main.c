@@ -1,20 +1,4 @@
 /* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Main program body
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2025 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- ******************************************************************************
- */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -47,7 +31,19 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t Ain_DmaBuffer[5u];
+uint16_t Ain_DmaBuffer[4u];
+extern uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
+extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
+extern uint8_t SMon_CmdStat; // Command Status
+extern uint8_t SMon_ValidMeasFlag; // ADC valid measurement
+extern uint8_t SMon_FastResponseTrigger;
+extern uint8_t SMon_RequestPhysicalStatus;
+extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
+extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
+extern uint32_t SMon_ISenseL1; // I Sense L1
+extern float SMon_ISenseL1_Float;
+extern float SMon_PeakCurrent;
+extern const uint32_t SMon_P_PeakCurrent;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -55,72 +51,76 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-extern uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern uint8_t localCLSFlag; // CLS status flag - not started / running / done
-extern uint8_t SMon_CmdStat; // Command Status
-extern float SMon_ISenseL1_Float;
-extern uint32_t SMon_ISenseL1; // I Sense L1
-extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
-extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
-extern uint8_t SMon_ValidMeasFlag; // ADC valid measurement
-volatile float v0 = 0.0f;
-volatile float v1 = 0.0f;
-volatile float v2 = 0.0f;
-volatile float v3 = 0.0f;
-static volatile float filt_current_mA = 0.0f;
-static volatile float corrected_current_mA = 0.0f;
-static volatile float filt_corrected_current_mA = 0.0f;
-static float filt_vfb1_mV = 0.0f;
-static float filt_vfb2_mV = 0.0f;
-static float vfb1_mV = 0.0f;
-static float vfb2_mV = 0.0f;
-float RSense = 10.0f;
-float KOffset = 17.0f;
-float KFactor = 1.116f;
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+	static float v0 = 0.0f;
+	static float v1 = 0.0f;
+	static float v2 = 0.0f;
+	static float v3 = 0.0f;
+	static float filt_current_mA = 0.0f;
+	static float corrected_current_mA = 0.0f;
+	static float filt_corrected_current_mA = 0.0f;
+	static float filt_vfb1_mV = 0.0f;
+	static float filt_vfb2_mV = 0.0f;
+	static float vfb1_mV = 0.0f;
+	static float vfb2_mV = 0.0f;
+	static float localFastResponse_filt_current_mA = 0.0f;
+	static float localFastResponse_corrected_current_mA = 0.0f;
+	static float localFastResponse_filt_corrected_current_mA = 0.0f;
+
 	v0 = ((float)Ain_DmaBuffer[2u] / 4095.0f) * 3300.0f;
 	v1 = ((float)Ain_DmaBuffer[1u] / 4095.0f) * 3300.0f;
 	v2 = ((float)Ain_DmaBuffer[3u] / 4095.0f) * 3300.0f;
 	v3 = ((float)Ain_DmaBuffer[0u] / 4095.0f) * 3300.0f;
-
 	vfb1_mV = v2 * ((91.0f + 10.0f) / 10.0f);
 	vfb2_mV = v3 * ((91.0f + 10.0f) / 10.0f);
-
 	vfb1_mV -= 180.0f;
-	v0 += 10.0f;
-	v1 -= 12.0f;
+	v0 += 8.0f;
+	v1 -= 8.0f;
+	filt_vfb1_mV = filt_vfb1_mV + 0.75f * (vfb1_mV - filt_vfb1_mV);
+	filt_vfb2_mV = filt_vfb2_mV + 0.75f * (vfb2_mV - filt_vfb2_mV);
 
-	filt_vfb1_mV = filt_vfb1_mV + 0.1f * (vfb1_mV - filt_vfb1_mV);
-	filt_vfb2_mV = filt_vfb2_mV + 0.1f * (vfb2_mV - filt_vfb2_mV);
-	filt_current_mA = filt_current_mA + 0.1f * ((v0 - v1)/0.010f - filt_current_mA);
-	corrected_current_mA = (filt_current_mA - (-62.5f * (filt_vfb2_mV / 1000.0f) + 2300.0f)) * 10.0f;
-	filt_corrected_current_mA = filt_corrected_current_mA + 0.75f * (corrected_current_mA - filt_corrected_current_mA);
+	localFastResponse_filt_current_mA = localFastResponse_filt_current_mA + 0.75f * ((v0 - v1)/0.010f - localFastResponse_filt_current_mA);
+	localFastResponse_corrected_current_mA = (localFastResponse_filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
+	localFastResponse_filt_corrected_current_mA = localFastResponse_filt_corrected_current_mA + 0.75f * (localFastResponse_corrected_current_mA - localFastResponse_filt_corrected_current_mA);
 
-	if(0u == SMon_CmdStat || 2u != localCLSFlag)
+	filt_current_mA = filt_current_mA + 0.05f * ((v0 - v1)/0.010f - filt_current_mA);
+	corrected_current_mA = (filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
+	filt_corrected_current_mA = filt_corrected_current_mA + 0.05f * (corrected_current_mA - filt_corrected_current_mA);
+
+	if(0u == SMon_CmdStat || 2u != SMon_CLSFlag)
 	{
-		filt_current_mA = 0u;
-		corrected_current_mA = 0u;
-		filt_corrected_current_mA = 0u;
+		filt_current_mA = 0.0f;
+		corrected_current_mA = 0.0f;
+		filt_corrected_current_mA = 0.0f;
+		localFastResponse_filt_current_mA = 0.0f;
+		localFastResponse_corrected_current_mA = 0.0f;
+		localFastResponse_filt_corrected_current_mA = 0.0f;
 	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	if(2u != localCLSFlag)
+	if(SMon_P_PeakCurrent < localFastResponse_filt_corrected_current_mA)
 	{
-		filt_vfb1_mV = vfb1_mV + 180.0f;
+		SMon_FastResponseTrigger = 1u;
+		SMon_RequestPhysicalStatus = 0u;
+		htim1.Instance->CCR1 = 0u; // switch off CPC
+		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
 	}
 	else
 	{
-		/* Do nothing. */
+		/* Do nothing */
 	}
+
+	if(2u != SMon_CLSFlag) filt_vfb1_mV = vfb1_mV + 180.0f;
+	if(SMon_PeakCurrent < localFastResponse_filt_corrected_current_mA) SMon_PeakCurrent = localFastResponse_filt_corrected_current_mA;
 
 	SMon_ISenseL1_Float = filt_corrected_current_mA / 1000u;
 	SMon_ISenseL1 = filt_corrected_current_mA;
@@ -201,7 +201,7 @@ int main(void)
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	HAL_Delay(1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 4u);
 	/* USER CODE END 2 */
 
 	/* Init scheduler */

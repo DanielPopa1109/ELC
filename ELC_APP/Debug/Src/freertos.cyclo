@@ -1,9 +1,0 @@
-../Src/freertos.c:197:6:QM_BSW_TASK	1
-../Src/freertos.c:218:6:QM_APPL_TASK	1
-../Src/freertos.c:240:6:QM_DIAG_TASK	1
-../Src/freertos.c:254:6:Alarm5ms_Callback	1
-../Src/freertos.c:116:6:vApplicationIdleHook	1
-../Src/freertos.c:125:6:vApplicationTickHook	1
-../Src/freertos.c:132:6:vApplicationStackOverflowHook	1
-../Src/freertos.c:139:6:vApplicationMallocFailedHook	1
-../Src/freertos.c:150:6:MX_FREERTOS_Init	1

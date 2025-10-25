@@ -35,7 +35,7 @@ typedef enum
 	HARDRESET = 5U,
 	JUMPTOAPPL = 7U
 }FBL_DSC_t;
-#define SESSIONSTATUS_ADDR 					0x20004c00
+#define SESSIONSTATUS_ADDR 					0x20004FC0
 #define APPL_START_ADDRESS 					0x8002000
 uint8 FBL_RxFrame[8] = {0};
 uint8 FBL_TxFrame[8] = {0};

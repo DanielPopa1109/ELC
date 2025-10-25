@@ -23,6 +23,29 @@
 		<item key="caseSensitive" value="false"/>
 		<item key="searchFlags" value="227191"/>
 		<list key="previousPatterns">
+			<item value="SMon_RetryCnt"/>
+			<item value="CanH_MainFunction"/>
+			<item value="sqrt"/>
+			<item value="configTOTAL_HEAP_SIZE"/>
+			<item value="SMon_LockSupply"/>
+			<item value="SMon_VfbL1_RMS_120s"/>
+			<item value="SMon_CounterUVKL30"/>
+			<item value="SMon_CounterOVKL30"/>
+			<item value="SMon_CounterUVL1"/>
+			<item value="localS2BCounter"/>
+			<item value="localLowDisTimer"/>
+			<item value="localDischargeTimer"/>
+			<item value="localCPCCounter"/>
+			<item value="localCLSCounter"/>
+			<item value="localCPCFlag"/>
+			<item value="localI2tAvgCounter"/>
+			<item value="SMon_PeakCurrent"/>
+			<item value="SMon_ISenseL1_Float"/>
+			<item value="SMon_I2TCounter_Float"/>
+			<item value="SMon_ISenseL1_Average_Float"/>
+			<item value="SMon_ISenseL1_Avged_Float"/>
+			<item value="SMon_DeltaAmper_Float"/>
+			<item value="SMon_RmsCurrent"/>
 			<item value="SMon_Hist_ISenseL1_ms"/>
 			<item value="localRequestPhysicalStatus"/>
 			<item value="Ain_DmaBuffer"/>
@@ -45,5 +68,12 @@
 			<item value="LIN_Call"/>
 			<item value="SMon_ErrStat2"/>
 		</list>
+	</section>
+	<section name="org.eclipse.cdt.ui.OPEN_ACTION_SELECTION_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="769"/>
+		<item key="DIALOG_Y_ORIGIN" value="232"/>
+		<item key="DIALOG_WIDTH" value="398"/>
+		<item key="DIALOG_HEIGHT" value="438"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
 	</section>
 </section>

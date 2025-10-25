@@ -1,30 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_UpdateHistograms"/>
+		<item key="selection" value="SMon_I2TAccumulation"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="SMon_I2TAccumulation"/>
+			<item value="CanH_MainCounter"/>
+			<item value="SMon_UpdateHistWindow"/>
+			<item value="UpdateHistWindow"/>
+			<item value="localCPCCounter"/>
+			<item value="localS2BCounter"/>
 			<item value="SMon_UpdateHistograms"/>
-			<item value="SMon_CLS_Failure"/>
-			<item value="SMon_P_LowDisTimeCyc"/>
-			<item value="SMon_P_DischargeTimeCycles"/>
-			<item value="SMon_L1_UVStatus"/>
-			<item value="SMon_VfbT30"/>
-			<item value="SMon_P_CLSTime"/>
-			<item value="SMon_P_WaitTimeCPC"/>
-			<item value="SMon_P_LowVoltage"/>
-			<item value="SMon_P_ShortToPlusVoltageTh"/>
-			<item value="SMon_P_LongDischargeTimeCycles"/>
+			<item value="EcuM_PerformReset"/>
+			<item value="SMon_CounterOVKL30"/>
+			<item value="SMon_CounterUVKL30"/>
+			<item value="localT30P50"/>
 			<item value="localRequestPhysicalStatus"/>
-			<item value=""/>
-			<item value="Dcm_ActiveSessionState"/>
-			<item value="plocalSMon_SWState"/>
+			<item value="SMon_CounterUVL1"/>
+			<item value="RSense"/>
+			<item value="SMon_CLS_Failure"/>
 		</list>
 		<list key="replacehistory">
+			<item value="CounterOVKL30"/>
+			<item value="CounterUVKL30"/>
+			<item value="SMon_T30P50"/>
+			<item value="SMon_RequestPhysicalStatus"/>
 			<item value="SMon_CmdStat"/>
 			<item value="SMon_LockSupply"/>
 			<item value="localSMon_LockSupply"/>
@@ -36,10 +40,6 @@
 			<item value="SMon_MainCnt"/>
 			<item value="SMon_SWState"/>
 			<item value="SMon_ValidMeasFlag"/>
-			<item value="localSMon_ErrStat2"/>
-			<item value="localSMon_ErrStat"/>
-			<item value="localSMon_ValidMeasFlag"/>
-			<item value="SMon_P_WaitTimeOVUV"/>
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">

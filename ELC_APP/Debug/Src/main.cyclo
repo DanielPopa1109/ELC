@@ -1,6 +1,0 @@
-../Src/main.c:85:6:HAL_ADC_ConvCpltCallback	4
-../Src/main.c:132:6:HAL_ADC_ErrorCallback	2
-../Src/main.c:233:6:SystemClock_Config	4
-../Src/main.c:152:5:main	4
-../Src/main.c:334:6:HAL_TIM_PeriodElapsedCallback	2
-../Src/main.c:351:6:Error_Handler	1

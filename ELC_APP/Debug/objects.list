@@ -40,4 +40,3 @@
 "./Src/stm32f1xx_it.o"
 "./Src/system_stm32f1xx.o"
 "./Src/tim.o"
-"./ThreadSafe/newlib_lock_glue.o"

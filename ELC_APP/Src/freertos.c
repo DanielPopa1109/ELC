@@ -33,7 +33,6 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 /* USER CODE END PTD */
 
@@ -54,38 +53,23 @@ long long idlecnt;
 /* USER CODE END Variables */
 /* Definitions for QM_BSW */
 osThreadId_t QM_BSWHandle;
-uint32_t QM_BSWBuffer[ 800 ];
-osStaticThreadDef_t QM_BSWControlBlock;
 const osThreadAttr_t QM_BSW_attributes = {
   .name = "QM_BSW",
-  .cb_mem = &QM_BSWControlBlock,
-  .cb_size = sizeof(QM_BSWControlBlock),
-  .stack_mem = &QM_BSWBuffer[0],
-  .stack_size = sizeof(QM_BSWBuffer),
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh5,
 };
 /* Definitions for QM_APPL */
 osThreadId_t QM_APPLHandle;
-uint32_t QM_APPLBuffer[ 800 ];
-osStaticThreadDef_t QM_APPLControlBlock;
 const osThreadAttr_t QM_APPL_attributes = {
   .name = "QM_APPL",
-  .cb_mem = &QM_APPLControlBlock,
-  .cb_size = sizeof(QM_APPLControlBlock),
-  .stack_mem = &QM_APPLBuffer[0],
-  .stack_size = sizeof(QM_APPLBuffer),
+  .stack_size = 2000 * 4,
   .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for QM_DIAG */
 osThreadId_t QM_DIAGHandle;
-uint32_t QM_DIAGBuffer[ 800 ];
-osStaticThreadDef_t QM_DIAGControlBlock;
 const osThreadAttr_t QM_DIAG_attributes = {
   .name = "QM_DIAG",
-  .cb_mem = &QM_DIAGControlBlock,
-  .cb_size = sizeof(QM_DIAGControlBlock),
-  .stack_mem = &QM_DIAGBuffer[0],
-  .stack_size = sizeof(QM_DIAGBuffer),
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for Alarm5ms */
@@ -121,10 +105,11 @@ void vApplicationIdleHook( void )
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN 3 */
-extern uint16_t Ain_DmaBuffer[5u];
+extern uint16_t Ain_DmaBuffer[4u];
 void vApplicationTickHook( void )
 {
 	oscnt++;
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 4u);
 }
 /* USER CODE END 3 */
 
@@ -255,7 +240,7 @@ void Alarm5ms_Callback(void *argument)
 {
   /* USER CODE BEGIN Alarm5ms_Callback */
 	HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
+//	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 4u);
 	vTaskResume(QM_APPLHandle);
 	vTaskResume(QM_BSWHandle);
 	vTaskResume(QM_DIAGHandle);
