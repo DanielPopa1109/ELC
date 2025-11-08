@@ -2,20 +2,6 @@
   "Items":  
   [
     {
-      "Name":"Flashing",
-      "Type":      1,
-      "GUID":"s476810004214243828126718574",
-      "SEL":"Checked",
-      "REG":"False"    
-    },
-    {
-      "Name":"Read Data",
-      "Type":      1,
-      "GUID":"s478355315508184297610769648",
-      "SEL":"Checked",
-      "REG":"False"    
-    },
-    {
       "Name":"DIAG FULL RUN",
       "Type":      1,
       "GUID":"s364860628130405067152655049",

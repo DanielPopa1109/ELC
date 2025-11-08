@@ -1,20 +1,4 @@
 /* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Main program body
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2025 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- ******************************************************************************
- */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -23,6 +7,17 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdint.h>
+#define SYST_CSR  (*(volatile uint32_t*)0xE000E010)
+#define SYST_RVR  (*(volatile uint32_t*)0xE000E014)
+#define SYST_CVR  (*(volatile uint32_t*)0xE000E018)
+extern uint8_t __ram_blob_load_start, __ram_blob_load_end, __ram_blob_vma_start;
+volatile uint8_t g_run_ram_updater = 0;
+void FBL_RunRamUpdater(void);
+/* Choose where to place the RAM updater */
+#define RAM_DST   ((uint32_t)0x20001000u)   /* base of SRAM in F103C8 */
+static void memcopy8(uint8_t *dst, const uint8_t *src, uint32_t n)
+{ while (n--) *dst++ = *src++; }
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -36,7 +31,7 @@ typedef enum
 	JUMPTOAPPL = 7U
 }FBL_DSC_t;
 #define SESSIONSTATUS_ADDR 					0x20004FC0
-#define APPL_START_ADDRESS 					0x8002000
+#define APPL_START_ADDRESS 					0x8004000
 uint8 FBL_RxFrame[8] = {0};
 uint8 FBL_TxFrame[8] = {0};
 CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -48,8 +43,11 @@ uint32 FBL_ProgrammingData = 0;
 uint32 FBL_ProgrammingIndex = 0;
 uint32 FBL_ProgrammingAddress = 0;
 uint32 ROM_APPL_START_ADDR_storedValue = 0;
-uint32 ROM_APPL_START_ADDR = 0x8003C00;
+uint32 ROM_APPL_START_ADDR = 0x8004000;
 uint32 FBL_DSC_Status = 0;
+
+uint8_t FBL_Dcm_SWV[4u] = {11u, 11u, 0xFFu, 0xFFu};
+
 void FBL_JumpToAppl(void);
 void FBL_DiagService_ER_HardReset(void);
 void FBL_DiagService_DSC_Programming(void);
@@ -64,6 +62,58 @@ uint32 FBL_NvM_EraseFlash_APPL(void);
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+void FBL_RunRamUpdater(void)
+{
+	FBL_TxHeader.DLC = 8;
+	FBL_TxHeader.StdId = 0x703;
+	FBL_TxFrame[0] = 0x04;
+	FBL_TxFrame[1] = 0x71;
+	FBL_TxFrame[2] = 0x00;
+	FBL_TxFrame[3] = 0x00;
+	FBL_TxFrame[4] = 0x07;
+	FBL_TxFrame[5] = FBL_RxFrame[5];
+	FBL_TxFrame[6] = FBL_RxFrame[6];
+	FBL_TxFrame[7] = FBL_RxFrame[7];
+	HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, FBL_TxFrame, &FBL_TxMailbox);
+	for(uint8 i = 0; i < 8 ; i++) FBL_TxFrame[i] = 0;
+	FBL_TxHeader.DLC = 0;
+	FBL_TxHeader.ExtId = 0;
+	FBL_TxHeader.IDE = 0;
+	FBL_TxHeader.RTR = 0;
+	FBL_TxHeader.StdId = 0;
+	FBL_TxHeader.TransmitGlobalTime = 0;
+	FBL_TxMailbox = 0;
+	FBL_RxHeader.StdId = 0;
+	FBL_RxHeader.DLC = 0;
+	FBL_RxHeader.ExtId = 0;
+	FBL_RxHeader.FilterMatchIndex = 0;
+	FBL_RxHeader.IDE = 0;
+	FBL_RxHeader.RTR = 0;
+	FBL_RxHeader.Timestamp = 0;
+	for(uint8_t i = 0; i < 8; i++) FBL_RxFrame[i] = 0;
+
+	HAL_Delay(1);
+
+	__disable_irq();                          /* disable IRQs */
+	SYST_CSR = 0; SYST_RVR = 0; SYST_CVR = 0; /* stop SysTick */
+
+	/* Copy blob from FLASH (LMA) to its RAM VMA */
+	uint32_t size = (uint32_t)(&__ram_blob_load_end - &__ram_blob_load_start);
+	uint8_t *dst  = &__ram_blob_vma_start;
+	uint8_t *src  = &__ram_blob_load_start;
+	memcopy8(dst, src, size);
+
+	/* Read RAM vector table, switch VTOR, set MSP, jump */
+	uint32_t vtor     = (uint32_t)dst;
+	uint32_t new_msp  = *(uint32_t *)(vtor + 0);
+	uint32_t reset_pc = *(uint32_t *)(vtor + 4);
+
+	SCB->VTOR = vtor;
+	__set_MSP(new_msp);
+	((void (*)(void))reset_pc)();             /* never returns */
+}
+
+
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
 {
 	/* Pending and full callbacks used to make sure no message is lost. */
@@ -157,39 +207,39 @@ static void MX_NVIC_Init(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_CAN_Init();
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_CAN_Init();
 
-  /* Initialize interrupts */
-  MX_NVIC_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize interrupts */
+	MX_NVIC_Init();
+	/* USER CODE BEGIN 2 */
 	FBL_ProgrammingAddress = 0;
 	FBL_ProgrammingIndex = 0;
 	FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
@@ -217,85 +267,89 @@ int main(void)
 			/* Do nothing. */
 		}
 	}
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
+		if (g_run_ram_updater) {
+			g_run_ram_updater = 0;
+			FBL_RunRamUpdater();
+		}
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 /**
-  * @brief NVIC Configuration.
-  * @retval None
-  */
+ * @brief NVIC Configuration.
+ * @retval None
+ */
 static void MX_NVIC_Init(void)
 {
-  /* RCC_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(RCC_IRQn);
-  /* FLASH_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(FLASH_IRQn);
-  /* PVD_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(PVD_IRQn);
-  /* CAN1_SCE_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
-  /* CAN1_RX1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
-  /* USB_LP_CAN1_RX0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-  /* USB_HP_CAN1_TX_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+	/* RCC_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(RCC_IRQn);
+	/* FLASH_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(FLASH_IRQn);
+	/* PVD_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(PVD_IRQn);
+	/* CAN1_SCE_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+	/* CAN1_RX1_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -305,8 +359,8 @@ uint32 FBL_NvM_EraseFlash_APPL(void)
 {
 	static FLASH_EraseInitTypeDef EraseInitStruct;
 	uint32 PAGEError;
-	uint32 StartPage = 0x8002000;
-	uint32 EndPageAdress = 0x800dbff;
+	uint32 StartPage = 0x08004000;
+	uint32 EndPageAdress = 0x0800FFFF;
 	uint32 EndPage = Nvm_GetPage(EndPageAdress);
 	HAL_FLASH_Unlock();
 	EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
@@ -354,6 +408,37 @@ void FBL_NvM_FlashReadData(uint32 StartPageAddress, uint32 *RxBuf, uint16 number
 	__disable_irq();
 	for (uint16 i = 0; i < numberofwords; i++) RxBuf[i] = *(__IO uint32 *)(StartPageAddress + (i * 4));
 	__enable_irq();
+}
+
+void FBL_DiagService_RDBI_SWVER(void)
+{
+	FBL_TxHeader.DLC = FBL_RxHeader.DLC;
+	FBL_TxHeader.StdId = FBL_RxHeader.StdId + 1;
+	FBL_TxFrame[0] = 7;
+	FBL_TxFrame[1] = FBL_RxFrame[1] + 0x40;
+	FBL_TxFrame[2] = FBL_RxFrame[2];
+	FBL_TxFrame[3] = FBL_RxFrame[3];
+	FBL_TxFrame[4] = FBL_Dcm_SWV[0];
+	FBL_TxFrame[5] = FBL_Dcm_SWV[1];
+	FBL_TxFrame[6] = FBL_Dcm_SWV[2];
+	FBL_TxFrame[7] = FBL_Dcm_SWV[3];
+	HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, FBL_TxFrame, &FBL_TxMailbox);
+	for(uint8 i = 0; i < 8 ; i++) FBL_TxFrame[i] = 0;
+	FBL_TxHeader.DLC = 0;
+	FBL_TxHeader.ExtId = 0;
+	FBL_TxHeader.IDE = 0;
+	FBL_TxHeader.RTR = 0;
+	FBL_TxHeader.StdId = 0;
+	FBL_TxHeader.TransmitGlobalTime = 0;
+	FBL_TxMailbox = 0;
+	FBL_RxHeader.StdId = 0;
+	FBL_RxHeader.DLC = 0;
+	FBL_RxHeader.ExtId = 0;
+	FBL_RxHeader.FilterMatchIndex = 0;
+	FBL_RxHeader.IDE = 0;
+	FBL_RxHeader.RTR = 0;
+	FBL_RxHeader.Timestamp = 0;
+	for(uint8 i = 0; i < 8; i++) FBL_RxFrame[i] = 0;
 }
 
 void FBL_DiagService_DSC_RequestDownload(void)
@@ -504,6 +589,16 @@ void FBL_DiagService_ER_HardReset(void)
 
 void FBL_DiagService_DSC_Programming(void)
 {
+	if(3 == FBL_RxFrame[0] && 0x22 == FBL_RxFrame[1] && 0xf1 == FBL_RxFrame[2] && 0x80 == FBL_RxFrame[3])
+	{
+		FBL_DiagService_RDBI_SWVER();
+	}
+
+	if (FBL_RxFrame[4] == 0x07 && FBL_RxFrame[0] == 0x04 && FBL_RxFrame[1] == 0x31 && FBL_RxFrame[2] == 0 && FBL_RxFrame[3] == 0 )
+	{
+		g_run_ram_updater = 1;
+	}
+
 	if(FBL_RxFrame[0] == 0x04 &&
 			FBL_RxFrame[1] == 0x31 &&
 			FBL_RxFrame[4] == 0x04)
@@ -516,10 +611,7 @@ void FBL_DiagService_DSC_Programming(void)
 	}
 	if(FBL_RxFrame[1] == 0x34)
 	{
-		FBL_ProgrammingAddress = (0x08 << 24)
-				| (FBL_RxFrame[4] << 16)
-				| (FBL_RxFrame[5] << 8)
-				| (FBL_RxFrame[6]);
+		FBL_ProgrammingAddress = (0x08 << 24) | (FBL_RxFrame[4] << 16) | (FBL_RxFrame[5] << 8) | (FBL_RxFrame[6]);
 		FBL_DiagService_DSC_RequestDownload();
 	}
 	else
@@ -581,28 +673,28 @@ void FBL_DiagService_DSC_Programming(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

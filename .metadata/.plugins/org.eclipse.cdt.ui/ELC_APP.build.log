@@ -1,4 +1,4 @@
-17:58:45 **** Clean-only build of configuration Debug for project ELC_APP ****
+08:29:01 **** Clean-only build of configuration Debug for project ELC_APP ****
 make -j12 clean 
 rm -rf ./Src/adc.cyclo ./Src/adc.d ./Src/adc.o ./Src/adc.su ./Src/can.cyclo ./Src/can.d ./Src/can.o ./Src/can.su ./Src/dma.cyclo ./Src/dma.d ./Src/dma.o ./Src/dma.su ./Src/freertos.cyclo ./Src/freertos.d ./Src/freertos.o ./Src/freertos.su ./Src/gpio.cyclo ./Src/gpio.d ./Src/gpio.o ./Src/gpio.su ./Src/main.cyclo ./Src/main.d ./Src/main.o ./Src/main.su ./Src/stm32f1xx_hal_msp.cyclo ./Src/stm32f1xx_hal_msp.d ./Src/stm32f1xx_hal_msp.o ./Src/stm32f1xx_hal_msp.su ./Src/stm32f1xx_hal_timebase_tim.cyclo ./Src/stm32f1xx_hal_timebase_tim.d ./Src/stm32f1xx_hal_timebase_tim.o ./Src/stm32f1xx_hal_timebase_tim.su ./Src/stm32f1xx_it.cyclo ./Src/stm32f1xx_it.d ./Src/stm32f1xx_it.o ./Src/stm32f1xx_it.su ./Src/system_stm32f1xx.cyclo ./Src/system_stm32f1xx.d ./Src/system_stm32f1xx.o ./Src/system_stm32f1xx.su ./Src/tim.cyclo ./Src/tim.d ./Src/tim.o ./Src/tim.su
 rm -rf ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.cyclo ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.d ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.su
@@ -14,5 +14,5 @@ rm -rf ./APPL/SMon/SMon.cyclo ./APPL/SMon/SMon.d ./APPL/SMon/SMon.o ./APPL/SMon/
 rm -rf ELC_APP.bin ELC_APP.elf ELC_APP.hex ELC_APP.list ELC_APP.map ELC_APP.srec ELC_APP.symbolsrec ELC_APP.verilog default.size.stdout
  
 
-17:58:46 Build Finished. 0 errors, 0 warnings. (took 204ms)
+08:29:02 Build Finished. 0 errors, 0 warnings. (took 665ms)
 

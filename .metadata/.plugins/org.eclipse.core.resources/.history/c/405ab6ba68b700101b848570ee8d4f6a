@@ -1,0 +1,370 @@
+#include "Dcm.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "can.h"
+#include <string.h>
+#include <stdbool.h>
+
+#define DCM_RESP_ID_DELTA 0x01u
+
+typedef struct
+{
+	volatile uint8_t active;
+	uint32_t fc_expect_id;
+	volatile uint8_t fc_pending;
+	uint8_t fc_bytes[8];
+	uint8_t stmin_ms_default;
+	uint32_t timeout_ms;
+} iso_tx_ctx_t;
+
+static iso_tx_ctx_t g =
+{
+		.active = 0, .fc_expect_id = 0, .fc_pending = 0,
+		.stmin_ms_default = 0, .timeout_ms = 100
+};
+
+uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
+uint32_t Dcm_MainCounter = 0u;
+uint32_t Dcm_TxMailbox = 0;
+CAN_TxHeaderTypeDef Dcm_DiagTxHeader;
+CAN_RxHeaderTypeDef Dcm_DiagRxHeader = {0, 0, 0, 0, 0, 0, 0};
+uint8_t Dcm_RxData[8u];
+uint8_t Dcm_TxData[8u];
+uint8_t Dcm_SWV[4u] = {30u, 30u, 0xFFu, 0xFFu};
+uint8_t Dcm_LoadStatus;
+extern uint8_t SMon_CmdStat;
+extern uint8_t SMon_RetryCnt;
+extern uint8_t SMon_LockSupply;
+extern uint32_t SMon_ISenseL1_RMS_5s;
+extern uint32_t SMon_ISenseL1_RMS_10s;
+extern uint32_t SMon_ISenseL1_RMS_30s;
+extern uint32_t SMon_VfbT30_RMS_5s;
+extern uint32_t SMon_VfbT30_RMS_10s;
+extern uint32_t SMon_VfbT30_RMS_30s;
+extern uint32_t SMon_VfbL1_RMS_5s;
+extern uint32_t SMon_VfbL1_RMS_10s;
+extern uint32_t SMon_VfbL1_RMS_30s;
+
+bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
+bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
+void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms);
+
+void Dcm_LoadState();
+void Dcm_main();
+void Dcm_ProgrammingSession();
+void Dcm_HardReset();
+void Dcm_ReadSWV();
+void Dcm_RC_HealSupply();
+void Dcm_RC_ReadHistograms();
+void Dcm_SendNrc();
+extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
+static inline void le32(uint8_t *p, uint32_t v)
+{
+	p[0]=(uint8_t)v; p[1]=(uint8_t)(v>>8); p[2]=(uint8_t)(v>>16); p[3]=(uint8_t)(v>>24);
+}
+
+static uint16_t Dcm_BuildHist_RC(uint8_t *out)
+{
+	out[0] = 0x71;
+	out[1] = Dcm_RxData[2];      /* subfunction echo */
+	out[2] = Dcm_RxData[3];      /* routineId high */
+	out[3] = Dcm_RxData[4];      /* routineId low */
+	uint8_t *p = &out[4];
+
+	le32(p, SMon_ISenseL1_RMS_5s);   p+=4;
+	le32(p, SMon_ISenseL1_RMS_10s);  p+=4;
+	le32(p, SMon_ISenseL1_RMS_30s);  p+=4;
+	le32(p, SMon_VfbT30_RMS_5s);     p+=4;
+	le32(p, SMon_VfbT30_RMS_10s);    p+=4;
+	le32(p, SMon_VfbT30_RMS_30s);    p+=4;
+	le32(p, SMon_VfbL1_RMS_5s);      p+=4;
+	le32(p, SMon_VfbL1_RMS_10s);     p+=4;
+	le32(p, SMon_VfbL1_RMS_30s);     p+=4;
+
+	return (uint16_t)(p - out);
+}
+
+void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms)
+{
+	g.stmin_ms_default = stmin_default_ms;
+	g.timeout_ms = timeout_ms;
+}
+
+bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *d)
+{
+	if (!g.active) return false;
+	if (rh->IDE != CAN_ID_STD) return false;
+	if (rh->StdId != g.fc_expect_id) return false;
+	if ( (d[0] & 0xF0u) != 0x30u ) return false; /* not FC */
+	if (!g.fc_pending) {
+		memcpy((void*)g.fc_bytes, d, 8u);
+		g.fc_pending = 1;
+	}
+	return true; /* consumed by ISO-TP */
+}
+
+static HAL_StatusTypeDef can_tx8(uint32_t stdId, const uint8_t *data, uint8_t len,
+		uint8_t pad, uint8_t force_pad)
+{
+	CAN_TxHeaderTypeDef th = {0};
+	uint32_t mbx;
+	th.StdId = stdId;
+	th.IDE   = CAN_ID_STD;
+	th.RTR   = CAN_RTR_DATA;
+	if (force_pad) {
+		uint8_t buf[8];
+		memset(buf, pad, 8);
+		memcpy(buf, data, len);
+		th.DLC = 8;
+		return HAL_CAN_AddTxMessage(&hcan, &th, buf, &mbx);
+	} else {
+		th.DLC = len;
+		return HAL_CAN_AddTxMessage(&hcan, &th, (uint8_t*)data, &mbx);
+	}
+}
+
+static int wait_fc(uint8_t *bs, uint8_t *stmin_ms)
+{
+	uint32_t t0 = HAL_GetTick();
+	while ((HAL_GetTick() - t0) < g.timeout_ms) {
+		if (g.fc_pending) {
+			g.fc_pending = 0;
+			const uint8_t *rx = g.fc_bytes;
+			uint8_t fs = rx[0] & 0x0Fu;
+			if (fs == 0x00u) { /* CTS */
+				*bs = rx[1];
+				uint8_t st = rx[2];
+				if (st <= 0x7Fu) *stmin_ms = st;
+				else if (st >= 0xF1u && st <= 0xF9u) *stmin_ms = 1; /* 100..900us -> round up to 1 ms */
+				else *stmin_ms = g.stmin_ms_default;
+				return 1;
+			} else if (fs == 0x01u) { /* Wait */
+				t0 = HAL_GetTick();
+			} else { /* Overflow/Abort */
+				return -1;
+			}
+		}
+	}
+	return 0; /* timeout */
+}
+
+bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len,
+		uint8_t pad, uint8_t force_pad)
+{
+	uint32_t resp_id = req_canid + DCM_RESP_ID_DELTA;
+	uint8_t f[8];
+
+	if (len <= 7u) {
+		f[0] = (uint8_t)(0x00u | (len & 0x0Fu));
+		memcpy(&f[1], payload, len);
+		return (can_tx8(resp_id, f, (uint8_t)(1u + len), pad, force_pad) == HAL_OK);
+	}
+
+	/* First Frame */
+	f[0] = (uint8_t)(0x10u | ((len >> 8) & 0x0Fu));
+	f[1] = (uint8_t)(len & 0xFFu);
+	memcpy(&f[2], payload, 6u);
+	g.active = 1;
+	g.fc_expect_id = req_canid;
+	g.fc_pending = 0;
+	if (can_tx8(resp_id, f, 8u, pad, force_pad) != HAL_OK) { g.active = 0; return false; }
+
+	uint8_t bs = 0, stmin = g.stmin_ms_default;
+	int fc = wait_fc(&bs, &stmin);
+	if (fc <= 0) { g.active = 0; return false; }
+
+	uint16_t idx = 6u;
+	uint8_t sn = 1u;
+	uint8_t bs_cnt = bs;
+
+	while (idx < len) {
+		if (bs != 0u && bs_cnt == 0u) {
+			fc = wait_fc(&bs, &stmin);
+			if (fc <= 0) { g.active = 0; return false; }
+			bs_cnt = bs;
+		}
+
+		f[0] = (uint8_t)(0x20u | (sn & 0x0Fu));
+		uint8_t chunk = (uint8_t)((len - idx) >= 7u ? 7u : (len - idx));
+		memset(&f[1], pad, 7u);
+		memcpy(&f[1], &payload[idx], chunk);
+		if (can_tx8(resp_id, f, (uint8_t)(1u + chunk), pad, force_pad) != HAL_OK) { g.active = 0; return false; }
+
+		idx += chunk;
+		sn = (uint8_t)((sn + 1u) & 0x0Fu);
+		if (bs != 0u && bs_cnt > 0u) bs_cnt--;
+		if (stmin) HAL_Delay(stmin);
+	}
+	g.active = 0;
+	return true;
+}
+
+void Dcm_RC_ReadHistograms()
+{
+	uint8_t payload[4+36];
+	uint16_t len = Dcm_BuildHist_RC(payload);
+	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x55u, 1u);
+}
+
+void Dcm_ProgrammingSession()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_ActiveSessionState = Dcm_RxData[2u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+	HAL_Delay(1);
+	EcuM_PerformReset(0u, 0u);
+}
+
+void Dcm_SendNrc()
+{
+	Dcm_TxData[0u] = 0x03;
+	Dcm_TxData[1u] = 0x7f;
+	Dcm_TxData[2u] = 0x19;
+	Dcm_TxData[3u] = 0x22;
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+}
+
+void Dcm_HardReset()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+	HAL_Delay(1);
+	EcuM_PerformReset(0u, 0u);
+}
+
+void Dcm_ReadSWV()
+{
+	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_SWV[0u];
+	Dcm_TxData[5u] = Dcm_SWV[1u];
+	Dcm_TxData[6u] = Dcm_SWV[2u];
+	Dcm_TxData[7u] = Dcm_SWV[3u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	while(0 == HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox));
+	for(uint8_t i = 0; i < 8; i++) Dcm_TxData[i] = 0;
+	Dcm_DiagTxHeader.DLC = 0;
+	Dcm_DiagTxHeader.StdId = 0;
+}
+
+void Dcm_RC_HealSupply()
+{
+	SMon_RetryCnt = 0u;
+	SMon_LockSupply = 0u;
+	Dcm_TxData[0u] = Dcm_RxData[0u];
+	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
+	Dcm_TxData[2u] = Dcm_RxData[2u];
+	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[4u] = Dcm_RxData[4u];
+	Dcm_TxData[5u] = Dcm_RxData[5u];
+	Dcm_TxData[6u] = Dcm_RxData[6u];
+	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+	for(uint8_t i = 0; i < 8; i++) Dcm_TxData[i] = 0;
+	Dcm_DiagTxHeader.DLC = 0;
+	Dcm_DiagTxHeader.StdId = 0;
+}
+
+void Dcm_main()
+{
+	if(0u == Dcm_MainCounter)
+	{
+		Dcm_ActiveSessionState = 0u;
+		Dcm_IsoTp_Config(/*stmin_default_ms=*/50, /*timeout_ms=*/100);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x02 == Dcm_RxData[2u] && 0u == SMon_CmdStat)
+	{
+		Dcm_ProgrammingSession();
+	}
+	else if(0x02 == Dcm_RxData[2u] && 1u == SMon_CmdStat)
+	{
+		Dcm_SendNrc();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x11u == Dcm_RxData[1u] && 0x01u == Dcm_RxData[2u] && 0u == SMon_CmdStat)
+	{
+		Dcm_HardReset();
+	}
+	else if(0x11u == Dcm_RxData[1u] && 0x01u == Dcm_RxData[2u] && 1u == SMon_CmdStat)
+	{
+		Dcm_SendNrc();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0xf1u == Dcm_RxData[2u] && 0x80u == Dcm_RxData[3u])
+	{
+		Dcm_ReadSWV();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x40u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	{
+		Dcm_RC_HealSupply();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x41u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	{
+		Dcm_RC_ReadHistograms();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_RxData[i] = 0u;
+		Dcm_TxData[i] = 0u;
+	}
+
+	Dcm_MainCounter++;
+}

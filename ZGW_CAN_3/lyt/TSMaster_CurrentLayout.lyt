@@ -49,7 +49,7 @@ Speed=1
 Step=0.1
 
 [MeasurementController]
-MCount=12
+MCount=13
 M0=0,1,58,-1,0,TfrmCANFDTransmit,CAN / CAN FD Transmit
 M1=0,1,209,-1,1,TfrmCANFDTrace,CAN / CAN FD Trace
 M2=0,1,241,-1,2,TfrmPanel,Panel 3661
@@ -62,7 +62,7 @@ M8=0,1,165,-1,8,TfrmCCodeEditor,C Code Editor [CCode2175]
 M9=0,1,245,-1,9,TfrmMeasurementSetup,Measurement Setup
 M10=0,1,79,-1,10,TfrmCANRBS,CAN Remaining Bus Simulation
 M11=0,1,62,-1,11,TfrmCANDatabase,CAN Database
-M12=0,1,165,-1,12,TfrmCCodeEditor,C Code Editor [CCode2175]
+M12=0,1,405,-1,12,TfrmDiagnosticsDTCAnalysis,DTC Analysis
 M13=0,1,405,-1,13,TfrmDiagnosticsDTCAnalysis,DTC Analysis
 M14=1,1,241,-1,14,TfrmPanel,Panel 8438
 M15=0,1,245,-1,15,TfrmMeasurementSetup,Measurement Setup
@@ -171,14 +171,14 @@ ChnCANCount=1
 PropertyHeight=298
 PropertyVisible=1
 HWChnCount=2
-UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,529,8614274920485636229,0
+UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,315,8614274920485636229,0
 UIFilter=
 DBFiles0=.\DB\CAN\ZGW_CAN_3.pdbc
 DBOri0=..\ZGW_CAN_3.dbc
 ChnCAN0=0
 
 [SysVarMgmt]
-UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,111,7951682827132674604,0
+UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,100,7951682827132674604,0
 UIFilter=
 
 [TfrmSystemVarMgmt]
@@ -186,7 +186,7 @@ TreeView=0
 AutoDecideTree=1
 
 [CANRBS]
-UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,105,3543221743599890058,0
+UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,101,3543221743599890058,0
 UIFilter=
 ShowTopology=1
 TopoWidth=225
@@ -195,7 +195,7 @@ DisplayRxSignals=1
 GridWidth=250
 
 [CANStat]
-UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,49,6864330728912059365,0
+UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,34,6864330728912059365,0
 UIFilter=
 
 [TfrmBasePluginSingle.TfrmSecurity]
@@ -230,7 +230,7 @@ ConstantsWidths=50,200,482
 UsersWidths=50,200,50
 
 [MeasSetup]
-UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,53,8013874373361339603,0
+UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,47,8013874373361339603,0
 UIFilter=
 Zoom=1
 
@@ -290,7 +290,7 @@ TfrmEthernetRBS=0
 TfrmPanel=1
 TfrmDiagnostics=1
 TfrmDiagnosticsDB=0
-TfrmDiagnosticsDTCAnalysis=0
+TfrmDiagnosticsDTCAnalysis=1
 TfrmDiagnosticsActionPanel=0
 TfrmDiagnosticsDOIP=0
 TfrmScopeUI=0
@@ -299,14 +299,14 @@ TfrmBasePluginSingle.TfrmSecurity=0
 [Pg0]
 Count=5
 HiddenCount=6
-f0=TfrmCANStatistics,0,1089,0,308,371,0,0,284,820,1
+f0=TfrmCANFDTransmit,0,1397,0,515,207,0,0,1061,564,1
 h0=TfrmCANFDTransmit,0,656,174,1061,564,0,0,1061,564,1
 h1=TfrmSystemVarMgmt,0,156,79,802,747,156,156,802,747,1
-f1=TfrmCANFDTransmit,0,1397,0,515,371,0,0,1061,564,1
+f1=TfrmCANFDTrace,0,0,0,781,207,0,0,1107,398,1
 h2=TfrmCANStatistics,0,781,215,308,156,0,0,284,820,1
-f2=TfrmPanel,0,781,0,308,371,0,0,950,488,1
-f3=TfrmCANFDTrace,0,0,0,781,371,0,0,1107,398,1
-f4=TfrmGraphics,0,0,371,1916,432,0,0,1088,606,1
+f2=TfrmCANStatistics,0,1089,0,308,207,0,0,284,820,1
+f3=TfrmGraphics,0,0,207,1916,596,0,0,1088,606,1
+f4=TfrmPanel,0,781,0,308,207,0,0,950,488,1
 h3=TfrmMeasurementSetup,0,0,0,836,524,0,0,836,524,1
 h4=TfrmCANRBS,0,0,0,1131,566,0,0,1131,566,1
 h5=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
@@ -315,25 +315,25 @@ h6=TfrmNumeric,0,0,0,1611,399,0,0,915,399,1
 [RTL_Form_Position_MDI]
 TfrmSystemMsgs=0,0,1294,328
 TfrmCANDatabase=0,0,1016,631
-CANFDTransmit=1397,0,1912,371
-CANFDTraceOptions=0,0,781,371
-PanelOptions=781,0,1089,371
+CANFDTransmit=1397,0,1912,207
+CANFDTraceOptions=0,0,781,207
+PanelOptions=781,0,1089,207
 TfrmSystemVarMgmt=234,234,1036,981
 TfrmCANRBS=0,0,1131,566
-Graphics=0,371,1916,803
-CANFDTraceOptions1=1223,1,1907,820
-TfrmDiagnostics=0,0,1223,820
-TfrmCANStatistics=1089,0,1397,371
+Graphics=0,207,1916,803
+CANFDTraceOptions1=0,0,1107,398
+TfrmDiagnostics=78,78,1744,653
+TfrmCANStatistics=1089,0,1397,207
 TfrmBasePluginSingle.TfrmSecurity=0,0,1164,659
-CCodeEditor=-4,0,1898,820
-TfrmDiagnosticsDTCAnalysis=78,78,1744,653
+CCodeEditor=156,156,1186,841
+TfrmDiagnosticsDTCAnalysis=104,104,1770,679
 PanelOptions1=0,0,1190,488
 TfrmMeasurementSetup=0,0,836,524
 TfrmNumeric=0,0,1611,399
 
 [RTL_Form_Position]
 TfrmTSMaster_0=1920,0,3856,1048
-TfrmCANDatabase1=1920,96,2936,727
+TfrmCANDatabase1=2372,255,3388,886
 TfrmHardware=2478,215,3282,816
 TfrmSystemVarMgmt1=1920,38,2722,785
 TfrmCANDatabase=1920,96,2936,727
@@ -354,15 +354,15 @@ Pg1=DIAG
 Pg2=Script
 
 [Pg1]
-Count=3
-f0=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
-f1=TfrmCANFDTrace,1,1223,1,684,819,0,0,1107,398,1
-HiddenCount=3
+Count=2
+f0=TfrmCANFDTrace,1,1223,1,684,819,0,0,1107,398,1
+f1=TfrmDiagnostics,0,0,0,1223,820,0,0,1652,543,1
+HiddenCount=5
 h0=TfrmCANFDTrace,1,1270,1,630,819,0,0,1107,398,1
 h1=TfrmCANFDTrace,0,1223,0,673,820,0,0,781,371,1
 h2=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
-h3=TfrmPanel,1,0,0,950,488,0,0,950,488,1
-h4=TfrmSystemVarMgmt,0,260,79,802,747,260,79,802,747,1
+h3=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
+h4=TfrmDiagnosticsDTCAnalysis,0,260,260,1652,560,260,260,1652,560,1
 f2=TfrmDiagnostics,0,0,0,1223,820,0,0,1652,543,1
 
 [Pg2]

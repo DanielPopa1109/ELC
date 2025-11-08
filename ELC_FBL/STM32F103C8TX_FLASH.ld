@@ -44,152 +44,94 @@ _Min_Stack_Size = 0x100; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20416
-  FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 8K
-NCR (xrw) : ORIGIN = 0x20004FC0, LENGTH = 64
+  	RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20416
+  	FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 16K
+	NCR (xrw) : ORIGIN = 0x20004FC0, LENGTH = 64
 }
 SECTIONS
 {
-    .ncrsection :
-    {
-        *(.ncr)
-    } >NCR
-}
+  /* -------- special tiny RAM area -------- */
+  .ncrsection :
+  {
+    *(.ncr)
+  } > NCR
 
-/* Sections */
-SECTIONS
-{
-  /* The startup code into "FLASH" Rom type memory */
+  /* -------- normal FBL in FLASH -------- */
   .isr_vector :
   {
     . = ALIGN(4);
-    KEEP(*(.isr_vector)) /* Startup code */
+    KEEP(*(.isr_vector))
     . = ALIGN(4);
-  } >FLASH
+  } > FLASH
 
-  /* The program code and other data into "FLASH" Rom type memory */
   .text :
   {
     . = ALIGN(4);
-    *(.text)           /* .text sections (code) */
-    *(.text*)          /* .text* sections (code) */
-    *(.glue_7)         /* glue arm to thumb code */
-    *(.glue_7t)        /* glue thumb to arm code */
-    *(.eh_frame)
-
+    *(.text) *(.text*) *(.glue_7) *(.glue_7t) *(.eh_frame)
     KEEP (*(.init))
     KEEP (*(.fini))
-
     . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
-  } >FLASH
+    _etext = .;
+  } > FLASH
 
-  /* Constant data into "FLASH" Rom type memory */
   .rodata :
   {
     . = ALIGN(4);
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+    *(.rodata) *(.rodata*)
     . = ALIGN(4);
-  } >FLASH
+  } > FLASH
 
-  .ARM.extab (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  .ARM.extab (READONLY) : { . = ALIGN(4); *(.ARM.extab* .gnu.linkonce.armextab.*) . = ALIGN(4); } > FLASH
+  .ARM       (READONLY) : { . = ALIGN(4); __exidx_start = .; *(.ARM.exidx*) __exidx_end = .; . = ALIGN(4); } > FLASH
+  .preinit_array (READONLY) : { . = ALIGN(4); PROVIDE_HIDDEN(__preinit_array_start = .); KEEP(*(.preinit_array*)) PROVIDE_HIDDEN(__preinit_array_end = .); . = ALIGN(4);} > FLASH
+  .init_array    (READONLY) : { . = ALIGN(4); PROVIDE_HIDDEN(__init_array_start = .);  KEEP(*(SORT(.init_array.*))) KEEP(*(.init_array*))  PROVIDE_HIDDEN(__init_array_end = .);  . = ALIGN(4);} > FLASH
+  .fini_array    (READONLY) : { . = ALIGN(4); PROVIDE_HIDDEN(__fini_array_start = .);  KEEP(*(SORT(.fini_array.*))) KEEP(*(.fini_array*))  PROVIDE_HIDDEN(__fini_array_end = .);  . = ALIGN(4);} > FLASH
+
+  /* -------- RAM-EXEC blob: VMA in RAM, LMA in FLASH -------- */
+  .ram_blob :
   {
     . = ALIGN(4);
-    *(.ARM.extab* .gnu.linkonce.armextab.*)
+    __ram_blob_vma_start = .;
+    KEEP(*(.ram_blob_vectors))      /* must be first in blob */
+    *(.ram_blob_text*)              /* code */
+    *(.ram_blob_data*)              /* data */
     . = ALIGN(4);
-  } >FLASH
+    __ram_blob_vma_end = .;
+  } > RAM AT> FLASH
 
-  .ARM (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
-  {
-    . = ALIGN(4);
-    __exidx_start = .;
-    *(.ARM.exidx*)
-    __exidx_end = .;
-    . = ALIGN(4);
-  } >FLASH
+  /* Copy helpers for the blob */
+  __ram_blob_load_start = LOADADDR(.ram_blob);
+  __ram_blob_load_end   = LOADADDR(.ram_blob) + SIZEOF(.ram_blob);
 
-  .preinit_array (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
-  {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array*))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-    . = ALIGN(4);
-  } >FLASH
-
-  .init_array (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
-  {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__init_array_start = .);
-    KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array*))
-    PROVIDE_HIDDEN (__init_array_end = .);
-    . = ALIGN(4);
-  } >FLASH
-
-  .fini_array (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
-  {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__fini_array_start = .);
-    KEEP (*(SORT(.fini_array.*)))
-    KEEP (*(.fini_array*))
-    PROVIDE_HIDDEN (__fini_array_end = .);
-    . = ALIGN(4);
-  } >FLASH
-
-  /* Used by the startup to initialize data */
+  /* -------- normal runtime data in RAM -------- */
   _sidata = LOADADDR(.data);
-
-  /* Initialized data sections into "RAM" Ram type memory */
   .data :
   {
     . = ALIGN(4);
-    _sdata = .;        /* create a global symbol at data start */
-    *(.data)           /* .data sections */
-    *(.data*)          /* .data* sections */
-    *(.RamFunc)        /* .RamFunc sections */
-    *(.RamFunc*)       /* .RamFunc* sections */
-
+    _sdata = .;
+    *(.data) *(.data*) *(.RamFunc) *(.RamFunc*)
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
+    _edata = .;
+  } > RAM AT> FLASH
 
-  } >RAM AT> FLASH
-
-  /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
   .bss :
   {
-    /* This is used by the startup in order to initialize the .bss section */
-    _sbss = .;         /* define a global symbol at bss start */
-    __bss_start__ = _sbss;
-    *(.bss)
-    *(.bss*)
-    *(COMMON)
-
+    _sbss = .; __bss_start__ = _sbss;
+    *(.bss) *(.bss*) *(COMMON)
     . = ALIGN(4);
-    _ebss = .;         /* define a global symbol at bss end */
-    __bss_end__ = _ebss;
-  } >RAM
+    _ebss = .; __bss_end__ = _ebss;
+  } > RAM
 
-  /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack :
   {
     . = ALIGN(8);
-    PROVIDE ( end = . );
-    PROVIDE ( _end = . );
+    PROVIDE(end = .); PROVIDE(_end = .);
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } > RAM
 
-  /* Remove information from the compiler libraries */
-  /DISCARD/ :
-  {
-    libc.a ( * )
-    libm.a ( * )
-    libgcc.a ( * )
-  }
-
+  /DISCARD/ : { libc.a(*); libm.a(*); libgcc.a(*) }
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }

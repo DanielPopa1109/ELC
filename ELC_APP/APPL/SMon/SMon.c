@@ -79,6 +79,8 @@ uint32_t SMon_VfbL1_RMS_30s;
 float SMon_ISenseL1_Float;
 float SMon_PeakCurrent;
 
+extern uint8_t Dcm_LoadStatus;
+
 const uint8_t SMon_P_Rtcntmax = 10u; // Retry Counter Parameter
 const uint8_t SMon_P_CLSTime = 22u; // CLS Duration Parameter
 const uint8_t SMon_P_WaitTimeOVUV = 60u; // OV UV De-bounce Time Parameter
@@ -358,7 +360,7 @@ static void SMon_ProcessLoadCurrentState(void)
 		SMon_L1ST = 0u;
 	}
 
-	if(1u == SMon_CmdStat && 0u == SMon_CLS_Failure && 0u == SMon_L1_UVStatus)
+	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) && 0u == SMon_CLS_Failure && 0u == SMon_L1_UVStatus)
 	{
 		SMon_RequestPhysicalStatus = 1u;
 	}

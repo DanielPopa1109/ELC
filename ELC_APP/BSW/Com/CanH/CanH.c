@@ -1,5 +1,6 @@
 #include "CanH.h"
 #include "can.h"
+#include <stdbool.h>
 
 uint32_t CanH_MainCounter = 0;
 CAN_RxHeaderTypeDef CanH_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -32,6 +33,7 @@ extern uint8_t SMon_LockSupply;
 extern uint32_t SMon_I2TCounter;
 extern uint8_t EcuM_SWState;
 
+bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
 void CanH_MainFunction(void);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
@@ -39,6 +41,63 @@ void HAL_CAN_RxFifo0MsgFullCallback(CAN_HandleTypeDef *hcan);
 
 void CanH_MainFunction(void)
 {
+	if(0u == CanH_MainCounter)
+	{
+		CanH_TxData[0] = SMon_L1ST;
+		CanH_TxHeader.DLC = 1;
+		CanH_TxHeader.StdId = 0x51;
+		HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+		for(uint8_t i = 0; i < 8; i++) CanH_TxData[i] = 0;
+		CanH_TxHeader.DLC = 0;
+		CanH_TxHeader.StdId = 0;
+
+		CanH_TxData[0] = (uint8_t)(SMon_ISenseL1);
+		CanH_TxData[1] = (uint8_t)(SMon_ISenseL1 >> 8u);
+		CanH_TxData[2] = (uint8_t)(SMon_ISenseL1 >> 16u);
+		CanH_TxData[3] = (uint8_t)(SMon_ISenseL1 >> 24u);
+		CanH_TxData[4] = (uint8_t)(SMon_VfbT30);
+		CanH_TxData[5] = (uint8_t)(SMon_VfbT30 >> 8u);
+		CanH_TxData[6] = (uint8_t)(SMon_VfbL1);
+		CanH_TxData[7] = (uint8_t)(SMon_VfbL1 >> 8u);
+		CanH_TxHeader.DLC = 8;
+		CanH_TxHeader.StdId = 0x6ef;
+		HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+		for(uint8_t i = 0; i < 8; i++) CanH_TxData[i] = 0;
+		CanH_TxHeader.DLC = 0;
+		CanH_TxHeader.StdId = 0;
+
+		CanH_TxData[0] = SMon_ECU_UV;
+		CanH_TxData[1] = SMon_ECU_OV;
+		CanH_TxData[2] = (uint8_t)(SMon_I2TCounter);
+		CanH_TxData[3] = (uint8_t)(SMon_I2TCounter >> 8u);
+		CanH_TxData[4] = (uint8_t)(SMon_I2TCounter >> 16u);
+		CanH_TxData[5] = (uint8_t)(SMon_I2TCounter >> 24u);
+		CanH_TxData[6] = SMon_CLS_Failure;
+		CanH_TxData[7] = SMon_L1_UVStatus;
+		CanH_TxHeader.DLC = 8;
+		CanH_TxHeader.StdId = 0x6f0;
+		HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+		for(uint8_t i = 0; i < 8; i++) CanH_TxData[i] = 0;
+		CanH_TxHeader.DLC = 0;
+		CanH_TxHeader.StdId = 0;
+
+		CanH_TxData[0] = SMon_I2TError;
+		CanH_TxData[1] = SMon_LockSupply;
+		CanH_TxData[2] = SMon_RetryCnt;
+		CanH_TxData[3] = SMon_WupLineState;
+		CanH_TxData[4] = SMon_S2BErrorStatus;
+		CanH_TxHeader.DLC = 5;
+		CanH_TxHeader.StdId = 0x6f1;
+		HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+		for(uint8_t i = 0; i < 8; i++) CanH_TxData[i] = 0;
+		CanH_TxHeader.DLC = 0;
+		CanH_TxHeader.StdId = 0;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
 	if(0x04 != HAL_CAN_GetError(&hcan))
 	{
 		if(FULL_COMMUNICATION == CanH_CommunicationState)
@@ -211,6 +270,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		Dcm_DiagRxHeader.StdId = CanH_RxHeader.StdId;
 		Dcm_DiagRxHeader.DLC = CanH_RxHeader.DLC;
 
+		Dcm_IsoTp_RxHook(&Dcm_DiagRxHeader, CanH_RxData);
+
 		for(uint8_t i = 0; i < 8; i++)
 		{
 			Dcm_RxData[i] = CanH_RxData[i];
@@ -297,6 +358,8 @@ void HAL_CAN_RxFifo0MsgFullCallback(CAN_HandleTypeDef *hcan)
 	{
 		Dcm_DiagRxHeader.StdId = CanH_RxHeader.StdId;
 		Dcm_DiagRxHeader.DLC = CanH_RxHeader.DLC;
+
+		Dcm_IsoTp_RxHook(&Dcm_DiagRxHeader, CanH_RxData);
 
 		for(uint8_t i = 0; i < 8; i++)
 		{

@@ -27,11 +27,11 @@ app.wait(1000, "");
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMTc1XQ__,100,204,7021393766468547402,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMTc1XQ__,100,218,7021393766468547402,0
 ScriptName=CCode2175
 DisplayName=CCode2175
 DBDeps=ZGW_CAN_3
-LastBuildTime=2025-10-07 14:56:11
+LastBuildTime=2025-10-31 08:54:44
 */
 // CODE BLOCK END Configuration
 
