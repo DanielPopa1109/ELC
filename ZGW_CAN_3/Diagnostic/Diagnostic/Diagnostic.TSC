@@ -259,6 +259,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+supporttexttable=0
 
 [TfrmDiagnostics_ReadMemoryByAddress]
 SubServiceCount=0
@@ -961,6 +962,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+supporttexttable=0
 
 [TfrmDiagnostics_RoutineControl_5_ResPara0]
 FByteOrder=1
@@ -980,6 +982,7 @@ FOffSet=0
 FDenominator=0
 FLowerLimit=0
 FUpperLimit=0
+supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -1190,6 +1193,7 @@ FOffSet=0
 FDenominator=6.92709446209193E-315
 FLowerLimit=0
 FUpperLimit=0
+supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0

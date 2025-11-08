@@ -5,6 +5,7 @@
 #include "cmsis_os.h"
 #include "adc.h"
 #include "can.h"
+#include "crc.h"
 #include "dma.h"
 #include "tim.h"
 #include "gpio.h"
@@ -31,7 +32,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t Ain_DmaBuffer[4u];
+uint16_t Ain_DmaBuffer[7u];
 extern uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
 extern uint8_t SMon_CmdStat; // Command Status
@@ -44,6 +45,20 @@ extern uint32_t SMon_ISenseL1; // I Sense L1
 extern float SMon_ISenseL1_Float;
 extern float SMon_PeakCurrent;
 extern const uint32_t SMon_P_PeakCurrent;
+extern uint32_t SMon_NTC_Temperature_L1;
+extern const uint16_t SMon_P_Varef;
+extern const uint16_t SMon_P_ADC_MaxValue;
+extern const uint16_t SMon_P_NTC_PullUp_ResistorVale;
+extern const float SMon_P_RoomTempKelvin;
+extern const uint16_t SMon_P_BetaConst;
+extern uint16_t SMon_VarefValue;
+extern uint16_t SMon_McuTempValue;
+extern const float SMon_P_VoltsAt25;
+extern const float SMon_P_AvgSlope;
+extern const float SMon_P_RoomTemperature;
+extern const uint16_t SMon_P_Vrefint;
+extern const float SMon_P_ConvFacISense;
+extern uint8_t Dcm_LoadStatus;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -55,77 +70,101 @@ static void MX_NVIC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static volatile float v0 = 0.0f;
+static volatile float v1 = 0.0f;
+static volatile float v2 = 0.0f;
+static volatile float v3 = 0.0f;
+static volatile float v4 = 0.0f;
+static volatile float v5 = 0.0f;
+static volatile float v6 = 0.0f;
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	static float v0 = 0.0f;
-	static float v1 = 0.0f;
-	static float v2 = 0.0f;
-	static float v3 = 0.0f;
-	static float filt_current_mA = 0.0f;
-	static float corrected_current_mA = 0.0f;
-	static float filt_corrected_current_mA = 0.0f;
+
+	//	static float filt_current_mA = 0.0f;
+	//	static float corrected_current_mA = 0.0f;
+	//	static float filt_corrected_current_mA = 0.0f;
 	static float filt_vfb1_mV = 0.0f;
 	static float filt_vfb2_mV = 0.0f;
 	static float vfb1_mV = 0.0f;
 	static float vfb2_mV = 0.0f;
-	static float localFastResponse_filt_current_mA = 0.0f;
-	static float localFastResponse_corrected_current_mA = 0.0f;
-	static float localFastResponse_filt_corrected_current_mA = 0.0f;
+	//	static float localFastResponse_filt_current_mA = 0.0f;
+	//	static float localFastResponse_corrected_current_mA = 0.0f;
+	//	static float localFastResponse_filt_corrected_current_mA = 0.0f;
+	static float ln_ratio;
+	static float inv_T;
+	static float T_kelvin;
 
-	v0 = ((float)Ain_DmaBuffer[2u] / 4095.0f) * 3300.0f;
-	v1 = ((float)Ain_DmaBuffer[1u] / 4095.0f) * 3300.0f;
-	v2 = ((float)Ain_DmaBuffer[3u] / 4095.0f) * 3300.0f;
-	v3 = ((float)Ain_DmaBuffer[0u] / 4095.0f) * 3300.0f;
+	//v0 = ((float)Ain_DmaBuffer[2u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
+	v1 = Ain_DmaBuffer[1u];//((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
+	v2 = ((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // voltage feedback L1
+	v3 = ((float)Ain_DmaBuffer[0u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // voltage feedback T30
+	v4 = ((float)(SMon_P_NTC_PullUp_ResistorVale * ((SMon_P_ADC_MaxValue - Ain_DmaBuffer[4u]) / Ain_DmaBuffer[4u]))); // resistance NTC L1
+	v5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
+	v6 = SMon_P_Vrefint * SMon_P_ADC_MaxValue / Ain_DmaBuffer[6u]; // MCU VAREF
+
+
+	ln_ratio = logf(v4 / SMon_P_NTC_PullUp_ResistorVale);
+	inv_T    = (1.0f / SMon_P_RoomTempKelvin) + (ln_ratio / SMon_P_BetaConst);
+	T_kelvin = 1.0f / inv_T;
+
 	vfb1_mV = v2 * ((91.0f + 10.0f) / 10.0f);
 	vfb2_mV = v3 * ((91.0f + 10.0f) / 10.0f);
 	vfb1_mV -= 180.0f;
+
 	v0 += 8.0f;
 	v1 -= 8.0f;
+
 	filt_vfb1_mV = filt_vfb1_mV + 0.75f * (vfb1_mV - filt_vfb1_mV);
 	filt_vfb2_mV = filt_vfb2_mV + 0.75f * (vfb2_mV - filt_vfb2_mV);
 
-	localFastResponse_filt_current_mA = localFastResponse_filt_current_mA + 0.75f * ((v0 - v1)/0.010f - localFastResponse_filt_current_mA);
-	localFastResponse_corrected_current_mA = (localFastResponse_filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
-	localFastResponse_filt_corrected_current_mA = localFastResponse_filt_corrected_current_mA + 0.75f * (localFastResponse_corrected_current_mA - localFastResponse_filt_corrected_current_mA);
-
-	filt_current_mA = filt_current_mA + 0.05f * ((v0 - v1)/0.010f - filt_current_mA);
-	corrected_current_mA = (filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
-	filt_corrected_current_mA = filt_corrected_current_mA + 0.05f * (corrected_current_mA - filt_corrected_current_mA);
+	//	localFastResponse_filt_current_mA = localFastResponse_filt_current_mA + 0.75f * ((v0 - v1)/0.010f - localFastResponse_filt_current_mA);
+	//	localFastResponse_corrected_current_mA = (localFastResponse_filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
+	//	localFastResponse_filt_corrected_current_mA = localFastResponse_filt_corrected_current_mA + 0.75f * (localFastResponse_corrected_current_mA - localFastResponse_filt_corrected_current_mA);
+	//
+	//	filt_current_mA = filt_current_mA + 0.05f * ((v0 - v1)/0.010f - filt_current_mA);
+	//	corrected_current_mA = (filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
+	//	filt_corrected_current_mA = filt_corrected_current_mA + 0.05f * (corrected_current_mA - filt_corrected_current_mA);
 
 	if(0u == SMon_CmdStat || 2u != SMon_CLSFlag)
 	{
-		filt_current_mA = 0.0f;
-		corrected_current_mA = 0.0f;
-		filt_corrected_current_mA = 0.0f;
-		localFastResponse_filt_current_mA = 0.0f;
-		localFastResponse_corrected_current_mA = 0.0f;
-		localFastResponse_filt_corrected_current_mA = 0.0f;
+		//		filt_current_mA = 0.0f;
+		//		corrected_current_mA = 0.0f;
+		//		filt_corrected_current_mA = 0.0f;
+		//		localFastResponse_filt_current_mA = 0.0f;
+		//		localFastResponse_corrected_current_mA = 0.0f;
+		//		localFastResponse_filt_corrected_current_mA = 0.0f;
 	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	if(SMon_P_PeakCurrent < localFastResponse_filt_corrected_current_mA)
-	{
-		SMon_FastResponseTrigger = 1u;
-		SMon_RequestPhysicalStatus = 0u;
-		htim1.Instance->CCR1 = 0u; // switch off CPC
-		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
-		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
-	}
-	else
-	{
-		/* Do nothing */
-	}
+	//	if(SMon_P_PeakCurrent < localFastResponse_filt_corrected_current_mA)
+	//	{
+	//		SMon_FastResponseTrigger = 1u;
+	//		SMon_RequestPhysicalStatus = 0u;
+	//		htim1.Instance->CCR1 = 0u; // switch off CPC
+	//		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
+	//		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
+	//	}
+	//	else
+	//	{
+	//		/* Do nothing */
+	//	}
 
 	if(2u != SMon_CLSFlag) filt_vfb1_mV = vfb1_mV + 180.0f;
-	if(SMon_PeakCurrent < localFastResponse_filt_corrected_current_mA) SMon_PeakCurrent = localFastResponse_filt_corrected_current_mA;
+	//if(SMon_PeakCurrent < localFastResponse_filt_corrected_current_mA) SMon_PeakCurrent = localFastResponse_filt_corrected_current_mA;
+	if(SMon_PeakCurrent < v1 * SMon_P_ConvFacISense) SMon_PeakCurrent = v1 * SMon_P_ConvFacISense;
 
-	SMon_ISenseL1_Float = filt_corrected_current_mA / 1000u;
-	SMon_ISenseL1 = filt_corrected_current_mA;
+	//	SMon_ISenseL1_Float = filt_corrected_current_mA / 1000u;
+	//	SMon_ISenseL1 = filt_corrected_current_mA;
+	SMon_ISenseL1_Float = (v1 * SMon_P_ConvFacISense) / 1000u;
+	SMon_ISenseL1 = v1 * SMon_P_ConvFacISense;
 	SMon_VfbL1 = filt_vfb1_mV;
 	SMon_VfbT30 = filt_vfb2_mV;
+	SMon_NTC_Temperature_L1 = T_kelvin - 273.15f;
+	SMon_McuTempValue = ((SMon_P_VoltsAt25 - v5) / SMon_P_AvgSlope) + SMon_P_RoomTemperature;
+	SMon_VarefValue = v6;
 	SMon_ValidMeasFlag = 1u;
 }
 
@@ -136,11 +175,33 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		SMon_ISenseL1 = 0xFFFFu;
 		SMon_VfbL1 = 0xFFFFu;
 		SMon_VfbT30 = 0xFFFFu;
+		SMon_NTC_Temperature_L1 = 0xFFFFu;
+		SMon_McuTempValue = 0xFFFFu;
+		SMon_VarefValue = 0xFFFFu;
 		SMon_ValidMeasFlag = 0u;
 	}
 	else
 	{
 		/* Do nothing. */
+	}
+}
+
+void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
+{
+	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) && 2u != SMon_CLSFlag)
+	{
+		SMon_FastResponseTrigger = 1u;
+		SMon_RequestPhysicalStatus = 0u;
+		htim1.Instance->CCR1 = 0u; // switch off CPC
+		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
+		SMon_PeakCurrent = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
+		SMon_ISenseL1_Float = (Ain_DmaBuffer[1u] * SMon_P_ConvFacISense) / 1000u;
+		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
+	}
+	else
+	{
+		/* Do nothing */
 	}
 }
 /* USER CODE END 0 */
@@ -179,6 +240,7 @@ int main(void)
 	MX_TIM1_Init();
 	MX_CAN_Init();
 	MX_TIM2_Init();
+	MX_CRC_Init();
 
 	/* Initialize interrupts */
 	MX_NVIC_Init();
@@ -201,7 +263,7 @@ int main(void)
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	HAL_Delay(1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 4u);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
 	/* USER CODE END 2 */
 
 	/* Init scheduler */
@@ -279,44 +341,47 @@ void SystemClock_Config(void)
 static void MX_NVIC_Init(void)
 {
 	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
 	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 9, 0);
 	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 	/* CAN1_RX1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 8, 0);
 	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
 	/* CAN1_SCE_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 9, 0);
 	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
 	/* TIM2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM2_IRQn);
 	/* RCC_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(RCC_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(RCC_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(RCC_IRQn);
 	/* FLASH_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(FLASH_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(FLASH_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(FLASH_IRQn);
 	/* PVD_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(PVD_IRQn, 5, 0);
 	HAL_NVIC_EnableIRQ(PVD_IRQn);
 	/* DMA1_Channel1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 	/* TIM1_CC_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_CC_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(TIM1_CC_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM1_CC_IRQn);
 	/* TIM1_TRG_COM_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_TRG_COM_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(TIM1_TRG_COM_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM1_TRG_COM_IRQn);
 	/* TIM1_UP_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_UP_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(TIM1_UP_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
 	/* TIM1_BRK_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM1_BRK_IRQn);
+	/* ADC1_2_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(ADC1_2_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

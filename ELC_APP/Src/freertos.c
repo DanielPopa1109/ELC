@@ -105,11 +105,11 @@ void vApplicationIdleHook( void )
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN 3 */
-extern uint16_t Ain_DmaBuffer[4u];
+extern uint16_t Ain_DmaBuffer[7u];
 void vApplicationTickHook( void )
 {
 	oscnt++;
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 4u);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
 }
 /* USER CODE END 3 */
 

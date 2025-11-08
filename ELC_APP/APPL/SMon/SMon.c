@@ -29,13 +29,36 @@ static SMon_SignalHist SMon_ISenseL1_Hist =
 		.win10s = { .size=10 },
 		.win30s = { .size=30 }
 };
+
 static SMon_SignalHist SMon_VfbT30_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 		.win30s = { .size=30 }
 };
+
 static SMon_SignalHist SMon_VfbL1_Hist =
+{
+		.win5s = { .size=5 },
+		.win10s = { .size=10 },
+		.win30s = { .size=30 }
+};
+
+static SMon_SignalHist SMon_NTC_Hist =
+{
+		.win5s = { .size=5 },
+		.win10s = { .size=10 },
+		.win30s = { .size=30 }
+};
+
+static SMon_SignalHist SMon_Vrefint_Hist =
+{
+		.win5s = { .size=5 },
+		.win10s = { .size=10 },
+		.win30s = { .size=30 }
+};
+
+static SMon_SignalHist SMon_McuTemp_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
@@ -61,6 +84,8 @@ uint8_t SMon_RetryCnt; // Retry Counter
 uint8_t SMon_LockSupply; // Lock Supply Output
 uint16_t SMon_VfbL1 = 0xFFFFu; // Voltage Feedback L1/CLS
 uint16_t SMon_VfbT30 = 0xFFFFu; // Voltage Feedback KL30
+uint16_t SMon_VarefValue = 0u;
+uint16_t SMon_McuTempValue = 0u;
 static uint16_t SMon_T30P50 = 0u; // 50% of KL30
 static uint32_t SMon_MainCnt = 0u; // Main Counter
 static uint32_t SMon_CounterUVL1 = 0u; // UV L1 Counter  For De-Bounce
@@ -76,6 +101,16 @@ uint32_t SMon_VfbT30_RMS_30s;
 uint32_t SMon_VfbL1_RMS_5s;
 uint32_t SMon_VfbL1_RMS_10s;
 uint32_t SMon_VfbL1_RMS_30s;
+uint32_t SMon_NTC_RMS_5s;
+uint32_t SMon_NTC_RMS_10s;
+uint32_t SMon_NTC_RMS_30s;
+uint32_t SMon_Vrefint_RMS_5s;
+uint32_t SMon_Vrefint_RMS_10s;
+uint32_t SMon_Vrefint_RMS_30s;
+uint32_t SMon_McuTemp_RMS_5s;
+uint32_t SMon_McuTemp_RMS_10s;
+uint32_t SMon_McuTemp_RMS_30s;
+uint32_t SMon_NTC_Temperature_L1;
 float SMon_ISenseL1_Float;
 float SMon_PeakCurrent;
 
@@ -92,11 +127,30 @@ const uint16_t SMon_P_LowVoltage = 800u; // 5TAU / Maximum Discharge Voltage Thr
 const uint16_t SMon_P_UV_KL30 = 7000u; // UV KL30 TH Parameter
 const uint16_t SMon_P_OV_KL30 = 17000u; // OV KL30 TH Parameter
 const uint16_t SMon_P_UV_CLS = 1633u; // Threshold For CLS OUT To Be After 5ms Parameter
+const uint16_t SMon_P_Varef = 3300u;
+const uint16_t SMon_P_Vrefint = 1200u;
+const uint16_t SMon_P_ADC_MaxValue = 4095u;
+const uint16_t SMon_P_NTC_PullUp_ResistorVale = 10000u;
+const uint16_t SMon_P_BetaConst = 3950u;
 const uint32_t SMon_P_LongDischargeTimeCycles = 1044000u; // Maximum Discharge Time Parameter
 const uint32_t SMon_P_LowDisTimeCyc = 420000u; // 2TAU Discharge Time Parameter
 const uint32_t SMon_P_PeakCurrent = 60000u;
+const uint32_t SMon_P_VFB_T30_TwoPointCalibration_ParamA = 0; //todo
+const uint32_t SMon_P_VFB_T30_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_VFB_L1_TwoPointCalibration_ParamA = 0; //todo
+const uint32_t SMon_P_VFB_L1_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 0; //todo
+const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 0; //todo
+const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 0; //todo
 const float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
 const float SMon_P_I2TRating = 1640; // I2T Rating Parameter
+const float SMon_P_RoomTempKelvin = 298.15f;
+const float SMon_P_VoltsAt25 = 1430.0f;
+const float SMon_P_AvgSlope = 43.0f;
+const float SMon_P_RoomTemperature = 25.0f;
+const float SMon_P_Sens3V3 = 13.2f; // 13.2 mV per A
+const float SMon_P_ConvFacISense = 61.05f; // (3300 / (4095 * 13.2)) * 1000 = mA per count of ADC
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
 static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10, uint32_t* rms30);
@@ -739,6 +793,9 @@ static void SMon_HistogramsHandler(void)
 	SMon_UpdateSignalHist(&SMon_ISenseL1_Hist, SMon_ISenseL1, &SMon_ISenseL1_RMS_5s, &SMon_ISenseL1_RMS_10s, &SMon_ISenseL1_RMS_30s);
 	SMon_UpdateSignalHist(&SMon_VfbT30_Hist, SMon_VfbT30, &SMon_VfbT30_RMS_5s, &SMon_VfbT30_RMS_10s, &SMon_VfbT30_RMS_30s);
 	SMon_UpdateSignalHist(&SMon_VfbL1_Hist, SMon_VfbL1, &SMon_VfbL1_RMS_5s, &SMon_VfbL1_RMS_10s, &SMon_VfbL1_RMS_30s);
+	SMon_UpdateSignalHist(&SMon_NTC_Hist, SMon_NTC_Temperature_L1, &SMon_NTC_RMS_5s, &SMon_NTC_RMS_10s, &SMon_NTC_RMS_30s);
+	SMon_UpdateSignalHist(&SMon_Vrefint_Hist, SMon_VarefValue, &SMon_Vrefint_RMS_5s, &SMon_Vrefint_RMS_10s, &SMon_Vrefint_RMS_30s);
+	SMon_UpdateSignalHist(&SMon_McuTemp_Hist, SMon_McuTempValue, &SMon_McuTemp_RMS_5s, &SMon_McuTemp_RMS_10s, &SMon_McuTemp_RMS_30s);
 }
 
 void SMon_main(void)

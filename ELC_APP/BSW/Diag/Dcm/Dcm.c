@@ -44,6 +44,15 @@ extern uint32_t SMon_VfbT30_RMS_30s;
 extern uint32_t SMon_VfbL1_RMS_5s;
 extern uint32_t SMon_VfbL1_RMS_10s;
 extern uint32_t SMon_VfbL1_RMS_30s;
+extern uint32_t SMon_NTC_RMS_5s;
+extern uint32_t SMon_NTC_RMS_10s;
+extern uint32_t SMon_NTC_RMS_30s;
+extern uint32_t SMon_Vrefint_RMS_5s;
+extern uint32_t SMon_Vrefint_RMS_10s;
+extern uint32_t SMon_Vrefint_RMS_30s;
+extern uint32_t SMon_McuTemp_RMS_5s;
+extern uint32_t SMon_McuTemp_RMS_10s;
+extern uint32_t SMon_McuTemp_RMS_30s;
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
@@ -87,7 +96,6 @@ static uint16_t Dcm_BuildHist_RC(uint8_t *out)
 	out[2] = Dcm_RxData[3];      /* routineId high */
 	out[3] = Dcm_RxData[4];      /* routineId low */
 	uint8_t *p = &out[4];
-
 	le32(p, SMon_ISenseL1_RMS_5s);   p+=4;
 	le32(p, SMon_ISenseL1_RMS_10s);  p+=4;
 	le32(p, SMon_ISenseL1_RMS_30s);  p+=4;
@@ -97,7 +105,15 @@ static uint16_t Dcm_BuildHist_RC(uint8_t *out)
 	le32(p, SMon_VfbL1_RMS_5s);      p+=4;
 	le32(p, SMon_VfbL1_RMS_10s);     p+=4;
 	le32(p, SMon_VfbL1_RMS_30s);     p+=4;
-
+	le32(p, SMon_NTC_RMS_5s);      p+=4;
+	le32(p, SMon_NTC_RMS_10s);     p+=4;
+	le32(p, SMon_NTC_RMS_30s);     p+=4;
+	le32(p, SMon_Vrefint_RMS_5s);      p+=4;
+	le32(p, SMon_Vrefint_RMS_10s);     p+=4;
+	le32(p, SMon_Vrefint_RMS_30s);     p+=4;
+	le32(p, SMon_McuTemp_RMS_5s);      p+=4;
+	le32(p, SMon_McuTemp_RMS_10s);     p+=4;
+	le32(p, SMon_McuTemp_RMS_30s);     p+=4;
 	return (uint16_t)(p - out);
 }
 
@@ -218,7 +234,7 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len,
 
 void Dcm_RC_ReadHistograms()
 {
-	uint8_t payload[4+36];
+	uint8_t payload[4+72];
 	uint16_t len = Dcm_BuildHist_RC(payload);
 	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x55u, 1u);
 }

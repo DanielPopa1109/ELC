@@ -1,3 +1,6 @@
 oscnt
-Dcm_LoadStatus
-FBL_DSC_Status
+SMon_McuTempValue
+SMon_VarefValue
+SMon_NTC_Temperature_L1
+SMon_VfbT30
+SMon_VfbL1
