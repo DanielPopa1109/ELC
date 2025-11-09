@@ -1,7 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
-ADC1.AWD1HighThreshold=2000
+ADC1.AWD1HighThreshold=1200
 ADC1.AWD1ITMode=ENABLE
-ADC1.AWD1LowThreshold=665
+ADC1.AWD1LowThreshold=50
 ADC1.Channel-0\#ChannelRegularConversion=ADC_CHANNEL_1
 ADC1.Channel-1\#ChannelRegularConversion=ADC_CHANNEL_2
 ADC1.Channel-2\#ChannelRegularConversion=ADC_CHANNEL_3

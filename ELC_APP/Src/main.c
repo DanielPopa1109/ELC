@@ -59,6 +59,17 @@ extern const float SMon_P_RoomTemperature;
 extern const uint16_t SMon_P_Vrefint;
 extern const float SMon_P_ConvFacISense;
 extern uint8_t Dcm_LoadStatus;
+extern const uint32_t SMon_P_NoLoad_ISense;
+extern const float SMon_P_Kelvin;
+extern const float SMon_P_VoltageDivider;
+extern const float SMon_P_AlphaFilter;
+extern const uint8_t SMon_P_L1Correction;
+extern const float SMon_P_TwoPointCalib_ConvFacISense;
+extern const float SMon_P_TwoPointCalib_NoLoad_ISense;
+extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamA ;
+extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamB ;
+extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamA ;
+extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamB ;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,99 +81,57 @@ static void MX_NVIC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static volatile float v0 = 0.0f;
-static volatile float v1 = 0.0f;
-static volatile float v2 = 0.0f;
-static volatile float v3 = 0.0f;
-static volatile float v4 = 0.0f;
-static volatile float v5 = 0.0f;
-static volatile float v6 = 0.0f;
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-
-	//	static float filt_current_mA = 0.0f;
-	//	static float corrected_current_mA = 0.0f;
-	//	static float filt_corrected_current_mA = 0.0f;
+	static float v1 = 0.0f;
+	static float v4 = 0.0f;
+	static float v5 = 0.0f;
+	static float v6 = 0.0f;
+	static float aux_isense = 0.0f;
+	static float filt_isense = 0.0f;
 	static float filt_vfb1_mV = 0.0f;
 	static float filt_vfb2_mV = 0.0f;
 	static float vfb1_mV = 0.0f;
 	static float vfb2_mV = 0.0f;
-	//	static float localFastResponse_filt_current_mA = 0.0f;
-	//	static float localFastResponse_corrected_current_mA = 0.0f;
-	//	static float localFastResponse_filt_corrected_current_mA = 0.0f;
 	static float ln_ratio;
 	static float inv_T;
 	static float T_kelvin;
+	static uint8_t firstMeas = 0u;
 
-	//v0 = ((float)Ain_DmaBuffer[2u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
-	v1 = Ain_DmaBuffer[1u];//((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
-	v2 = ((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // voltage feedback L1
-	v3 = ((float)Ain_DmaBuffer[0u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // voltage feedback T30
+	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
 	v4 = ((float)(SMon_P_NTC_PullUp_ResistorVale * ((SMon_P_ADC_MaxValue - Ain_DmaBuffer[4u]) / Ain_DmaBuffer[4u]))); // resistance NTC L1
 	v5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
-	v6 = SMon_P_Vrefint * SMon_P_ADC_MaxValue / Ain_DmaBuffer[6u]; // MCU VAREF
-
+	v6 = SMon_P_Varef * SMon_P_ADC_MaxValue / Ain_DmaBuffer[6u]; // MCU VAREF
+	v6 = ((float)Ain_DmaBuffer[6u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
 
 	ln_ratio = logf(v4 / SMon_P_NTC_PullUp_ResistorVale);
 	inv_T    = (1.0f / SMon_P_RoomTempKelvin) + (ln_ratio / SMon_P_BetaConst);
 	T_kelvin = 1.0f / inv_T;
+	vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[3u] + SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+	vfb2_mV = SMon_P_VFB_T30_TwoPointCalibration_ParamA * Ain_DmaBuffer[0u] + SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+	aux_isense = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) * SMon_P_TwoPointCalib_ConvFacISense;
+	filt_isense = filt_isense + SMon_P_AlphaFilter * (aux_isense - filt_isense);
+	filt_vfb1_mV = filt_vfb1_mV + SMon_P_AlphaFilter * (vfb1_mV - filt_vfb1_mV);
+	filt_vfb2_mV = filt_vfb2_mV + SMon_P_AlphaFilter * (vfb2_mV - filt_vfb2_mV);
 
-	vfb1_mV = v2 * ((91.0f + 10.0f) / 10.0f);
-	vfb2_mV = v3 * ((91.0f + 10.0f) / 10.0f);
-	vfb1_mV -= 180.0f;
+	if(SMon_PeakCurrent < (v1 - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) SMon_PeakCurrent = (v1 - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
 
-	v0 += 8.0f;
-	v1 -= 8.0f;
+	SMon_ISenseL1_Float = filt_isense / 1000u;
+	SMon_ISenseL1 = filt_isense;
+	SMon_VfbL1 = filt_vfb1_mV;
 
-	filt_vfb1_mV = filt_vfb1_mV + 0.75f * (vfb1_mV - filt_vfb1_mV);
-	filt_vfb2_mV = filt_vfb2_mV + 0.75f * (vfb2_mV - filt_vfb2_mV);
-
-	//	localFastResponse_filt_current_mA = localFastResponse_filt_current_mA + 0.75f * ((v0 - v1)/0.010f - localFastResponse_filt_current_mA);
-	//	localFastResponse_corrected_current_mA = (localFastResponse_filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
-	//	localFastResponse_filt_corrected_current_mA = localFastResponse_filt_corrected_current_mA + 0.75f * (localFastResponse_corrected_current_mA - localFastResponse_filt_corrected_current_mA);
-	//
-	//	filt_current_mA = filt_current_mA + 0.05f * ((v0 - v1)/0.010f - filt_current_mA);
-	//	corrected_current_mA = (filt_current_mA - (-90.6f * (filt_vfb2_mV / 1000.0f) + 1275.0f)) * 10.0f;
-	//	filt_corrected_current_mA = filt_corrected_current_mA + 0.05f * (corrected_current_mA - filt_corrected_current_mA);
-
-	if(0u == SMon_CmdStat || 2u != SMon_CLSFlag)
+	if(101u >= firstMeas)
 	{
-		//		filt_current_mA = 0.0f;
-		//		corrected_current_mA = 0.0f;
-		//		filt_corrected_current_mA = 0.0f;
-		//		localFastResponse_filt_current_mA = 0.0f;
-		//		localFastResponse_corrected_current_mA = 0.0f;
-		//		localFastResponse_filt_corrected_current_mA = 0.0f;
+		firstMeas++;
+		SMon_VfbT30 = vfb2_mV;
 	}
 	else
 	{
-		/* Do nothing. */
+		SMon_VfbT30 = filt_vfb2_mV;
 	}
 
-	//	if(SMon_P_PeakCurrent < localFastResponse_filt_corrected_current_mA)
-	//	{
-	//		SMon_FastResponseTrigger = 1u;
-	//		SMon_RequestPhysicalStatus = 0u;
-	//		htim1.Instance->CCR1 = 0u; // switch off CPC
-	//		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
-	//		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
-	//	}
-	//	else
-	//	{
-	//		/* Do nothing */
-	//	}
-
-	if(2u != SMon_CLSFlag) filt_vfb1_mV = vfb1_mV + 180.0f;
-	//if(SMon_PeakCurrent < localFastResponse_filt_corrected_current_mA) SMon_PeakCurrent = localFastResponse_filt_corrected_current_mA;
-	if(SMon_PeakCurrent < v1 * SMon_P_ConvFacISense) SMon_PeakCurrent = v1 * SMon_P_ConvFacISense;
-
-	//	SMon_ISenseL1_Float = filt_corrected_current_mA / 1000u;
-	//	SMon_ISenseL1 = filt_corrected_current_mA;
-	SMon_ISenseL1_Float = (v1 * SMon_P_ConvFacISense) / 1000u;
-	SMon_ISenseL1 = v1 * SMon_P_ConvFacISense;
-	SMon_VfbL1 = filt_vfb1_mV;
-	SMon_VfbT30 = filt_vfb2_mV;
-	SMon_NTC_Temperature_L1 = T_kelvin - 273.15f;
+	SMon_NTC_Temperature_L1 = T_kelvin - SMon_P_Kelvin;
 	SMon_McuTempValue = ((SMon_P_VoltsAt25 - v5) / SMon_P_AvgSlope) + SMon_P_RoomTemperature;
 	SMon_VarefValue = v6;
 	SMon_ValidMeasFlag = 1u;
@@ -185,19 +154,18 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		/* Do nothing. */
 	}
 }
-
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 {
 	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) && 2u != SMon_CLSFlag)
 	{
-		SMon_FastResponseTrigger = 1u;
-		SMon_RequestPhysicalStatus = 0u;
-		htim1.Instance->CCR1 = 0u; // switch off CPC
-		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
-		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
-		SMon_PeakCurrent = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
-		SMon_ISenseL1_Float = (Ain_DmaBuffer[1u] * SMon_P_ConvFacISense) / 1000u;
-		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
+		//		SMon_FastResponseTrigger = 1u;
+		//		SMon_RequestPhysicalStatus = 0u;
+		//		htim1.Instance->CCR1 = 0u; // switch off CPC
+		//		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
+		//		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
+		//		SMon_PeakCurrent = ((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
+		//		SMon_ISenseL1_Float = (((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) / 1000u;
+		//		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
 	}
 	else
 	{

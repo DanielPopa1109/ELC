@@ -1,0 +1,189 @@
+17:32:21 Read Software Version: start executing
+17:32:24 Read Software Version Failed: Time out to get uds response, please check P2 Time
+17:32:24 Read Software Version: start executing
+17:32:27 Read Software Version Failed: Time out to get uds response, please check P2 Time
+17:32:27 Read Software Version: start executing
+17:32:27 Read Software Version: command success
+17:32:27 Heal Supply: start executing
+17:32:27 Heal Supply: command success
+17:32:27 Load Control: start executing
+17:32:27 Load Control: command success
+17:32:27 Programming Session: start executing
+17:32:27 Programming Session: command success
+17:32:28 Hard Reset: start executing
+17:32:28 Hard Reset: command success
+17:32:28 Read Histograms: start executing
+17:32:28 Read Histograms: command success
+17:32:28 Load Control: start executing
+17:32:28 Load Control: command success
+17:32:28 Programming Session: start executing
+17:32:28 Programming Session: command success
+17:32:28 Read Software Version: start executing
+17:32:28 Read Software Version: command success
+17:32:28 Request FBL Update: start executing
+17:32:28 Request FBL Update: command success
+17:32:28 Mass Erase FBL: start executing
+17:32:28 Mass Erase FBL: command success
+17:32:31 Flashing_Downgrade_FBL: Prepare: start executing
+17:32:31 Flashing_Downgrade_FBL: Prepare: command success
+17:32:31 Flashing_Downgrade_FBL: [Block0]ReqDownload: start executing
+17:32:31 Flashing_Downgrade_FBL: [Block0]ReqDownload: command success
+17:32:31 Flashing_Downgrade_FBL: [Block0]TransferData: start executing
+17:32:35 Flashing_Downgrade_FBL: [Block0]TransferData: command success
+17:32:35 Flashing_Downgrade_FBL: [Block0]TransferExit: start executing
+17:32:35 Flashing_Downgrade_FBL: [Block0]TransferExit: command success
+17:32:35 Hard Reset: start executing
+17:32:35 Hard Reset: command success
+17:32:36 Read Software Version: start executing
+17:32:36 Read Software Version: command success
+17:32:36 Mass Erase Application: start executing
+17:32:36 Mass Erase Application: command success
+17:32:39 Flashing_Downgrade_APP: Prepare: start executing
+17:32:39 Flashing_Downgrade_APP: Prepare: command success
+17:32:39 Flashing_Downgrade_APP: [Block0]ReqDownload: start executing
+17:32:39 Flashing_Downgrade_APP: [Block0]ReqDownload: command success
+17:32:39 Flashing_Downgrade_APP: [Block0]TransferData: start executing
+17:32:39 Flashing_Downgrade_APP: [Block0]TransferData: command success
+17:32:39 Flashing_Downgrade_APP: [Block0]TransferExit: start executing
+17:32:39 Flashing_Downgrade_APP: [Block0]TransferExit: command success
+17:32:39 Flashing_Downgrade_APP: [Block1]ReqDownload: start executing
+17:32:39 Flashing_Downgrade_APP: [Block1]ReqDownload: command success
+17:32:39 Flashing_Downgrade_APP: [Block1]TransferData: start executing
+17:32:52 Flashing_Downgrade_APP: [Block1]TransferData: command success
+17:32:52 Flashing_Downgrade_APP: [Block1]TransferExit: start executing
+17:32:52 Flashing_Downgrade_APP: [Block1]TransferExit: command success
+17:32:53 Flashing_Downgrade_APP: [Block2]ReqDownload: start executing
+17:32:53 Flashing_Downgrade_APP: [Block2]ReqDownload: command success
+17:32:53 Flashing_Downgrade_APP: [Block2]TransferData: start executing
+17:32:53 Flashing_Downgrade_APP: [Block2]TransferData: command success
+17:32:53 Flashing_Downgrade_APP: [Block2]TransferExit: start executing
+17:32:53 Flashing_Downgrade_APP: [Block2]TransferExit: command success
+17:32:53 Hard Reset: start executing
+17:32:53 Hard Reset: command success
+17:32:53 Read Software Version: start executing
+17:32:53 Read Software Version: command success
+17:32:53 Heal Supply: start executing
+17:32:53 Heal Supply: command success
+17:32:53 Load Control: start executing
+17:32:53 Load Control: command success
+17:32:53 Programming Session: start executing
+17:32:53 Programming Session: command success
+17:32:53 Hard Reset: start executing
+17:32:56 Hard Reset Failed: Time out to get uds response, please check P2 Time
+17:32:56 Hard Reset: start executing
+17:32:56 Hard Reset: command success
+17:32:56 Read Histograms: start executing
+17:32:57 Read Histograms: command success
+17:32:57 Load Control: start executing
+17:32:57 Load Control: command success
+17:32:57 Programming Session: start executing
+17:32:57 Programming Session: command success
+17:32:57 Read Software Version: start executing
+17:32:57 Read Software Version: command success
+17:32:57 Request FBL Update: start executing
+17:32:57 Request FBL Update: command success
+17:32:57 Mass Erase FBL: start executing
+17:32:57 Mass Erase FBL: command success
+17:33:00 Flashing_Upgrade_FBL: Prepare: start executing
+17:33:00 Flashing_Upgrade_FBL: Prepare: command success
+17:33:00 Flashing_Upgrade_FBL: [Block0]ReqDownload: start executing
+17:33:00 Flashing_Upgrade_FBL: [Block0]ReqDownload: command success
+17:33:00 Flashing_Upgrade_FBL: [Block0]TransferData: start executing
+17:33:05 Flashing_Upgrade_FBL: [Block0]TransferData: command success
+17:33:05 Flashing_Upgrade_FBL: [Block0]TransferExit: start executing
+17:33:05 Flashing_Upgrade_FBL: [Block0]TransferExit: command success
+17:33:05 Hard Reset: start executing
+17:33:05 Hard Reset: command success
+17:33:05 Read Software Version: start executing
+17:33:05 Read Software Version: command success
+17:33:05 Mass Erase Application: start executing
+17:33:05 Mass Erase Application: command success
+17:33:08 Flashing_Upgrade: Prepare: start executing
+17:33:08 Flashing_Upgrade: Prepare: command success
+17:33:08 Flashing_Upgrade: [Block0]ReqDownload: start executing
+17:33:08 Flashing_Upgrade: [Block0]ReqDownload: command success
+17:33:08 Flashing_Upgrade: [Block0]TransferData: start executing
+17:33:08 Flashing_Upgrade: [Block0]TransferData: command success
+17:33:08 Flashing_Upgrade: [Block0]TransferExit: start executing
+17:33:08 Flashing_Upgrade: [Block0]TransferExit: command success
+17:33:08 Flashing_Upgrade: [Block1]ReqDownload: start executing
+17:33:08 Flashing_Upgrade: [Block1]ReqDownload: command success
+17:33:09 Flashing_Upgrade: [Block1]TransferData: start executing
+17:33:22 Flashing_Upgrade: [Block1]TransferData: command success
+17:33:22 Flashing_Upgrade: [Block1]TransferExit: start executing
+17:33:22 Flashing_Upgrade: [Block1]TransferExit: command success
+17:33:22 Flashing_Upgrade: [Block2]ReqDownload: start executing
+17:33:22 Flashing_Upgrade: [Block2]ReqDownload: command success
+17:33:22 Flashing_Upgrade: [Block2]TransferData: start executing
+17:33:22 Flashing_Upgrade: [Block2]TransferData: command success
+17:33:22 Flashing_Upgrade: [Block2]TransferExit: start executing
+17:33:22 Flashing_Upgrade: [Block2]TransferExit: command success
+17:33:22 Hard Reset: start executing
+17:33:22 Hard Reset: command success
+17:33:22 Read Software Version: start executing
+17:33:22 Read Software Version: command success
+17:33:23 Heal Supply: start executing
+17:33:23 Heal Supply: command success
+17:33:23 Load Control: start executing
+17:33:23 Load Control: command success
+17:33:23 Programming Session: start executing
+17:33:26 Programming Session Failed: Time out to get uds response, please check P2 Time
+17:33:26 Programming Session: start executing
+17:33:26 Programming Session: command success
+17:33:26 Hard Reset: start executing
+17:33:26 Hard Reset: command success
+17:33:26 Read Histograms: start executing
+17:33:27 Read Histograms: command success
+17:33:27 Load Control: start executing
+17:33:27 Load Control: command success
+17:33:27 Programming Session: start executing
+17:33:27 Programming Session: command success
+17:33:27 Read Software Version: start executing
+17:33:27 Read Software Version: command success
+17:33:27 Request FBL Update: start executing
+17:33:27 Request FBL Update: command success
+17:33:27 Mass Erase FBL: start executing
+17:33:27 Mass Erase FBL: command success
+17:33:30 Flashing_Same_FBL: Prepare: start executing
+17:33:30 Flashing_Same_FBL: Prepare: command success
+17:33:30 Flashing_Same_FBL: [Block0]ReqDownload: start executing
+17:33:30 Flashing_Same_FBL: [Block0]ReqDownload: command success
+17:33:30 Flashing_Same_FBL: [Block0]TransferData: start executing
+17:33:34 Flashing_Same_FBL: [Block0]TransferData: command success
+17:33:34 Flashing_Same_FBL: [Block0]TransferExit: start executing
+17:33:34 Flashing_Same_FBL: [Block0]TransferExit: command success
+17:33:35 Hard Reset: start executing
+17:33:35 Hard Reset: command success
+17:33:35 Read Software Version: start executing
+17:33:35 Read Software Version: command success
+17:33:35 Mass Erase Application: start executing
+17:33:35 Mass Erase Application: command success
+17:33:38 Flashing_Same_APP: Prepare: start executing
+17:33:38 Flashing_Same_APP: Prepare: command success
+17:33:38 Flashing_Same_APP: [Block0]ReqDownload: start executing
+17:33:38 Flashing_Same_APP: [Block0]ReqDownload: command success
+17:33:38 Flashing_Same_APP: [Block0]TransferData: start executing
+17:33:38 Flashing_Same_APP: [Block0]TransferData: command success
+17:33:38 Flashing_Same_APP: [Block0]TransferExit: start executing
+17:33:38 Flashing_Same_APP: [Block0]TransferExit: command success
+17:33:38 Flashing_Same_APP: [Block1]ReqDownload: start executing
+17:33:38 Flashing_Same_APP: [Block1]ReqDownload: command success
+17:33:38 Flashing_Same_APP: [Block1]TransferData: start executing
+17:33:52 Flashing_Same_APP: [Block1]TransferData: command success
+17:33:52 Flashing_Same_APP: [Block1]TransferExit: start executing
+17:33:52 Flashing_Same_APP: [Block1]TransferExit: command success
+17:33:52 Flashing_Same_APP: [Block2]ReqDownload: start executing
+17:33:52 Flashing_Same_APP: [Block2]ReqDownload: command success
+17:33:52 Flashing_Same_APP: [Block2]TransferData: start executing
+17:33:52 Flashing_Same_APP: [Block2]TransferData: command success
+17:33:52 Flashing_Same_APP: [Block2]TransferExit: start executing
+17:33:52 Flashing_Same_APP: [Block2]TransferExit: command success
+17:33:52 Hard Reset: start executing
+17:33:52 Hard Reset: command success
+17:33:52 Test Flow Completed, Time:91.612s
+17:33:56 Read Software Version: start executing
+17:33:56 Read Software Version: command success
+17:33:56 Test Flow Completed, Time:0.072s
+17:33:58 Read Software Version: start executing
+17:33:58 Read Software Version: command success
+17:33:58 Test Flow Completed, Time:0.072s

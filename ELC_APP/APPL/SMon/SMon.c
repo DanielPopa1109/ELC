@@ -135,22 +135,31 @@ const uint16_t SMon_P_BetaConst = 3950u;
 const uint32_t SMon_P_LongDischargeTimeCycles = 1044000u; // Maximum Discharge Time Parameter
 const uint32_t SMon_P_LowDisTimeCyc = 420000u; // 2TAU Discharge Time Parameter
 const uint32_t SMon_P_PeakCurrent = 60000u;
-const uint32_t SMon_P_VFB_T30_TwoPointCalibration_ParamA = 0; //todo
-const uint32_t SMon_P_VFB_T30_TwoPointCalibration_ParamB = 0; //todo
-const uint32_t SMon_P_VFB_L1_TwoPointCalibration_ParamA = 0; //todo
-const uint32_t SMon_P_VFB_L1_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_NoLoad_ISense = 391u;
+const float SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.12348f;
+const float SMon_P_VFB_T30_TwoPointCalibration_ParamB = 21.93f;
+const float SMon_P_VFB_L1_TwoPointCalibration_ParamA = 8.0645f;
+const float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.0645f;
 const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 0; //todo
 const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 0; //todo
-const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 0; //todo
-const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 352; // mV sensor output at 1.2A
+const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 151; // mV sensor output at 8.8A
 const float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
 const float SMon_P_I2TRating = 1640; // I2T Rating Parameter
 const float SMon_P_RoomTempKelvin = 298.15f;
 const float SMon_P_VoltsAt25 = 1430.0f;
 const float SMon_P_AvgSlope = 43.0f;
 const float SMon_P_RoomTemperature = 25.0f;
-const float SMon_P_Sens3V3 = 13.2f; // 13.2 mV per A
-const float SMon_P_ConvFacISense = 61.05f; // (3300 / (4095 * 13.2)) * 1000 = mA per count of ADC
+const float SMon_P_Sens3V3 = 26.4f; // 40 * 3300 / 5000 = mV / A
+const float SMon_P_ConvFacISense = 37.88f; // 1000 / 26.4 = mA / mV
+const float SMon_P_Kelvin = 273.15f;
+const float SMon_P_VoltageDivider = 10.10f;
+const float SMon_P_AlphaFilter = 0.075f;
+const uint8_t SMon_P_L1Correction = 180.0f;
+const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) /
+    (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
+const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV -
+    (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
 static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10, uint32_t* rms30);

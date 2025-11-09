@@ -46,7 +46,7 @@ uint32 ROM_APPL_START_ADDR_storedValue = 0;
 uint32 ROM_APPL_START_ADDR = 0x8004000;
 uint32 FBL_DSC_Status = 0;
 
-uint8_t FBL_Dcm_SWV[4u] = {11u, 11u, 0xFFu, 0xFFu};
+uint8_t FBL_Dcm_SWV[4u] = {13u, 13u, 0xFFu, 0xFFu};
 
 void FBL_JumpToAppl(void);
 void FBL_DiagService_ER_HardReset(void);

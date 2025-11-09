@@ -30,7 +30,7 @@ CAN_TxHeaderTypeDef Dcm_DiagTxHeader;
 CAN_RxHeaderTypeDef Dcm_DiagRxHeader = {0, 0, 0, 0, 0, 0, 0};
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
-uint8_t Dcm_SWV[4u] = {11u, 11u, 0xFFu, 0xFFu};
+uint8_t Dcm_SWV[4u] = {13u, 13u, 0xFFu, 0xFFu};
 uint8_t Dcm_LoadStatus;
 extern uint8_t SMon_CmdStat;
 extern uint8_t SMon_RetryCnt;
@@ -301,7 +301,7 @@ void Dcm_ReadSWV()
 	Dcm_TxData[7u] = Dcm_SWV[3u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	while(0 == HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox));
+	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
 	for(uint8_t i = 0; i < 8; i++) Dcm_TxData[i] = 0;
 	Dcm_DiagTxHeader.DLC = 0;
 	Dcm_DiagTxHeader.StdId = 0;
