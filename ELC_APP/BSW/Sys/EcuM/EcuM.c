@@ -5,6 +5,8 @@
 #include <string.h>
 #include "CanH.h"
 #include "adc.h"
+#include "Nvm.h"
+#include "Dem.h"
 
 extern uint8_t SMon_ShortToPlusTest; // Discharge Test Status
 extern CAN_HandleTypeDef hcan;
@@ -15,16 +17,44 @@ uint8_t EcuM_WUPLine = 0u;
 uint8_t EcuM_SleeModeActive = 0u;
 uint32_t EcuM_RunTimer = 58u;
 uint32_t EcuM_PostRunTimer = 58u;
+uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
+uint8_t EcuM_ResetReason __attribute((section(".ncr")));
+uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
+uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
+uint32_t EcuM_TimeActive __attribute((section(".ncr")));
+uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
+uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
 static uint32_t mainCnt = 0u;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
+extern uint8_t Dcm_SWV[4u];
 
+extern void CanH_RecoverIfBusOff(void);
 void EcuM_GoSleep(void);
 void EcuM_main();
 void EcuM_PerformReset(uint8_t reason, uint8_t info);
 void EcuM_main()
 {
+	EcuM_TimeActive += 5u;
+	EcuM_TimeWithoutReset += 5u;
 	EcuM_WUPLine = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+	for(uint8_t i = 0; i < 4u; i++) EcuM_SWV[i] = Dcm_SWV[i];
+
+	if(0u == mainCnt)
+	{
+		if(EcuM_ResetReason)
+		{
+			Dem_SetDtc(0x57, 0x2f);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
 
 	if(1u == SMon_CmdStat || 1u == EcuM_WUPLine || FULL_COMMUNICATION == CanH_CommunicationState)
 	{
@@ -133,6 +163,7 @@ void EcuM_GoSleep(void)
 	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_14);
 	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_15);
 	//	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
+	Nvm_WriteAll();
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -168,6 +199,23 @@ void EcuM_GoSleep(void)
 
 void EcuM_ProcessTimerInterrupt(void)
 {
+	EcuM_TimeInSleep += 100u;
+
+	static uint32_t errInfo = 0u;
+
+	CanH_RecoverIfBusOff();
+
+	errInfo = HAL_CAN_GetError(&hcan);
+
+	if(errInfo)
+	{
+		HAL_CAN_ResetError(&hcan);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
 	if(1u == HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0))
 	{
 		EcuM_PerformReset(0,0);
@@ -180,5 +228,9 @@ void EcuM_ProcessTimerInterrupt(void)
 
 void EcuM_PerformReset(uint8_t reason, uint8_t info)
 {
+	EcuM_TimeWithoutReset = 0u;
+	EcuM_ResetInfo = info;
+	EcuM_ResetReason = reason;
+	if(reason) EcuM_ResetCounter++;
 	NVIC_SystemReset();
 }

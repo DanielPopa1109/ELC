@@ -4,6 +4,7 @@
 #include "can.h"
 #include <string.h>
 #include <stdbool.h>
+#include "Nvm.h"
 
 #define DCM_RESP_ID_DELTA 0x01u
 
@@ -22,7 +23,9 @@ static iso_tx_ctx_t g =
 		.active = 0, .fc_expect_id = 0, .fc_pending = 0,
 		.stmin_ms_default = 0, .timeout_ms = 100
 };
-
+uint8_t rx[8];
+volatile uint8_t Dcm_RequestPending;
+volatile uint8_t Dcm_IsoTp_TxActive = 0u;
 uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 uint32_t Dcm_MainCounter = 0u;
 uint32_t Dcm_TxMailbox = 0;
@@ -32,32 +35,40 @@ uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
 uint8_t Dcm_SWV[4u] = {13u, 13u, 0xFFu, 0xFFu};
 uint8_t Dcm_LoadStatus;
+uint8_t Dcm_CC = 0u;
+uint8_t Dcm_CDTCS = 0u;
+uint32_t Dcm_SessionCounter = 1000u;
 extern uint8_t SMon_CmdStat;
 extern uint8_t SMon_RetryCnt;
 extern uint8_t SMon_LockSupply;
 extern uint32_t SMon_ISenseL1_RMS_5s;
 extern uint32_t SMon_ISenseL1_RMS_10s;
-extern uint32_t SMon_ISenseL1_RMS_30s;
 extern uint32_t SMon_VfbT30_RMS_5s;
 extern uint32_t SMon_VfbT30_RMS_10s;
-extern uint32_t SMon_VfbT30_RMS_30s;
 extern uint32_t SMon_VfbL1_RMS_5s;
 extern uint32_t SMon_VfbL1_RMS_10s;
-extern uint32_t SMon_VfbL1_RMS_30s;
 extern uint32_t SMon_NTC_RMS_5s;
 extern uint32_t SMon_NTC_RMS_10s;
-extern uint32_t SMon_NTC_RMS_30s;
 extern uint32_t SMon_Vrefint_RMS_5s;
 extern uint32_t SMon_Vrefint_RMS_10s;
-extern uint32_t SMon_Vrefint_RMS_30s;
 extern uint32_t SMon_McuTemp_RMS_5s;
 extern uint32_t SMon_McuTemp_RMS_10s;
-extern uint32_t SMon_McuTemp_RMS_30s;
+extern uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
+extern uint32_t EcuM_TimeActive __attribute((section(".ncr")));
+extern uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
+extern uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
+extern uint8_t EcuM_ResetReason __attribute((section(".ncr")));
+extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
+extern float OS_XCP_CpuLoad;
+extern uint8_t Dem_DTC_Stat[24u];
+extern const uint32_t Dem_PreDefined_DTC_Table[24u];
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
 void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms);
 
+void Dcm_TesterPresent();
+void Dcm_ExtendedSession();
 void Dcm_LoadControl();
 void Dcm_main();
 void Dcm_ProgrammingSession();
@@ -66,22 +77,340 @@ void Dcm_ReadSWV();
 void Dcm_RC_HealSupply();
 void Dcm_RC_ReadHistograms();
 void Dcm_SendNrc();
+void Dcm_RDBI_ResetCounter();
+void Dcm_RDBI_TimeInSleep();
+void Dcm_RDBI_TimeActive();
+void Dcm_RDBI_TimeWithoutReset();
+void Dcm_RDBI_ResetData();
+void Dcm_RDBI_CpuLoad();
+void Dcm_CommunicationControl();
+void Dcm_ControlDTCSetting();
+void Dcm_CDTCI();
+void Dcm_RDTCI();
+static HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId,uint8_t *data,uint8_t len);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
+static HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId,
+		uint8_t *data,
+		uint8_t len)
+{
+	CAN_TxHeaderTypeDef th = {0};
+	uint32_t mbx;
+	th.StdId = stdId;
+	th.IDE   = CAN_ID_STD;
+	th.RTR   = CAN_RTR_DATA;
+	th.DLC   = len;
+
+	HAL_StatusTypeDef st;
+	do {
+		st = HAL_CAN_AddTxMessage(&hcan, &th, data, &mbx);
+	} while (st != HAL_OK);   // wait until a mailbox frees up
+
+	return st;                  // HAL_OK or HAL_ERROR
+}
+
+void Dcm_CDTCI()
+{
+	Dcm_TxData[0u] = 0x03;
+	Dcm_TxData[1u] = 0x7f;
+	Dcm_TxData[2u] = rx[1u];
+	Dcm_TxData[3u] = 0x78;
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	for(uint8_t i = 0; i < sizeof(Dem_DTC_Stat); i++) Dem_DTC_Stat[i] = 0x50;
+
+	HAL_Delay(4);
+
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDTCI()
+{
+	/* 3 header bytes + 4 bytes per DTC (3-byte DTC + 1-byte status) */
+	uint8_t spayload[3u + (24 * 4u)];
+	uint16_t slen = 0u;
+	uint8_t statusMask = rx[3u];  /* request byte 3 is DTCStatusMask */
+
+	/* Positive response SID and echo of sub-function + mask */
+	spayload[0] = (uint8_t)(rx[1u] + 0x40u); /* 0x19 -> 0x59 */
+	spayload[1] = rx[2u];                    /* sub-function (0x02) */
+	spayload[2] = statusMask;                /* echo requested mask */
+
+	slen = 3u;
+
+	for (uint8_t i = 0u; i < 24; i++)
+	{
+		uint8_t st = Dem_DTC_Stat[i];
+		uint32_t dtc = Dem_PreDefined_DTC_Table[i];
+
+		/* DTC is 3 bytes, MSB first */
+		spayload[slen + 0u] = st; /* status byte */
+		spayload[slen + 1u] = (uint8_t)(dtc >> 16);
+		spayload[slen + 2u] = (uint8_t)(dtc >> 8);
+		spayload[slen + 3u] = (uint8_t)(dtc);
+		slen += 4u;
+	}
+
+	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, spayload, slen, 0x00u, 0u);
+
+	for (uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_CommunicationControl()
+{
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_CC = rx[2u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_ControlDTCSetting()
+{
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_CDTCS = rx[2u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_CpuLoad()
+{
+	Dcm_TxData[0u] = rx[0u] + 1;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = (uint8_t)OS_XCP_CpuLoad;
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_ResetData()
+{
+	Dcm_TxData[0u] = rx[0u] + 2;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = EcuM_ResetReason;
+	Dcm_TxData[5u] = EcuM_ResetInfo;
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_ResetCounter()
+{
+	Dcm_TxData[0u] = rx[0u] + 4;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = (uint8_t)(EcuM_ResetCounter);
+	Dcm_TxData[5u] = (uint8_t)(EcuM_ResetCounter >> 8u);
+	Dcm_TxData[6u] = (uint8_t)(EcuM_ResetCounter >> 16u);
+	Dcm_TxData[7u] = (uint8_t)(EcuM_ResetCounter >> 24u);
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_TimeInSleep()
+{
+	Dcm_TxData[0u] = rx[0u] + 4;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = (uint8_t)(EcuM_TimeInSleep);
+	Dcm_TxData[5u] = (uint8_t)(EcuM_TimeInSleep >> 8u);
+	Dcm_TxData[6u] = (uint8_t)(EcuM_TimeInSleep >> 16u);
+	Dcm_TxData[7u] = (uint8_t)(EcuM_TimeInSleep >> 24u);
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_TimeActive()
+{
+	Dcm_TxData[0u] = rx[0u] + 4;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = (uint8_t)(EcuM_TimeActive);
+	Dcm_TxData[5u] = (uint8_t)(EcuM_TimeActive >> 8u);
+	Dcm_TxData[6u] = (uint8_t)(EcuM_TimeActive >> 16u);
+	Dcm_TxData[7u] = (uint8_t)(EcuM_TimeActive >> 24u);
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_TimeWithoutReset()
+{
+	Dcm_TxData[0u] = rx[0u] + 4;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = (uint8_t)(EcuM_TimeWithoutReset);
+	Dcm_TxData[5u] = (uint8_t)(EcuM_TimeWithoutReset >> 8u);
+	Dcm_TxData[6u] = (uint8_t)(EcuM_TimeWithoutReset >> 16u);
+	Dcm_TxData[7u] = (uint8_t)(EcuM_TimeWithoutReset >> 24u);
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_TesterPresent()
+{
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_ExtendedSession()
+{
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_ActiveSessionState = rx[2u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
 
 void Dcm_LoadControl()
 {
-	Dcm_TxData[0u] = Dcm_RxData[0u];
-	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
-	Dcm_TxData[2u] = Dcm_RxData[2u];
-	Dcm_TxData[3u] = Dcm_RxData[3u];
-	Dcm_TxData[4u] = Dcm_RxData[4u];
-	Dcm_TxData[5u] = Dcm_RxData[5u];
-	Dcm_TxData[6u] = Dcm_RxData[6u];
-	Dcm_TxData[7u] = Dcm_RxData[7u];
-	Dcm_LoadStatus = Dcm_RxData[5u];
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_LoadStatus = rx[5u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
 }
 
 static inline void le32(uint8_t *p, uint32_t v)
@@ -92,28 +421,22 @@ static inline void le32(uint8_t *p, uint32_t v)
 static uint16_t Dcm_BuildHist_RC(uint8_t *out)
 {
 	out[0] = 0x71;
-	out[1] = Dcm_RxData[2];      /* subfunction echo */
-	out[2] = Dcm_RxData[3];      /* routineId high */
-	out[3] = Dcm_RxData[4];      /* routineId low */
+	out[1] = rx[2];      /* subfunction echo */
+	out[2] = rx[3];      /* routineId high */
+	out[3] = rx[4];      /* routineId low */
 	uint8_t *p = &out[4];
 	le32(p, SMon_ISenseL1_RMS_5s);   p+=4;
 	le32(p, SMon_ISenseL1_RMS_10s);  p+=4;
-	le32(p, SMon_ISenseL1_RMS_30s);  p+=4;
 	le32(p, SMon_VfbT30_RMS_5s);     p+=4;
 	le32(p, SMon_VfbT30_RMS_10s);    p+=4;
-	le32(p, SMon_VfbT30_RMS_30s);    p+=4;
 	le32(p, SMon_VfbL1_RMS_5s);      p+=4;
 	le32(p, SMon_VfbL1_RMS_10s);     p+=4;
-	le32(p, SMon_VfbL1_RMS_30s);     p+=4;
 	le32(p, SMon_NTC_RMS_5s);      p+=4;
 	le32(p, SMon_NTC_RMS_10s);     p+=4;
-	le32(p, SMon_NTC_RMS_30s);     p+=4;
 	le32(p, SMon_Vrefint_RMS_5s);      p+=4;
 	le32(p, SMon_Vrefint_RMS_10s);     p+=4;
-	le32(p, SMon_Vrefint_RMS_30s);     p+=4;
 	le32(p, SMon_McuTemp_RMS_5s);      p+=4;
 	le32(p, SMon_McuTemp_RMS_10s);     p+=4;
-	le32(p, SMon_McuTemp_RMS_30s);     p+=4;
 	return (uint16_t)(p - out);
 }
 
@@ -144,17 +467,28 @@ static HAL_StatusTypeDef can_tx8(uint32_t stdId, const uint8_t *data, uint8_t le
 	th.StdId = stdId;
 	th.IDE   = CAN_ID_STD;
 	th.RTR   = CAN_RTR_DATA;
+
+	uint8_t buf[8];
+	const uint8_t *p;
+
 	if (force_pad) {
-		uint8_t buf[8];
 		memset(buf, pad, 8);
 		memcpy(buf, data, len);
 		th.DLC = 8;
-		return HAL_CAN_AddTxMessage(&hcan, &th, buf, &mbx);
+		p = buf;
 	} else {
 		th.DLC = len;
-		return HAL_CAN_AddTxMessage(&hcan, &th, (uint8_t*)data, &mbx);
+		p = data;
 	}
+
+	HAL_StatusTypeDef st;
+	do {
+		st = HAL_CAN_AddTxMessage(&hcan, &th, (uint8_t*)p, &mbx);
+	} while (st != HAL_OK);  /* wait until mailbox frees up */
+
+	return st;  /* HAL_OK or HAL_ERROR */
 }
+
 
 static int wait_fc(uint8_t *bs, uint8_t *stmin_ms)
 {
@@ -187,10 +521,14 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len,
 	uint32_t resp_id = req_canid + DCM_RESP_ID_DELTA;
 	uint8_t f[8];
 
+	Dcm_IsoTp_TxActive = 1u;   /* block normal CAN TX while we stream */
+
 	if (len <= 7u) {
 		f[0] = (uint8_t)(0x00u | (len & 0x0Fu));
 		memcpy(&f[1], payload, len);
-		return (can_tx8(resp_id, f, (uint8_t)(1u + len), pad, force_pad) == HAL_OK);
+		bool ok = (can_tx8(resp_id, f, (uint8_t)(1u + len), pad, force_pad) == HAL_OK);
+		Dcm_IsoTp_TxActive = 0u;
+		return ok;
 	}
 
 	/* First Frame */
@@ -200,20 +538,33 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len,
 	g.active = 1;
 	g.fc_expect_id = req_canid;
 	g.fc_pending = 0;
-	if (can_tx8(resp_id, f, 8u, pad, force_pad) != HAL_OK) { g.active = 0; return false; }
+
+	if (can_tx8(resp_id, f, 8u, pad, force_pad) != HAL_OK) {
+		g.active = 0;
+		Dcm_IsoTp_TxActive = 0u;
+		return false;
+	}
 
 	uint8_t bs = 0, stmin = g.stmin_ms_default;
 	int fc = wait_fc(&bs, &stmin);
-	if (fc <= 0) { g.active = 0; return false; }
+	if (fc <= 0) {
+		g.active = 0;
+		Dcm_IsoTp_TxActive = 0u;
+		return false;
+	}
 
 	uint16_t idx = 6u;
-	uint8_t sn = 1u;
-	uint8_t bs_cnt = bs;
+	uint8_t  sn  = 1u;
+	uint8_t  bs_cnt = bs;
 
 	while (idx < len) {
 		if (bs != 0u && bs_cnt == 0u) {
 			fc = wait_fc(&bs, &stmin);
-			if (fc <= 0) { g.active = 0; return false; }
+			if (fc <= 0) {
+				g.active = 0;
+				Dcm_IsoTp_TxActive = 0u;
+				return false;
+			}
 			bs_cnt = bs;
 		}
 
@@ -221,39 +572,73 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len,
 		uint8_t chunk = (uint8_t)((len - idx) >= 7u ? 7u : (len - idx));
 		memset(&f[1], pad, 7u);
 		memcpy(&f[1], &payload[idx], chunk);
-		if (can_tx8(resp_id, f, (uint8_t)(1u + chunk), pad, force_pad) != HAL_OK) { g.active = 0; return false; }
+
+		if (can_tx8(resp_id, f, (uint8_t)(1u + chunk), pad, force_pad) != HAL_OK) {
+			g.active = 0;
+			Dcm_IsoTp_TxActive = 0u;
+			return false;
+		}
 
 		idx += chunk;
 		sn = (uint8_t)((sn + 1u) & 0x0Fu);
 		if (bs != 0u && bs_cnt > 0u) bs_cnt--;
 		if (stmin) HAL_Delay(stmin);
 	}
+
 	g.active = 0;
+	Dcm_IsoTp_TxActive = 0u;
 	return true;
 }
+
 
 void Dcm_RC_ReadHistograms()
 {
 	uint8_t payload[4+72];
 	uint16_t len = Dcm_BuildHist_RC(payload);
 	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x55u, 1u);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
 }
 
 void Dcm_ProgrammingSession()
 {
-	Dcm_TxData[0u] = Dcm_RxData[0u];
-	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
-	Dcm_TxData[2u] = Dcm_RxData[2u];
-	Dcm_TxData[3u] = Dcm_RxData[3u];
-	Dcm_TxData[4u] = Dcm_RxData[4u];
-	Dcm_TxData[5u] = Dcm_RxData[5u];
-	Dcm_TxData[6u] = Dcm_RxData[6u];
-	Dcm_TxData[7u] = Dcm_RxData[7u];
-	Dcm_ActiveSessionState = Dcm_RxData[2u];
+	Dcm_TxData[0u] = 0x03;
+	Dcm_TxData[1u] = 0x7f;
+	Dcm_TxData[2u] = rx[1u];
+	Dcm_TxData[3u] = 0x78;
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	Nvm_WriteAll();
+
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_ActiveSessionState = rx[2u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
 	HAL_Delay(1);
+
 	EcuM_PerformReset(0u, 0u);
 }
 
@@ -261,89 +646,237 @@ void Dcm_SendNrc()
 {
 	Dcm_TxData[0u] = 0x03;
 	Dcm_TxData[1u] = 0x7f;
-	Dcm_TxData[2u] = 0x19;
+	Dcm_TxData[2u] = rx[1u];;
 	Dcm_TxData[3u] = 0x22;
-	Dcm_TxData[4u] = Dcm_RxData[4u];
-	Dcm_TxData[5u] = Dcm_RxData[5u];
-	Dcm_TxData[6u] = Dcm_RxData[6u];
-	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
 }
 
 void Dcm_HardReset()
 {
-	Dcm_TxData[0u] = Dcm_RxData[0u];
-	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
-	Dcm_TxData[2u] = Dcm_RxData[2u];
-	Dcm_TxData[3u] = Dcm_RxData[3u];
-	Dcm_TxData[4u] = Dcm_RxData[4u];
-	Dcm_TxData[5u] = Dcm_RxData[5u];
-	Dcm_TxData[6u] = Dcm_RxData[6u];
-	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_TxData[0u] = 0x03;
+	Dcm_TxData[1u] = 0x7f;
+	Dcm_TxData[2u] = rx[1u];
+	Dcm_TxData[3u] = 0x78;
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	Nvm_WriteAll();
+
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
 	HAL_Delay(1);
+
 	EcuM_PerformReset(0u, 0u);
 }
 
 void Dcm_ReadSWV()
 {
-	Dcm_TxData[0u] = Dcm_RxData[0u] + 4u;
-	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
-	Dcm_TxData[2u] = Dcm_RxData[2u];
-	Dcm_TxData[3u] = Dcm_RxData[3u];
+	Dcm_TxData[0u] = rx[0u] + 4u;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
 	Dcm_TxData[4u] = Dcm_SWV[0u];
 	Dcm_TxData[5u] = Dcm_SWV[1u];
 	Dcm_TxData[6u] = Dcm_SWV[2u];
 	Dcm_TxData[7u] = Dcm_SWV[3u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
-	for(uint8_t i = 0; i < 8; i++) Dcm_TxData[i] = 0;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
 	Dcm_DiagTxHeader.DLC = 0;
 	Dcm_DiagTxHeader.StdId = 0;
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
 }
 
 void Dcm_RC_HealSupply()
 {
 	SMon_RetryCnt = 0u;
 	SMon_LockSupply = 0u;
-	Dcm_TxData[0u] = Dcm_RxData[0u];
-	Dcm_TxData[1u] = Dcm_RxData[1u] + 0x40u;
-	Dcm_TxData[2u] = Dcm_RxData[2u];
-	Dcm_TxData[3u] = Dcm_RxData[3u];
-	Dcm_TxData[4u] = Dcm_RxData[4u];
-	Dcm_TxData[5u] = Dcm_RxData[5u];
-	Dcm_TxData[6u] = Dcm_RxData[6u];
-	Dcm_TxData[7u] = Dcm_RxData[7u];
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-	HAL_CAN_AddTxMessage(&hcan, &Dcm_DiagTxHeader, Dcm_TxData, &Dcm_TxMailbox);
-	for(uint8_t i = 0; i < 8; i++) Dcm_TxData[i] = 0;
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
 	Dcm_DiagTxHeader.DLC = 0;
 	Dcm_DiagTxHeader.StdId = 0;
 }
 
 void Dcm_main()
 {
+	/* Atomic snapshot of pending request */
+	__disable_irq();
+	if (Dcm_RequestPending)
+	{
+		for (uint8_t i = 0u; i < 8u; i++)
+		{
+			rx[i] = Dcm_RxData[i];
+			Dcm_RxData[i] = 0u;
+		}
+
+		Dcm_RequestPending = 0u;
+		Dcm_SessionCounter = 1000u;
+	}
+	else
+	{
+		if(0u != Dcm_SessionCounter)
+		{
+			Dcm_SessionCounter --;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+	}
+	__enable_irq();
+
 	if(0u == Dcm_MainCounter)
 	{
 		Dcm_ActiveSessionState = 0u;
-		Dcm_IsoTp_Config(/*stmin_default_ms=*/50, /*timeout_ms=*/100);
+		Dcm_IsoTp_Config(/*stmin_default_ms=*/50u, /*timeout_ms=*/5000u);
 	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	if(0x02 == Dcm_RxData[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus))
+	if(0u == Dcm_SessionCounter)
+	{
+		Dcm_ActiveSessionState = 0u;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x14u == rx[1u])
+	{
+		Dcm_CDTCI();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x19u == rx[1u])
+	{
+		Dcm_RDTCI();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x28u == rx[1u] && 3u == Dcm_ActiveSessionState)
+	{
+		Dcm_CommunicationControl();
+	}
+	else if(0x28u == rx[1u] && 3u != Dcm_ActiveSessionState)
+	{
+		Dcm_SendNrc();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x85u == rx[1u] && 3u == Dcm_ActiveSessionState)
+	{
+		Dcm_ControlDTCSetting();
+	}
+	else if(0x85u == rx[1u] && 3u != Dcm_ActiveSessionState)
+	{
+		Dcm_SendNrc();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x22u == rx[1u])
+	{
+		switch(rx[3u])
+		{
+		case 0x01u:
+			Dcm_RDBI_ResetCounter();
+			break;
+		case 0x02u:
+			Dcm_RDBI_TimeInSleep();
+			break;
+		case 0x03u:
+			Dcm_RDBI_TimeActive();
+			break;
+		case 0x04u:
+			Dcm_RDBI_TimeWithoutReset();
+			break;
+		case 0x05u:
+			Dcm_RDBI_ResetData();
+			break;
+		case 0x06u:
+			Dcm_RDBI_CpuLoad();
+			break;
+		case 0x80u:
+			Dcm_ReadSWV();
+			break;
+		default:
+			Dcm_SendNrc();
+			break;
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x02 == rx[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus) && 3u == Dcm_ActiveSessionState)
 	{
 		Dcm_ProgrammingSession();
 	}
-	else if(0x02 == Dcm_RxData[2u] && (1u == SMon_CmdStat || 1u == Dcm_LoadStatus))
+	else if(0x02 == rx[2u] && (1u == SMon_CmdStat || 1u == Dcm_LoadStatus))
 	{
 		Dcm_SendNrc();
 	}
@@ -352,11 +885,11 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0x11u == Dcm_RxData[1u] && 0x01u == Dcm_RxData[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus))
+	if(0x11u == rx[1u] && 0x01u == rx[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus))
 	{
 		Dcm_HardReset();
 	}
-	else if(0x11u == Dcm_RxData[1u] && 0x01u == Dcm_RxData[2u] && (1u == SMon_CmdStat || 1u == Dcm_LoadStatus))
+	else if(0x11u == rx[1u] && 0x01u == rx[2u] && (1u == SMon_CmdStat || 1u == Dcm_LoadStatus))
 	{
 		Dcm_SendNrc();
 	}
@@ -365,16 +898,7 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0xf1u == Dcm_RxData[2u] && 0x80u == Dcm_RxData[3u])
-	{
-		Dcm_ReadSWV();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(0x40u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	if(0x40u == rx[4u] && 0x31u == rx[1u])
 	{
 		Dcm_RC_HealSupply();
 	}
@@ -383,28 +907,48 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0x42u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	if(0x42u == rx[4u] && 0x31u == rx[1u] && 3u == Dcm_ActiveSessionState)
 	{
 		Dcm_LoadControl();
 	}
+	else if(0x42u == rx[4u] && 0x31u == rx[1u] && 3u != Dcm_ActiveSessionState)
+	{
+		Dcm_SendNrc();
+	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	if(0x41u == Dcm_RxData[4u] && 0x31u == Dcm_RxData[1u])
+	if(0x41u == rx[4u] && 0x31u == rx[1u] && 3u == Dcm_ActiveSessionState)
 	{
 		Dcm_RC_ReadHistograms();
 	}
+	else if(0x41u == rx[4u] && 0x31u == rx[1u] && 3u != Dcm_ActiveSessionState)
+	{
+		Dcm_SendNrc();
+	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	for(uint8_t i = 0u; i < 8u; i++)
+	if(0x10u == rx[1u] && 0x03u == rx[2u])
 	{
-		Dcm_RxData[i] = 0u;
-		Dcm_TxData[i] = 0u;
+		Dcm_ExtendedSession();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x3E == rx[1u] && 0x80u == rx[2u])
+	{
+		Dcm_TesterPresent();
+	}
+	else
+	{
+		/* Do nothing. */
 	}
 
 	Dcm_MainCounter++;

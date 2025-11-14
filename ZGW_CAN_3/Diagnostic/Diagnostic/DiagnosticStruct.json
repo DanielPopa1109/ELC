@@ -7,6 +7,13 @@
       "GUID":"s364860628130405067152655049",
       "SEL":"Checked",
       "REG":"False"    
+    },
+    {
+      "Name":"Uds Flow 1",
+      "Type":      1,
+      "GUID":"s46581718398368926702297068",
+      "SEL":"Checked",
+      "REG":"False"    
     }  
   ]
 }

@@ -36,28 +36,35 @@ BS_:
 BU_: ELC ZGW
 
 
+BO_ 2046 StatusErrorSetting_0x703: 5 ELC
+ SG_ StatusErrorSetting_Data_4 : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ StatusErrorSetting_Data_3 : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ StatusErrorSetting_Data_2 : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ StatusErrorSetting_Data_1 : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ StatusErrorSetting_Data_0 : 0|8@1+ (1,0) [0|255] ""  ZGW
+
 BO_ 1023 Networkmanagement3_RequestStatus: 1 ZGW
  SG_ NM3RS_PN1 : 0|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 1795 Diag703: 8 ZGW
- SG_ Diag703_Resp_7 : 56|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_6 : 48|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_5 : 40|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_4 : 32|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_3 : 24|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_2 : 16|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_1 : 8|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag703_Resp_0 : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ Diag703_Resp_7 : 56|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_6 : 48|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_5 : 40|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_4 : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_3 : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_2 : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_1 : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Diag703_Resp_0 : 0|8@1+ (1,0) [0|255] ""  ZGW
 
 BO_ 1794 Diag702: 8 ZGW
- SG_ Diag702_Req_7 : 56|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_6 : 48|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_5 : 40|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_4 : 32|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_3 : 24|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_2 : 16|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_1 : 8|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ Diag702_Req_0 : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ Diag702_Req_7 : 56|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_6 : 48|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_5 : 40|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_4 : 32|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_3 : 24|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_2 : 16|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_1 : 8|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Diag702_Req_0 : 0|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 514 CANStandardBus_SystemDateAndTime: 7 ZGW
  SG_ CSB_SDAT_Year : 0|8@1+ (1,0) [0|255] ""  ELC
@@ -68,7 +75,10 @@ BO_ 514 CANStandardBus_SystemDateAndTime: 7 ZGW
  SG_ CSB_SDAT_Hour : 24|8@1+ (1,0) [0|255] ""  ELC
  SG_ CSB_SDAT_Day : 16|8@1+ (1,0) [0|255] ""  ELC
 
-BO_ 1777 LoadTracing3: 5 ELC
+BO_ 1777 LoadTracing3: 8 ELC
+ SG_ LoadTrace_Vrefint : 48|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadTrace_NTC_Temperature : 56|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadTrace_McuTemperature : 40|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ LoadTrace_S2BErrorStatus : 32|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ LoadTrace_WupStat : 24|8@1+ (1,0) [0|255] ""  ZGW
  SG_ LoadTrace_RetryCnt : 16|8@1+ (1,0) [0|255] ""  ZGW
@@ -95,8 +105,11 @@ BO_ 1775 LoadTracing: 8 ELC
  SG_ LoadTrace_Current_Byte1 : 8|8@1+ (1,0) [0|255] ""  ZGW
  SG_ LoadTrace_Current_Byte0 : 0|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 81 LoadStatus: 1 ELC
- SG_ LoadPhysicalStatus : 0|8@1+ (1,0) [0|255] ""  ZGW
+BO_ 81 LoadStatus: 4 ELC
+ SG_ LoadStatus_Crc : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadStatus_DataId : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadStatus_AliveCounter : 8|8@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ LoadPhysicalStatus : 24|8@1+ (1,0) [0|255] ""  ZGW
 
 BO_ 80 LoadRequest: 1 ZGW
  SG_ LoadStatusRequest : 0|8@1+ (1,0) [0|255] ""  ELC

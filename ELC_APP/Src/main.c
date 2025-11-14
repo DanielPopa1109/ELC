@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include "Nvm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +34,6 @@
 
 /* USER CODE BEGIN PV */
 uint16_t Ain_DmaBuffer[7u];
-extern uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
 extern uint8_t SMon_CmdStat; // Command Status
 extern uint8_t SMon_ValidMeasFlag; // ADC valid measurement
@@ -70,6 +70,8 @@ extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamA ;
 extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamB ;
 extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamA ;
 extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamB ;
+extern uint8_t Dcm_SWV[4u];
+extern uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,7 +104,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
 	v4 = ((float)(SMon_P_NTC_PullUp_ResistorVale * ((SMon_P_ADC_MaxValue - Ain_DmaBuffer[4u]) / Ain_DmaBuffer[4u]))); // resistance NTC L1
 	v5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
-	v6 = SMon_P_Varef * SMon_P_ADC_MaxValue / Ain_DmaBuffer[6u]; // MCU VAREF
 	v6 = ((float)Ain_DmaBuffer[6u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
 
 	ln_ratio = logf(v4 / SMon_P_NTC_PullUp_ResistorVale);
@@ -158,20 +159,24 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 {
 	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) && 2u != SMon_CLSFlag)
 	{
-		//		SMon_FastResponseTrigger = 1u;
-		//		SMon_RequestPhysicalStatus = 0u;
-		//		htim1.Instance->CCR1 = 0u; // switch off CPC
-		//		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
-		//		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
-		//		SMon_PeakCurrent = ((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
-		//		SMon_ISenseL1_Float = (((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) / 1000u;
-		//		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
+		SMon_FastResponseTrigger = 1u;
+		SMon_RequestPhysicalStatus = 0u;
+		htim1.Instance->CCR1 = 0u; // switch off CPC
+		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
+		SMon_PeakCurrent = ((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
+		SMon_ISenseL1_Float = (((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) / 1000u;
+		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
 	}
 	else
 	{
 		/* Do nothing */
 	}
 }
+
+
+extern uint32_t Nvm_Erase();
+uint8_t flagdbg;
 /* USER CODE END 0 */
 
 /**
@@ -191,7 +196,7 @@ int main(void)
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
-	HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
+	//HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -209,29 +214,46 @@ int main(void)
 	MX_CAN_Init();
 	MX_TIM2_Init();
 	MX_CRC_Init();
+	MX_TIM3_Init();
 
 	/* Initialize interrupts */
 	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
-	if(((RCC->CSR & RCC_CSR_PORRSTF) != 0)
-			|| ((RCC->CSR & RCC_CSR_PINRSTF) != 0)
-			|| ((RCC->CSR & RCC_CSR_LPWRRSTF) != 0))
+	PWR_PVDTypeDef sConfigPVD;
+	sConfigPVD.Mode = PWR_PVD_MODE_IT_FALLING;
+	sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
+	HAL_PWR_ConfigPVD(&sConfigPVD);
+	HAL_ADC_Stop(&hadc1);
+	HAL_ADCEx_Calibration_Start(&hadc1);
+	HAL_Delay(1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
+
+	if((RCC->CSR & RCC_CSR_PORRSTF) != 0)
 	{
-		Dcm_ActiveSessionState = 0u;
+		for(uint32_t* addr = ((uint32_t*)0x20004fc0); addr <= ((uint32_t*)0x20004fff); addr++) *addr = 0;
 		RCC->CSR |= RCC_CSR_PORRSTF;
-		RCC->CSR |= RCC_CSR_PINRSTF;
-		RCC->CSR |= RCC_CSR_LPWRRSTF;
 		RCC->CSR |= RCC_CSR_RMVF;
 	}
 	else
 	{
 		/* Do nothing. */
 	}
-	HAL_ADC_Stop(&hadc1);
-	HAL_ADCEx_Calibration_Start(&hadc1);
-	HAL_Delay(1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
+
+	for(uint8_t i = 0u; i < 4u; i++)
+	{
+		if(EcuM_SWV[i] != Dcm_SWV[i])
+		{
+			for(uint32_t* addr = ((uint32_t*)0x20004fc0); addr <= ((uint32_t*)0x20004fff); addr++) *addr = 0;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	Nvm_ReadAll();
 	/* USER CODE END 2 */
 
 	/* Init scheduler */
@@ -309,16 +331,16 @@ void SystemClock_Config(void)
 static void MX_NVIC_Init(void)
 {
 	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 15, 0);
+	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 7, 0);
 	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
 	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 9, 0);
+	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 8, 0);
 	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 	/* CAN1_RX1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 8, 0);
+	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 7, 0);
 	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
 	/* CAN1_SCE_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 9, 0);
+	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 11, 0);
 	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
 	/* TIM2_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
@@ -330,10 +352,10 @@ static void MX_NVIC_Init(void)
 	HAL_NVIC_SetPriority(FLASH_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(FLASH_IRQn);
 	/* PVD_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(PVD_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(PVD_IRQn, 7, 0);
 	HAL_NVIC_EnableIRQ(PVD_IRQn);
 	/* DMA1_Channel1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6, 0);
+	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 10, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 	/* TIM1_CC_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(TIM1_CC_IRQn, 15, 0);
@@ -348,7 +370,7 @@ static void MX_NVIC_Init(void)
 	HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 15, 0);
 	HAL_NVIC_EnableIRQ(TIM1_BRK_IRQn);
 	/* ADC1_2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(ADC1_2_IRQn, 5, 0);
+	HAL_NVIC_SetPriority(ADC1_2_IRQn, 9, 0);
 	HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 }
 

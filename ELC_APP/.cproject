@@ -62,6 +62,7 @@
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Device/ST/STM32F1xx/Include"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/BSW/Com/CanH}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/BSW/Nvm}&quot;"/>
 								</option>
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.fnostrictaliasing.849679391" name="Disable &quot;strict aliasing&quot; optimization (-fno-strict-aliasing)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.fnostrictaliasing" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.slow_flash_data.888862739" name="Assume loading data from flash is slower than fetching instruction (-mslow-flash-data)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.slow_flash_data" useByScannerDiscovery="false" value="false" valueType="boolean"/>
@@ -90,22 +91,24 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Com/CanH"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="APPL/SMon"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Diag/Dcm"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Startup"/>
-						<entry excluding="CanH" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Com"/>
 						<entry excluding="SMon" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="APPL"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Inc"/>
-						<entry excluding="EcuM" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Sys"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Core/Startup"/>
-						<entry excluding="Startup" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Core"/>
-						<entry excluding="Core" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Sys/EcuM"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="APPL/SMon"/>
+						<entry excluding="Com|Com/CanH|Diag|Diag/Dcm|Diag/Dem|Sys|Sys/EcuM|Nvm" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW"/>
+						<entry excluding="CanH" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Com"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Com/CanH"/>
 						<entry excluding="Dcm|Dem" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Diag"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Src"/>
-						<entry excluding="Diag|Diag/Dcm|Diag/Dem|Mem|Sys|Sys/EcuM|Com|Com/CanH" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Diag/Dcm"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Diag/Dem"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Nvm"/>
+						<entry excluding="EcuM" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Sys"/>
+						<entry excluding="Core" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="BSW/Sys/EcuM"/>
+						<entry excluding="Startup" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Core"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Core/Startup"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="Inc"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Startup"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

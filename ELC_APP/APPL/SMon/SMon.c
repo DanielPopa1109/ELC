@@ -3,8 +3,9 @@
 #include "main.h"
 #include <stdint.h>
 #include <math.h>
+#include "Dem.h"
 
-#define HIST_MAX_SAMPLES 30
+#define HIST_MAX_SAMPLES 10
 
 typedef struct
 {
@@ -20,49 +21,42 @@ typedef struct
 {
 	SMon_HistWindow win5s;
 	SMon_HistWindow win10s;
-	SMon_HistWindow win30s;
 }SMon_SignalHist;
 
 static SMon_SignalHist SMon_ISenseL1_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 static SMon_SignalHist SMon_VfbT30_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 static SMon_SignalHist SMon_VfbL1_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 static SMon_SignalHist SMon_NTC_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 static SMon_SignalHist SMon_Vrefint_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 static SMon_SignalHist SMon_McuTemp_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
-		.win30s = { .size=30 }
 };
 
 uint8_t SMon_FastResponseTrigger = 0u;
@@ -94,22 +88,16 @@ uint32_t SMon_I2TCounter = 0u; // I2T Counter
 uint32_t SMon_ISenseL1 = 0; // I Sense L1
 uint32_t SMon_ISenseL1_RMS_5s;
 uint32_t SMon_ISenseL1_RMS_10s;
-uint32_t SMon_ISenseL1_RMS_30s;
 uint32_t SMon_VfbT30_RMS_5s;
 uint32_t SMon_VfbT30_RMS_10s;
-uint32_t SMon_VfbT30_RMS_30s;
 uint32_t SMon_VfbL1_RMS_5s;
 uint32_t SMon_VfbL1_RMS_10s;
-uint32_t SMon_VfbL1_RMS_30s;
 uint32_t SMon_NTC_RMS_5s;
 uint32_t SMon_NTC_RMS_10s;
-uint32_t SMon_NTC_RMS_30s;
 uint32_t SMon_Vrefint_RMS_5s;
 uint32_t SMon_Vrefint_RMS_10s;
-uint32_t SMon_Vrefint_RMS_30s;
 uint32_t SMon_McuTemp_RMS_5s;
 uint32_t SMon_McuTemp_RMS_10s;
-uint32_t SMon_McuTemp_RMS_30s;
 uint32_t SMon_NTC_Temperature_L1;
 float SMon_ISenseL1_Float;
 float SMon_PeakCurrent;
@@ -148,7 +136,7 @@ const float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
 const float SMon_P_I2TRating = 1640; // I2T Rating Parameter
 const float SMon_P_RoomTempKelvin = 298.15f;
 const float SMon_P_VoltsAt25 = 1430.0f;
-const float SMon_P_AvgSlope = 43.0f;
+const float SMon_P_AvgSlope = 4.30f;
 const float SMon_P_RoomTemperature = 25.0f;
 const float SMon_P_Sens3V3 = 26.4f; // 40 * 3300 / 5000 = mV / A
 const float SMon_P_ConvFacISense = 37.88f; // 1000 / 26.4 = mA / mV
@@ -162,7 +150,7 @@ const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_Par
     (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
-static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10, uint32_t* rms30);
+static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10);
 static void SMon_LoadCurrentErrorState(void);
 static void SMon_LoadSwitchState(void);
 static void SMon_HistogramsHandler(void);
@@ -244,10 +232,12 @@ static void SMon_I2TAccumulation(void)
 	if(I2TCounter_Float > SMon_P_I2TRating)
 	{
 		SMon_I2TError = 1u;
+		Dem_SetDtc(0x53, 0x2f);
 	}
 	else if(0 == I2TCounter_Float && 1u == SMon_I2TError)
 	{
 		SMon_I2TError = 0u;
+		Dem_SetDtc(0x53, 0x2e);
 	}
 	else
 	{
@@ -257,6 +247,8 @@ static void SMon_I2TAccumulation(void)
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v)
 {
+	uint32_t result = 0u;
+
 	if(hw->count == hw->size)
 	{
 		hw->sumsq -= hw->samples[hw->idx] * hw->samples[hw->idx];
@@ -270,14 +262,47 @@ static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v)
 	hw->sumsq += new_v * new_v;
 	hw->idx = (hw->idx + 1) % hw->size;
 
-	return (uint32_t)sqrtf(hw->sumsq / hw->count);
+	if(5u == hw->size)
+	{
+		if(5u == hw->count)
+		{
+			result = (uint32_t)sqrtf(hw->sumsq / hw->count);
+			hw->count = 0u;
+			hw->sumsq = 0u;
+
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else if(10u == hw->size)
+	{
+		if(10u == hw->count)
+		{
+			result = (uint32_t)sqrtf(hw->sumsq / hw->count);
+			hw->count = 0u;
+			hw->sumsq = 0u;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	return result;
 }
 
-static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10, uint32_t* rms30)
+static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10)
 {
-	*rms5  = SMon_UpdateHistWindow(&sh->win5s,  value);
-	*rms10 = SMon_UpdateHistWindow(&sh->win10s, value);
-	*rms30 = SMon_UpdateHistWindow(&sh->win30s, value);
+	uint32_t local5s = 0u;
+	uint32_t local10s = 0u;
+
+	local5s  = SMon_UpdateHistWindow(&sh->win5s,  value);
+	local10s = SMon_UpdateHistWindow(&sh->win10s, value);
+
+	if(local5s) *rms5 = local5s;
+	if(local10s) *rms10 = local10s;
 }
 
 static void SMon_ProcessShortToPlusTest(void)
@@ -326,6 +351,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if(SMon_T30P50 <= SMon_VfbL1)
 					{
+						Dem_SetDtc(0x52, 0x2f);
 						SMon_ShortToPlusTest = 2u; // go-to next phase
 						SMon_S2BErrorStatus = 1u;
 					}
@@ -352,6 +378,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if((SMon_VfbT30 * 3 / 10) <= SMon_VfbL1)
 					{
+						Dem_SetDtc(0x52, 0x2f);
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 2u;
 					}
@@ -378,6 +405,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if(SMon_P_LowVoltage <= SMon_VfbL1)
 					{
+						Dem_SetDtc(0x52, 0x2f);
 						SMon_S2BErrorStatus = 3u;
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 					}
@@ -458,10 +486,12 @@ static void SMon_ProcessEcuVoltageState(void)
 				if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - CounterUVKL30)) // de-bounce for UV
 				{
 					SMon_ECU_UV = 1u;
+					Dem_SetDtc(0x50, 0x2f);
 				}
 				else
 				{
 					SMon_ECU_UV = 0u;
+					Dem_SetDtc(0x50, 0x2e);
 				}
 			}
 		}
@@ -481,10 +511,12 @@ static void SMon_ProcessEcuVoltageState(void)
 				if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - CounterOVKL30)) // de-bounce for OV - 300ms
 				{
 					SMon_ECU_OV = 1u;
+					Dem_SetDtc(0x51, 0x2f);
 				}
 				else
 				{
 					SMon_ECU_OV = 0u;
+					Dem_SetDtc(0x51, 0x2e);
 				}
 			}
 		}
@@ -576,6 +608,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 	if(SMon_P_Rtcntmax == SMon_RetryCnt)
 	{
 		SMon_LockSupply = 1u;
+		Dem_SetDtc(0x54, 0x2f);
 	}
 	else
 	{
@@ -636,6 +669,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 1u;
 				SMon_RequestPhysicalStatus = 0u;
+				Dem_SetDtc(0x55, 0x2f);
 			}
 		}
 		else
@@ -653,6 +687,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 1u;
 				SMon_RequestPhysicalStatus = 0u;
+				Dem_SetDtc(0x55, 0x2f);
 			}
 		}
 		else
@@ -681,6 +716,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 					{
 						SMon_L1_UVStatus = 1u;
 						SMon_RequestPhysicalStatus = 0u;
+						Dem_SetDtc(0x56, 0x2f);
 					}
 					else
 					{
@@ -799,12 +835,12 @@ static void SMon_LoadSwitchState(void)
 
 static void SMon_HistogramsHandler(void)
 {
-	SMon_UpdateSignalHist(&SMon_ISenseL1_Hist, SMon_ISenseL1, &SMon_ISenseL1_RMS_5s, &SMon_ISenseL1_RMS_10s, &SMon_ISenseL1_RMS_30s);
-	SMon_UpdateSignalHist(&SMon_VfbT30_Hist, SMon_VfbT30, &SMon_VfbT30_RMS_5s, &SMon_VfbT30_RMS_10s, &SMon_VfbT30_RMS_30s);
-	SMon_UpdateSignalHist(&SMon_VfbL1_Hist, SMon_VfbL1, &SMon_VfbL1_RMS_5s, &SMon_VfbL1_RMS_10s, &SMon_VfbL1_RMS_30s);
-	SMon_UpdateSignalHist(&SMon_NTC_Hist, SMon_NTC_Temperature_L1, &SMon_NTC_RMS_5s, &SMon_NTC_RMS_10s, &SMon_NTC_RMS_30s);
-	SMon_UpdateSignalHist(&SMon_Vrefint_Hist, SMon_VarefValue, &SMon_Vrefint_RMS_5s, &SMon_Vrefint_RMS_10s, &SMon_Vrefint_RMS_30s);
-	SMon_UpdateSignalHist(&SMon_McuTemp_Hist, SMon_McuTempValue, &SMon_McuTemp_RMS_5s, &SMon_McuTemp_RMS_10s, &SMon_McuTemp_RMS_30s);
+	SMon_UpdateSignalHist(&SMon_ISenseL1_Hist, SMon_ISenseL1, &SMon_ISenseL1_RMS_5s, &SMon_ISenseL1_RMS_10s);
+	SMon_UpdateSignalHist(&SMon_VfbT30_Hist, SMon_VfbT30, &SMon_VfbT30_RMS_5s, &SMon_VfbT30_RMS_10s);
+	SMon_UpdateSignalHist(&SMon_VfbL1_Hist, SMon_VfbL1, &SMon_VfbL1_RMS_5s, &SMon_VfbL1_RMS_10s);
+	SMon_UpdateSignalHist(&SMon_NTC_Hist, SMon_NTC_Temperature_L1, &SMon_NTC_RMS_5s, &SMon_NTC_RMS_10s);
+	SMon_UpdateSignalHist(&SMon_Vrefint_Hist, SMon_VarefValue, &SMon_Vrefint_RMS_5s, &SMon_Vrefint_RMS_10s);
+	SMon_UpdateSignalHist(&SMon_McuTemp_Hist, SMon_McuTempValue, &SMon_McuTemp_RMS_5s, &SMon_McuTemp_RMS_10s);
 }
 
 void SMon_main(void)

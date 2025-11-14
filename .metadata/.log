@@ -6295,3 +6295,158 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-11-09 17:16:51.597
 !MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-11-09 17:42:09.114 -----------------------------------------------
+eclipse.buildId=Version 1.16.0
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-11-09 17:42:12.193
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-11-09 17:42:12.194
+!MESSAGE Log4j2 initialized with config file C:\Users\Daniel\Desktop\GitHub Repositories\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-11-09 17:42:15.127
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.dsf.gdb 4 5012 2025-11-09 19:40:39.090
+!MESSAGE Error in final launch sequence:
+
+Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!STACK 1
+org.eclipse.core.runtime.CoreException: Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+	at org.eclipse.cdt.dsf.concurrent.Query.get(Query.java:112)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugSession(GdbLaunchDelegate.java:252)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugger(GdbLaunchDelegate.java:109)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launch(GdbLaunchDelegate.java:97)
+	at com.st.stm32cube.ide.mcu.debug.launch.DSFDelegate.launch(DSFDelegate.java:336)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:805)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:716)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin.buildAndLaunch(DebugUIPlugin.java:1040)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin$1.run(DebugUIPlugin.java:1243)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Contains: Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+java.lang.Exception: Error finishing flash operation
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+!SUBENTRY 1 org.eclipse.cdt.dsf 4 10004 2025-11-09 19:40:39.091
+!MESSAGE Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!SUBENTRY 2 org.eclipse.cdt.dsf.gdb 4 10004 2025-11-09 19:40:39.091
+!MESSAGE Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!STACK 0
+java.lang.Exception: Error finishing flash operation
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+
+!ENTRY org.eclipse.cdt.dsf.gdb 4 5012 2025-11-09 19:43:23.845
+!MESSAGE Error in final launch sequence:
+
+Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!STACK 1
+org.eclipse.core.runtime.CoreException: Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+	at org.eclipse.cdt.dsf.concurrent.Query.get(Query.java:112)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugSession(GdbLaunchDelegate.java:252)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugger(GdbLaunchDelegate.java:109)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launch(GdbLaunchDelegate.java:97)
+	at com.st.stm32cube.ide.mcu.debug.launch.DSFDelegate.launch(DSFDelegate.java:336)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:805)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:716)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin.buildAndLaunch(DebugUIPlugin.java:1040)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin$1.run(DebugUIPlugin.java:1243)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Contains: Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+java.lang.Exception: Error finishing flash operation
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+!SUBENTRY 1 org.eclipse.cdt.dsf 4 10004 2025-11-09 19:43:23.845
+!MESSAGE Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!SUBENTRY 2 org.eclipse.cdt.dsf.gdb 4 10004 2025-11-09 19:43:23.845
+!MESSAGE Failed to execute MI command:
+load "C:\\Users\\Daniel\\Desktop\\GitHub Repositories\\ELC_APP\\Debug\\ELC_APP.elf" 
+
+Error message from debugger back end:
+Error finishing flash operation
+!STACK 0
+java.lang.Exception: Error finishing flash operation
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+
+!ENTRY org.eclipse.cdt.core 1 0 2025-11-11 18:02:15.033
+!MESSAGE Indexed 'ELC_APP' (43 sources, 133 headers) in 2.24 sec: 13,854 declarations; 68,868 references; 2 unresolved inclusions; 37 syntax errors; 191 unresolved names (0.23%)
+!SESSION 2025-11-14 10:06:32.833 -----------------------------------------------
+eclipse.buildId=Version 1.16.0
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY org.eclipse.core.resources 2 10035 2025-11-14 10:06:36.850
+!MESSAGE The workspace exited with unsaved changes in the previous session; refreshing workspace to recover changes.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-11-14 10:06:49.681
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-11-14 10:06:49.690
+!MESSAGE Log4j2 initialized with config file C:\Users\Daniel\Desktop\GitHub Repositories\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-11-14 10:06:56.581
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.jface 2 0 2025-11-14 11:18:55.019
+!MESSAGE Keybinding conflicts occurred.  They may interfere with normal accelerator operation.
+!SUBENTRY 1 org.eclipse.jface 2 0 2025-11-14 11:18:55.019
+!MESSAGE A conflict occurred for CTRL+G:
+Binding(CTRL+G,
+	ParameterizedCommand(Command(org.eclipse.cdt.ui.search.finddecl,Declaration,
+		Searches for declarations of the selected element in the workspace,
+		Category(org.eclipse.cdt.ui.category.source,C/C++ Source,C/C++ Source Actions,true),
+		WorkbenchHandlerServiceHandler("org.eclipse.cdt.ui.search.finddecl"),
+		,,true),null),
+	org.eclipse.ui.defaultAcceleratorConfiguration,
+	org.eclipse.cdt.ui.cEditorScope,,,system)
+Binding(CTRL+G,
+	ParameterizedCommand(Command(org.eclipse.debug.ui.command.gotoaddress,Go to Address,
+		Go to Address,
+		Category(org.eclipse.debug.ui.category.run,Run/Debug,Run/Debug command category,true),
+		,
+		,,true),null),
+	org.eclipse.ui.defaultAcceleratorConfiguration,
+	org.eclipse.debug.ui.memory.abstractasynctablerendering,,,system)

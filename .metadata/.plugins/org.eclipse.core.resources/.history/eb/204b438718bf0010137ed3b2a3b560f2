@@ -1,0 +1,46 @@
+#include "Dem.h"
+
+const uint32_t Dem_PreDefined_DTC_Table[17u] =
+{
+		0x0100,
+		0x0101,
+		0x0102,
+		0x0103,
+		0x0104,
+		0x0105,
+		0x0106,
+		0x0107,
+		0x0108,
+		0x0109,
+		0x010A,
+		0x010B,
+		0x010C,
+		0x010D,
+		0x010E,
+		0x010F,
+};
+
+uint8_t Dem_DTC_Stat[17u] = {0u};
+
+void Dem_SetDtc(uint8_t id, uint8_t stat);
+
+void Dem_SetDtc(uint8_t id, uint8_t stat)
+{
+	uint8_t index = 0;
+	uint8_t aux_index = 0xFFu;
+
+	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+	{
+		if(id == Dem_PreDefined_DTC_Table[index])
+		{
+			aux_index = index;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+
+}

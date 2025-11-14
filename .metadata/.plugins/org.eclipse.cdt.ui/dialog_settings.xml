@@ -23,6 +23,11 @@
 		<item key="caseSensitive" value="false"/>
 		<item key="searchFlags" value="227191"/>
 		<list key="previousPatterns">
+			<item value="Dem_SetDtc0x530x2f"/>
+			<item value="0x52"/>
+			<item value="Nvm_WriteBlock"/>
+			<item value="NULL_PTR"/>
+			<item value="Dem_DTC_Stat"/>
 			<item value="SMon_RetryCnt"/>
 			<item value="CanH_MainFunction"/>
 			<item value="sqrt"/>
@@ -75,5 +80,9 @@
 		<item key="DIALOG_WIDTH" value="398"/>
 		<item key="DIALOG_HEIGHT" value="438"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+	<section name="org.eclipse.cdt.ui.text.hover.CMacroExpansionExploration.internal">
+		<item key="size.width" value="384"/>
+		<item key="size.height" value="180"/>
 	</section>
 </section>

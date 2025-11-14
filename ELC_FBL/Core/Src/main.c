@@ -32,6 +32,7 @@ typedef enum
 }FBL_DSC_t;
 #define SESSIONSTATUS_ADDR 					0x20004FC0
 #define APPL_START_ADDRESS 					0x8004000
+#define RESET_COUNTER_ADDR					0x20004FC4
 uint8 FBL_RxFrame[8] = {0};
 uint8 FBL_TxFrame[8] = {0};
 CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -39,6 +40,7 @@ CAN_TxHeaderTypeDef FBL_TxHeader = {0, 0, 0, 0, 0, 0};
 uint32 FBL_TxMailbox = 0;
 uint32* FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
 FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
+uint32* FBL_ResetCounterFBL = (uint32*)(RESET_COUNTER_ADDR);
 uint32 FBL_ProgrammingData = 0;
 uint32 FBL_ProgrammingIndex = 0;
 uint32 FBL_ProgrammingAddress = 0;
@@ -240,18 +242,39 @@ int main(void)
 	/* Initialize interrupts */
 	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
-	FBL_ProgrammingAddress = 0;
-	FBL_ProgrammingIndex = 0;
-	FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
-	if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
+
+	if(((RCC->CSR & RCC_CSR_PORRSTF) != 0))
 	{
-		FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
-		FBL_DSC_Status = *FBL_DSC_Pointer;
+		for(uint32* addr = ((uint32*)0x20004fc0); addr <= ((uint32*)0x20004fff); addr++) *addr = 0;
+		RCC->CSR |= RCC_CSR_PORRSTF;
+		RCC->CSR |= RCC_CSR_RMVF;
 	}
 	else
 	{
 		/* Do nothing. */
 	}
+
+	FBL_ProgrammingAddress = 0;
+	FBL_ProgrammingIndex = 0;
+
+	if(*FBL_ResetCounterFBL == 50)
+	{
+		FBL_DSC_Status = PROGRAMMING;
+	}
+	else
+	{
+		FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
+		if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
+		{
+			FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
+			FBL_DSC_Status = *FBL_DSC_Pointer;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
 	if((FBL_DSC_Status == PROGRAMMING))
 	{
 		FBL_DSC_State = FBL_DSC_Status;

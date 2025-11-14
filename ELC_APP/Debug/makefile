@@ -17,6 +17,8 @@ RM := rm -rf
 -include Drivers/STM32F1xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include BSW/Sys/EcuM/subdir.mk
+-include BSW/Nvm/subdir.mk
+-include BSW/Diag/Dem/subdir.mk
 -include BSW/Diag/Dcm/subdir.mk
 -include BSW/Com/CanH/subdir.mk
 -include APPL/SMon/subdir.mk

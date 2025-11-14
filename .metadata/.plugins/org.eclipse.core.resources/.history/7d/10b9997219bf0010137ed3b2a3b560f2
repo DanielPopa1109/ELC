@@ -1,0 +1,3 @@
+#include <stdint.h>
+
+extern void Dem_SetDtc(uint8_t id, uint8_t stat);

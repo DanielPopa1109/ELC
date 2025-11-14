@@ -30,6 +30,8 @@ SUBDIRS := \
 APPL/SMon \
 BSW/Com/CanH \
 BSW/Diag/Dcm \
+BSW/Diag/Dem \
+BSW/Nvm \
 BSW/Sys/EcuM \
 Core/Startup \
 Drivers/STM32F1xx_HAL_Driver/Src \

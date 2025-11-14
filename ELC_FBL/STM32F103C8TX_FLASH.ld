@@ -48,14 +48,19 @@ MEMORY
   	FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 16K
 	NCR (xrw) : ORIGIN = 0x20004FC0, LENGTH = 64
 }
+
 SECTIONS
 {
-  /* -------- special tiny RAM area -------- */
-  .ncrsection :
+  .ncrsection (NOLOAD) :
   {
+    _sncr = .;
     *(.ncr)
+    _encr = .;
   } > NCR
+}
 
+SECTIONS
+{
   /* -------- normal FBL in FLASH -------- */
   .isr_vector :
   {

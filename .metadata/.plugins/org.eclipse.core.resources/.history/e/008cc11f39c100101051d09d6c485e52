@@ -1,0 +1,364 @@
+#include "Nvm.h"
+#include "Dem.h"
+#include "EcuM.h"
+#include "Dcm.h"
+#include "main.h"
+#include <string.h>
+#include "string.h"
+#include "stdio.h"
+#include <stdlib.h>
+#include "crc.h"
+
+extern uint8_t Dem_DTC_Stat[24u];
+
+#define NVM_LARGEST_BLOCK_SIZE sizeof(Dem_DTC_Stat)
+#define NVM_DTC_START_ADDRESS 0x0800FC00
+#define NVM_DTC_END_ADDRESS 0x0800FFFF
+#define DFLASH_PAGE_LENGTH          1024
+#define DFLASH_STARTING_ADDRESS     0x0800FC00
+#define MEM(address)                *((uint32 *)(address))
+#define FLASH_MODULE                0u
+#define DFLASH_STARTING_ADDRESS     	0x0800FC00
+#define DFLASH_SECOND_SECTOR_ADDRESS 	0x0800FE00
+
+uint32_t Nvm_CurrentAddress;
+uint32_t Nvm_SectorSwitchActivated;
+uint32_t Nvm_CurrentSector;
+Nvm_Header_t Nvm_HeaderArr[NVM_NO_BLOCKS];
+Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
+{
+        {0u, 0u, 0u, 0u}, // block 0 dummy not used
+        {1u, 17u, 0u, 0u}
+};
+Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
+Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
+{
+        {0u, 0u, 0u}, // block 0 dummy not used
+        {17u, 0u, 0u,},
+};
+Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =
+{
+        {0u, 0u}, // block 0 dummy not used
+        {(uint32_t*)&Dem_DTC_Stat, 0u},
+};
+Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS] =
+{
+        {0u, 0u}, // block 0 dummy not used
+        {(uint32_t*)&Dem_DTC_Stat, 0u},
+};
+
+uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u};
+uint8_t Nvm_WriteAllFinished;
+uint8_t Nvm_ReadAllFinished;
+
+void Nvm_SectorSwitch(void);
+void Nvm_WriteBlock(uint16_t blockId, uint32_t *data);
+void Nvm_FindCurrentAddress();
+void Nvm_ReadAll(void);
+void Nvm_WriteAll(void);
+
+uint32_t Nvm_GetPage(uint32_t Address);
+void Nvm_FlashReadData(uint32_t StartPageAddress, uint32_t *RxBuf, uint16_t numberofwords);
+uint32_t Nvm_FlashWriteData(uint32_t StartPageAddress, uint32_t *Data, uint16_t numberofwords);
+uint32_t Nvm_Erase();
+
+void Nvm_SectorSwitch(void)
+{
+	__disable_irq();
+
+    uint32_t startPattern[2u] = {0u, 0u};
+
+    Nvm_Erase();
+
+    Nvm_CurrentAddress = 0x0800FC00;
+    startPattern[0u] = 0xA5A5A5A5u;
+    startPattern[1u] = 0xA5A5A5A5u;
+
+    Nvm_FlashWriteData(Nvm_CurrentAddress, (uint32_t*)&startPattern, 8u);
+
+    Nvm_CurrentAddress += 8u;
+
+    for(uint8_t i = 1u; i < NVM_NO_BLOCKS; i++)
+    {
+        Nvm_WriteBlock(i, Nvm_BlockDataList[i].data);
+    }
+
+    __enable_irq();
+}
+
+void Nvm_WriteBlock(uint16_t blockId, uint32_t *data)
+{
+	__disable_irq();
+
+    uint32_t address = 0u;
+    uint32_t crc = 0u;
+    uint32_t crcPadded[2] = {0u};
+    uint32_t localMaxAddress = 0x0800FC00 - NVM_LARGEST_BLOCK_SIZE;
+    uint16_t size = 0u;
+
+    address = Nvm_CurrentAddress;
+    size = Nvm_NvStatArr[blockId].blockSize / 4u;
+    crc = HAL_CRC_Calculate(&hcrc, data, size);
+
+    if((address + NVM_SIZE_HEADER_BYTES + Nvm_NvStatArr[blockId].blockSize + 8u) < localMaxAddress)
+    {
+    	Nvm_FlashWriteData(address, (uint32_t*)&Nvm_HeaderArr[blockId], NVM_SIZE_HEADER_BYTES);
+
+        address += NVM_SIZE_HEADER_BYTES;
+        Nvm_NvStatArr[blockId].blockAddress = address;
+
+        Nvm_FlashWriteData(address, data, Nvm_NvStatArr[blockId].blockSize);
+
+        address += Nvm_NvStatArr[blockId].blockSize;
+        crcPadded[0u] = crc;
+
+        Nvm_FlashWriteData(address, (uint32_t*)&crcPadded, 8u);
+
+        address += 8u;
+        Nvm_CurrentAddress = address;
+    }
+    else
+    {
+        Nvm_SectorSwitch();
+        Nvm_FlashWriteData(address, (uint32_t*)&Nvm_HeaderArr[blockId], NVM_SIZE_HEADER_BYTES);
+
+        address += NVM_SIZE_HEADER_BYTES;
+        Nvm_NvStatArr[blockId].blockAddress = address;
+
+        Nvm_FlashWriteData(address, data, Nvm_NvStatArr[blockId].blockSize);
+
+        address += Nvm_NvStatArr[blockId].blockSize;
+        crcPadded[0u] = crc;
+
+        Nvm_FlashWriteData(address, (uint32_t*)&crcPadded, 8u);
+
+        address += 8u;
+        Nvm_CurrentAddress = address;
+    }
+
+    __enable_irq();
+}
+
+void Nvm_FindCurrentAddress()
+{
+	__disable_irq();
+
+    uint32_t localAddress = Nvm_CurrentAddress;
+    uint32_t keepOldLocalAddress = localAddress;
+    uint32_t startPattern[2u] = {0u, 0u};
+    uint32_t localMaxAddress = 0xAF040000U - NVM_LARGEST_BLOCK_SIZE;
+    Nvm_Header_t localHeader;
+    uint8_t localBlockId = 0u;
+    uint8_t localBlockCounter = 0u;
+
+    if(0u == localAddress)
+    {
+        localAddress = DFLASH_STARTING_ADDRESS;
+        Nvm_CurrentAddress = localAddress;
+        keepOldLocalAddress = localAddress;
+    }
+    else
+    {
+        /* Do nothing. */
+    }
+
+    if(DFLASH_STARTING_ADDRESS == localAddress ||
+            DFLASH_SECOND_SECTOR_ADDRESS == localAddress)
+    {
+        /* Read start pattern of the sector. */
+    	Nvm_FlashReadData(localAddress, (uint32_t*)&startPattern, 8u);
+
+        if(0xA5A5A5A5U == startPattern[0u] && 0xA5A5A5A5U == startPattern[1u])
+        {
+            /* Sector pattern identified, proceed with header identification. */
+            localAddress += 8u;
+
+            while(localAddress + 8u < localMaxAddress)
+            {
+            	Nvm_FlashReadData(localAddress, (uint32_t*)&localHeader, NVM_SIZE_HEADER_BYTES);
+
+                localBlockId = localHeader.blockId;
+
+                if(0xFFu != localBlockId && NVM_NO_BLOCKS > localBlockId)
+                {
+                    if(localHeader.blockId == Nvm_HeaderArr_Default[localBlockId].blockId
+                            && localHeader.blockSize == Nvm_HeaderArr_Default[localBlockId].blockSize)
+                    {
+                        Nvm_HeaderArr[localBlockId].blockId = localHeader.blockId;
+                        Nvm_HeaderArr[localBlockId].blockSize = localHeader.blockSize;
+                        Nvm_NvStatArr[localBlockId].blockSize = localHeader.blockSize;
+                        Nvm_NvStatArr[localBlockId].blockAddress = localAddress + 8u;
+                        localAddress += localHeader.blockSize + 8u; // 8u crc size and padding
+                        Nvm_CurrentAddress = localAddress;
+                        keepOldLocalAddress = localAddress;
+                        localBlockCounter++;
+                    }
+                    else
+                    {
+                        localAddress += 8u;
+                        Nvm_CurrentAddress = localAddress;
+                    }
+                }
+                else
+                {
+                    localAddress += 8u;
+                    Nvm_CurrentAddress = localAddress;
+                }
+            }
+        }
+        else if(0u != startPattern[0u] && 0u != startPattern[1u])
+        {
+            Nvm_Erase();
+
+            startPattern[0u] = 0xA5A5A5A5U;
+            startPattern[1u] = 0xA5A5A5A5U;
+
+            Nvm_FlashWriteData(localAddress, (uint32_t*)&startPattern, 8u);
+
+            localAddress += 8u;
+            Nvm_CurrentAddress = localAddress;
+            keepOldLocalAddress = localAddress;
+        }
+        else
+        {
+            startPattern[0u] = 0xA5A5A5A5u;
+            startPattern[1u] = 0xA5A5A5A5u;
+
+            Nvm_FlashWriteData(localAddress, (uint32_t*)&startPattern, 8u);
+
+            localAddress += 8u;
+            Nvm_CurrentAddress = localAddress;
+            keepOldLocalAddress = localAddress;
+        }
+    }
+    else
+    {
+        /* Do nothing. */
+    }
+
+    Nvm_CurrentAddress = keepOldLocalAddress + 8u;
+
+    __enable_irq();
+}
+
+void Nvm_ReadAll(void)
+{
+	__disable_irq();
+
+    uint32_t localCrc[2] = {0u};
+    uint32_t compareCrc = 0u;
+    uint32_t crcAddress = 0u;
+
+    Nvm_FindCurrentAddress();
+
+    for(uint8_t i = 1u; i < NVM_NO_BLOCKS; i++)
+    {
+        if((Nvm_HeaderArr[i].blockId != 0u) && (Nvm_HeaderArr[i].blockId != 0xFFu)
+                && (Nvm_HeaderArr[i].blockSize != 0u && Nvm_HeaderArr[i].blockSize != 0xFFu))
+        {
+        	Nvm_FlashReadData(Nvm_NvStatArr[i].blockAddress, Nvm_BlockDataList[i].data, Nvm_NvStatArr[i].blockSize);
+
+            crcAddress = Nvm_NvStatArr[i].blockAddress + Nvm_NvStatArr[i].blockSize;
+
+            Nvm_FlashReadData(crcAddress, localCrc, 8u);
+
+            compareCrc = HAL_CRC_Calculate(&hcrc, Nvm_BlockDataList[i].data, Nvm_NvStatArr[i].blockSize / 4u);
+
+            if(compareCrc == localCrc[0u])
+            {
+                /* Do nothing. */
+            }
+            else
+            {
+                memcpy(&Nvm_BlockDataList[i].data, &Nvm_RomDefaults_BlockDataList[i].data, sizeof(Nvm_RomDefaults_BlockDataList[i].data));
+
+                Nvm_WriteBlock(i, Nvm_BlockDataList[i].data);
+            }
+        }
+        else
+        {
+            memcpy(&Nvm_HeaderArr[i], &Nvm_HeaderArr_Default[i], sizeof(Nvm_HeaderArr[i]));
+
+            memcpy(&Nvm_NvStatArr[i], &Nvm_NvStatArr_Default[i], sizeof(Nvm_NvStatArr[i]));
+
+            Nvm_WriteBlock(i, Nvm_RomDefaults_BlockDataList[i].data);
+        }
+    }
+
+    Nvm_ReadAllFinished = 2u;
+
+    __enable_irq();
+}
+
+void Nvm_WriteAll(void)
+{
+    __disable_irq();
+
+    for(uint8_t i = 0u; i < NVM_NO_BLOCKS; i++)
+    {
+        if(1u == Nvm_BlockIdListForWriteAll[i])
+        {
+            Nvm_WriteBlock(i, Nvm_BlockDataList[i].data);
+        }
+        else
+        {
+            /* Do nothing. */
+        }
+    }
+
+    Nvm_WriteAllFinished = 2u;
+
+   __enable_irq();
+}
+
+
+uint32_t Nvm_GetPage(uint32_t Address)
+{
+	for (uint8_t indx=0; indx < 128; indx++) if((Address < (0x08000000 + (FLASH_PAGE_SIZE *(indx + 1))) ) && (Address >= (0x08000000 + FLASH_PAGE_SIZE * indx))) return (0x08000000 + FLASH_PAGE_SIZE * indx);
+	return 0;
+}
+
+uint32_t Nvm_Erase()
+{
+	static FLASH_EraseInitTypeDef EraseInitStruct;
+	uint32_t PAGEError;
+	uint32_t StartPage = Nvm_GetPage(NVM_DTC_START_ADDRESS);
+	HAL_FLASH_Unlock();
+	EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
+	EraseInitStruct.PageAddress = StartPage;
+	EraseInitStruct.NbPages     = 1;
+	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK) return HAL_FLASH_GetError ();
+	HAL_FLASH_Lock();
+	return 0;
+}
+
+uint32_t Nvm_FlashWriteData(uint32_t StartPageAddress, uint32_t *Data, uint16_t numberofwords)
+{
+	static FLASH_EraseInitTypeDef EraseInitStruct;
+	uint32_t PAGEError;
+	uint32_t sofar=0;
+	uint32_t StartPage = Nvm_GetPage(StartPageAddress);
+	uint32_t EndPageAdress = StartPageAddress + numberofwords * 4;
+	uint32_t EndPage = Nvm_GetPage(EndPageAdress);
+	HAL_FLASH_Unlock();
+	EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
+	EraseInitStruct.PageAddress = StartPage;
+	EraseInitStruct.NbPages     = ((EndPage - StartPage)/FLASH_PAGE_SIZE) +1;
+	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK) return HAL_FLASH_GetError ();
+	while (sofar<numberofwords)
+	{
+		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, StartPageAddress, Data[sofar]) == HAL_OK)
+		{
+			StartPageAddress += 4;
+			sofar++;
+		}
+		else return HAL_FLASH_GetError ();
+	}
+	HAL_FLASH_Lock();
+	return 0;
+}
+
+void Nvm_FlashReadData(uint32_t StartPageAddress, uint32_t *RxBuf, uint16_t numberofwords)
+{
+	for (uint16_t i = 0; i < numberofwords; i++) RxBuf[i] = *(__IO volatile uint32_t *)(StartPageAddress + (i * 4));
+}

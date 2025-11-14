@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_I2TAccumulation"/>
+		<item key="selection" value="0x52"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="0x52"/>
+			<item value="else"/>
+			<item value="hardre"/>
+			<item value="Dcm_ProgrammingSession"/>
+			<item value="Nvm_FlashWriteData"/>
+			<item value="NVM_DTC_START_ADDRESS"/>
 			<item value="SMon_I2TAccumulation"/>
 			<item value="payload"/>
 			<item value="Dcm_BuildHist_RC"/>
@@ -17,12 +23,6 @@
 			<item value="__disable_irq_"/>
 			<item value="__enable_irq_"/>
 			<item value="flash_batch_open"/>
-			<item value="flash_batch_open\"/>
-			<item value="flash_batch_open "/>
-			<item value="FLASH_IRQ"/>
-			<item value="FLASH_"/>
-			<item value="rc"/>
-			<item value="flash_program_word_strict"/>
 		</list>
 		<list key="replacehistory">
 			<item value="RAM_CODE"/>
