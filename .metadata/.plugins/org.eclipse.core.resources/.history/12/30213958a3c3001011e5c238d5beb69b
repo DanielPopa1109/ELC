@@ -1,0 +1,150 @@
+#include "Dem.h"
+#include "can.h"
+#include "Nvm.h"
+
+const uint32_t Dem_PreDefined_DTC_Table[24u] =
+{
+		0x50, // UV KL30
+		0x51, // OV KL30
+		0x52, // SHORT TO BATT L1
+		0x53, // OVERCURRENT L1
+		0x54, // L1 LOCKED
+		0x55, // CLS FAILURE L1
+		0x56, // UV L1
+		0x57, // MCU RESET
+		0x58, // N/A
+		0x59, // N/A
+		0x5A, // N/A
+		0x5B, // N/A
+		0x5C, // N/A
+		0x5D, // N/A
+		0x5E, // N/A
+		0x5F, // N/A
+		0x60, // N/A
+		0x61, // N/A
+		0x62, // N/A
+		0x63, // N/A
+		0x64, // N/A
+		0x65, // N/A
+		0x66  // N/A
+};
+
+uint8_t Dem_DTC_Stat[24u] = {
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+		0x50,
+};
+
+extern uint8_t Dcm_CDTCS;
+
+void Dem_SetDtc(uint32_t id, uint8_t stat);
+uint8_t Dem_GetDtcStatus(uint32_t id);
+
+uint8_t Dem_GetDtcStatus(uint32_t id)
+{
+	uint8_t index = 0;
+	uint8_t aux_index = 0xFFu;
+
+	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+		{
+			if(id == Dem_PreDefined_DTC_Table[index])
+			{
+				aux_index = index;
+				break;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+
+	return Dem_DTC_Stat[aux_index];;
+}
+
+void Dem_SetDtc(uint32_t id, uint8_t stat)
+{
+	uint8_t index = 0;
+	uint8_t aux_index = 0xFFu;
+	uint8_t prevStat = 0;
+
+	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+	{
+		if(id == Dem_PreDefined_DTC_Table[index])
+		{
+			aux_index = index;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(0xff != aux_index && 0u == Dcm_CDTCS)
+	{
+		prevStat = Dem_DTC_Stat[aux_index];
+
+		if(stat != Dem_DTC_Stat[aux_index])
+		{
+			Nvm_WriteBlock(1u, (uint32_t*)&Dem_DTC_Stat[0u]);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		Dem_DTC_Stat[aux_index] = stat;
+
+		if(0x2f == stat && 0x2f != prevStat)
+		{
+			static uint8_t arrtx[5];
+			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
+			uint32_t TxMailbox = 0u;
+
+			arrtx[0] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index]);
+			arrtx[1] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 8u);
+			arrtx[2] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 16u);
+			arrtx[3] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u);
+			arrtx[4] = stat;
+
+			TxHeader.DLC = 5;
+			TxHeader.StdId = 0x7FEu;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &TxHeader, arrtx, &TxMailbox);
+			} while (st != HAL_OK);   // wait until a mailbox frees up
+
+			for(uint8_t i = 0; i < 5; i++) arrtx[i] = 0;
+
+			TxHeader.DLC = 0;
+			TxHeader.StdId = 0;
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+}

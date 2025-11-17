@@ -1,0 +1,8 @@
+﻿C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v180\Microsoft.CppBuild.targets(534,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  seedNKeyDiag.cpp
+     Creating library C:\Users\Daniel\Desktop\GitHub Repositories\dll\\x86\Release\GenerateKeyEx.lib and object C:\Users\Daniel\Desktop\GitHub Repositories\dll\\x86\Release\GenerateKeyEx.exp
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 2 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  GenerateKeyEx.vcxproj -> C:\Users\Daniel\Desktop\GitHub Repositories\dll\x86\Release\GenerateKeyEx.dll

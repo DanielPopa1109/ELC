@@ -9,14 +9,13 @@
 
 typedef struct
 {
-	uint32_t samples[HIST_MAX_SAMPLES];
 	uint16_t idx;
 	uint16_t count;
-	uint64_t sumsq;
 	uint16_t size;
 	uint16_t padding16;
+	uint32_t samples[HIST_MAX_SAMPLES];
+	uint64_t sumsq;
 }SMon_HistWindow;
-
 typedef struct
 {
 	SMon_HistWindow win5s;
@@ -28,37 +27,33 @@ static SMon_SignalHist SMon_ISenseL1_Hist =
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
 static SMon_SignalHist SMon_VfbT30_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
 static SMon_SignalHist SMon_VfbL1_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
 static SMon_SignalHist SMon_NTC_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
 static SMon_SignalHist SMon_Vrefint_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
 static SMon_SignalHist SMon_McuTemp_Hist =
 {
 		.win5s = { .size=5 },
 		.win10s = { .size=10 },
 };
-
+uint8_t SMon_NtcError = 0u;
+uint8_t SMon_ExternalChargerDetected = 0u;
 uint8_t SMon_FastResponseTrigger = 0u;
 uint8_t SMon_RequestPhysicalStatus = 0xFF;
 uint8_t SMon_CLSFlag = 0u; // CLS status flag - not started / running / done
@@ -79,7 +74,7 @@ uint8_t SMon_LockSupply; // Lock Supply Output
 uint16_t SMon_VfbL1 = 0xFFFFu; // Voltage Feedback L1/CLS
 uint16_t SMon_VfbT30 = 0xFFFFu; // Voltage Feedback KL30
 uint16_t SMon_VarefValue = 0u;
-uint16_t SMon_McuTempValue = 0u;
+float SMon_McuTempValue = 0u;
 static uint16_t SMon_T30P50 = 0u; // 50% of KL30
 static uint32_t SMon_MainCnt = 0u; // Main Counter
 static uint32_t SMon_CounterUVL1 = 0u; // UV L1 Counter  For De-Bounce
@@ -98,12 +93,9 @@ uint32_t SMon_Vrefint_RMS_5s;
 uint32_t SMon_Vrefint_RMS_10s;
 uint32_t SMon_McuTemp_RMS_5s;
 uint32_t SMon_McuTemp_RMS_10s;
-uint32_t SMon_NTC_Temperature_L1;
+float SMon_NTC_Temperature_L1;
 float SMon_ISenseL1_Float;
 float SMon_PeakCurrent;
-
-extern uint8_t Dcm_LoadStatus;
-
 const uint8_t SMon_P_Rtcntmax = 10u; // Retry Counter Parameter
 const uint8_t SMon_P_CLSTime = 22u; // CLS Duration Parameter
 const uint8_t SMon_P_WaitTimeOVUV = 60u; // OV UV De-bounce Time Parameter
@@ -144,10 +136,9 @@ const float SMon_P_Kelvin = 273.15f;
 const float SMon_P_VoltageDivider = 10.10f;
 const float SMon_P_AlphaFilter = 0.075f;
 const uint8_t SMon_P_L1Correction = 180.0f;
-const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) /
-    (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
-const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV -
-    (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) / (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
+const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+extern uint8_t Dcm_LoadStatus;
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
 static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t* rms5, uint32_t* rms10);
@@ -237,11 +228,17 @@ static void SMon_I2TAccumulation(void)
 	else if(0 == I2TCounter_Float && 1u == SMon_I2TError)
 	{
 		SMon_I2TError = 0u;
-		Dem_SetDtc(0x53, 0x2e);
 	}
 	else
 	{
-		/* Do nothing. */
+		if(0x2f == Dem_GetDtcStatus(0x53u))
+		{
+			Dem_SetDtc(0x53, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
 	}
 }
 
@@ -289,6 +286,10 @@ static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v)
 			/* Do nothing. */
 		}
 	}
+	else
+	{
+		/* Do nothing. */
+	}
 
 	return result;
 }
@@ -301,8 +302,23 @@ static void SMon_UpdateSignalHist(SMon_SignalHist* sh, uint32_t value, uint32_t*
 	local5s  = SMon_UpdateHistWindow(&sh->win5s,  value);
 	local10s = SMon_UpdateHistWindow(&sh->win10s, value);
 
-	if(local5s) *rms5 = local5s;
-	if(local10s) *rms10 = local10s;
+	if(local5s)
+	{
+		*rms5 = local5s;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(local10s)
+	{
+		*rms10 = local10s;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
 }
 
 static void SMon_ProcessShortToPlusTest(void)
@@ -346,7 +362,9 @@ static void SMon_ProcessShortToPlusTest(void)
 		{
 			switch(SMon_ShortToPlusTest) // short-to-plus test phases
 			{
+
 			case 1u: // 50% of voltage discharge time check
+
 				if(SMon_P_DischargeTimeCycles <= (SMon_MainCnt - localDischargeTimer))
 				{
 					if(SMon_T30P50 <= SMon_VfbL1)
@@ -366,14 +384,26 @@ static void SMon_ProcessShortToPlusTest(void)
 					{
 						SMon_ShortToPlusTest = 2u; // go-to next phase
 						SMon_S2BErrorStatus = 0u;
+
+						if(0x2f == Dem_GetDtcStatus(0x52u))
+						{
+							Dem_SetDtc(0x52, 0x2e);
+						}
+						else
+						{
+							/* Do nothing. */
+						}
 					}
 					else
 					{
 						/* Do nothing. */
 					}
 				}
+
 				break;
+
 			case 2u:
+
 				if(SMon_P_LowDisTimeCyc <= (SMon_MainCnt - localLowDisTimer))
 				{
 					if((SMon_VfbT30 * 3 / 10) <= SMon_VfbL1)
@@ -393,14 +423,26 @@ static void SMon_ProcessShortToPlusTest(void)
 					{
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 0u;
+
+						if(0x2f == Dem_GetDtcStatus(0x52u))
+						{
+							Dem_SetDtc(0x52, 0x2e);
+						}
+						else
+						{
+							/* Do nothing. */
+						}
 					}
 					else
 					{
 						/* Do nothing. */
 					}
 				}
+
 				break;
+
 			case 3u:
+
 				if(SMon_P_LongDischargeTimeCycles <= (SMon_MainCnt - localS2BCounter))
 				{
 					if(SMon_P_LowVoltage <= SMon_VfbL1)
@@ -420,15 +462,28 @@ static void SMon_ProcessShortToPlusTest(void)
 					{
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 						SMon_S2BErrorStatus = 0u;
+
+						if(0x2f == Dem_GetDtcStatus(0x52u))
+						{
+							Dem_SetDtc(0x52, 0x2e);
+						}
+						else
+						{
+							/* Do nothing. */
+						}
 					}
 					else
 					{
 						/* Do nothing. */
 					}
 				}
+
 				break;
+
 			default: // do nothing
+
 				break;
+
 			}
 		}
 	}
@@ -491,7 +546,14 @@ static void SMon_ProcessEcuVoltageState(void)
 				else
 				{
 					SMon_ECU_UV = 0u;
-					Dem_SetDtc(0x50, 0x2e);
+					if(0x2f == Dem_GetDtcStatus(0x50))
+					{
+						Dem_SetDtc(0x50, 0x2e);
+					}
+					else
+					{
+						/* Do nothing. */
+					}
 				}
 			}
 		}
@@ -516,7 +578,14 @@ static void SMon_ProcessEcuVoltageState(void)
 				else
 				{
 					SMon_ECU_OV = 0u;
-					Dem_SetDtc(0x51, 0x2e);
+					if(0x2f == Dem_GetDtcStatus(0x50))
+					{
+						Dem_SetDtc(0x50, 0x2e);
+					}
+					else
+					{
+						/* Do nothing. */
+					}
 				}
 			}
 		}
@@ -533,6 +602,59 @@ static void SMon_ProcessLoadErrorStatus(void)
 	static uint8_t pSMon_CLS_Failure = 0u;
 	static uint8_t pSMon_CmdStat = 0u;
 	static uint32_t localTimeStamp = 0u;
+	static uint32_t localTimeStamp2 = 0u;
+
+	if(60u < SMon_NTC_Temperature_L1)
+	{
+		SMon_RequestPhysicalStatus = 0u;
+		SMon_NtcError = 1u;
+		Dem_SetDtc(0x58u, 0x2f);
+	}
+	else
+	{
+		SMon_NtcError = 0u;
+		if(0x2f == Dem_GetDtcStatus(0x58u))
+		{
+			Dem_SetDtc(0x58u, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(-2.55f > SMon_ISenseL1_Float)
+	{
+		if(0u == localTimeStamp2)
+		{
+			localTimeStamp2 = SMon_MainCnt;
+		}
+		else
+		{
+			if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp2))
+			{
+				SMon_ExternalChargerDetected = 1u;
+				SMon_RequestPhysicalStatus = 1u;
+				Dem_SetDtc(0x59u, 0x2f);
+			}
+			else
+			{
+				SMon_ExternalChargerDetected = 0u;
+			}
+		}
+	}
+	else
+	{
+		SMon_ExternalChargerDetected = 0u;
+		if(0x2f == Dem_GetDtcStatus(0x59u))
+		{
+			Dem_SetDtc(0x59u, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
 
 	if(1u == SMon_CLS_Failure)
 	{
@@ -664,6 +786,14 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			if(SMon_P_UV_CLS <= SMon_VfbL1) // voltage is rising, no error
 			{
 				SMon_CLS_Failure = 0u;
+				if(0x2f == Dem_GetDtcStatus(0x55))
+				{
+					Dem_SetDtc(0x55, 0x2e);
+				}
+				else
+				{
+					/* Do nothing. */
+				}
 			}
 			else
 			{
@@ -679,9 +809,17 @@ static void SMon_LoadSwitchingDiagnosis(void)
 
 		if(SMon_P_CLSTime - 14u <= (SMon_MainCnt - SMon_CLSCheckVoltage_Timestamp))
 		{
-			if(SMon_T30P50 <= SMon_VfbL1) // voltage is rising, no error
+			if((SMon_T30P50 - 1000u) <= SMon_VfbL1) // voltage is rising, no error
 			{
 				SMon_CLS_Failure = 0u;
+				if(0x2f == Dem_GetDtcStatus(0x55))
+				{
+					Dem_SetDtc(0x55, 0x2e);
+				}
+				else
+				{
+					/* Do nothing. */
+				}
 			}
 			else
 			{
@@ -726,7 +864,14 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			}
 			else
 			{
-				/* Do nothing. */
+				if(0x2f == Dem_GetDtcStatus(0x56))
+				{
+					Dem_SetDtc(0x56, 0x2e);
+				}
+				else
+				{
+					/* Do nothing. */
+				}
 			}
 		}
 	}

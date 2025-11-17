@@ -1,0 +1,162 @@
+﻿[ECUGroup]
+Add ECU Prefix To System Variable=True
+
+[RecorderGroup]
+Recorder Name=Recorder
+Recorder Comment=
+Recorder File Name={DATE}\TSMaster_{TIME}
+Active=True
+Enter Comments on stop=True
+Recorder File Format=mdf
+MDF Version=4.10
+Compression=Active
+Record Bus Data=True
+
+[RecorderSystemVar]
+vCount=0
+
+[Calibration]
+ECUCount=1
+ECU0=ELC
+
+[ECU_ELC]
+Driver=XCP
+Database=A2L_20251117164540.a2l
+Transport Layer=CAN
+Logic Channel=1
+Enabled=True
+ShowTree=1
+
+[Protocol_ELC]
+Protocol Timeout (ms)=2000
+Seed and Key DLL=ELC_seedNKeyDiag.dll
+Connect Retry Count=1
+Connect Retry Delay (ms)=100
+Connect Timeout (ms)=2000
+Max Retry Count=0
+Enable Retry=True
+Transport Layer Master Id=0x7c0
+Transport Layer Master Id Type=Standard
+Transport Layer Slave Id=0x7c1
+Transport Layer Slave Id Type=Standard
+MAX_DLC_REQUIRED=True
+FD DLC=[8]   8 Bytes
+FD BRS=True
+Filled Byte=0x00
+Ignore Address@0x0000=True
+Force Byte Order=False
+Byte Order=Intel
+Select Calibration Page=No Action
+Sync If Connect Failed=False
+DAQ_CONFIG_TYPE=DYNAMIC
+MAX_DAQ=0
+MAX_EVENT_CHANNEL=0
+MIN_DAQ=0
+OPTIMISATION_TYPE=OPTIMISATION_TYPE_DEFAULT
+ADDRESS_EXTENSION=ADDRESS_EXTENSION_ODT
+IDENTIFICATION_FIELD_TYPE=IDENTIFICATION_FIELD_TYPE_ABSOLUTE
+GRANULARITY_ODT_ENTRY_SIZE=GRANULARITY_ODT_ENTRY_SIZE_DAQ_BYTE
+MAX_ODT_ENTRY_SIZE_DAQ=6
+OVERLOAD_INDICATION=NO_OVERLOAD_INDICATION
+PRESCALER_SUPPORTED=False
+RESUME_SUPPORTED=False
+User Defined Fixed ID of Event Channel=False
+GET_COMM_MODE_INFO=1
+GET_ID=1
+SET_REQUEST=1
+GET_SEED=1
+UNLOCK=1
+SET_MTA=1
+UPLOAD=1
+SHORT_UPLOAD=1
+BUILD_CHECKSUM=1
+TRANSPORT_LAYER_CMD=1
+USER_CMD=1
+DOWNLOAD_NEXT=1
+DOWNLOAD_MAX=1
+SHORT_DOWNLOAD=1
+MODIFY_BITS=1
+SET_CAL_PAGE=1
+GET_CAL_PAGE=1
+GET_PAG_PROCESSOR_INFO=1
+GET_SEGMENT_INFO=1
+GET_PAGE_INFO=1
+SET_SEGMENT_MODE=1
+GET_SEGMENT_MODE=1
+COPY_CAL_PAGE=1
+GET_DAQ_CLOCK=1
+READ_DAQ=1
+GET_DAQ_PROCESSOR_INFO=1
+GET_DAQ_RESOLUTION_INFO=1
+GET_DAQ_LIST_MODE=1
+GET_DAQ_EVENT_INFO=1
+GET_DAQ_LIST_INFO=1
+FREE_DAQ=1
+ALLOC_DAQ=1
+ALLOC_ODT=1
+ALLOC_ODT_ENTRY=1
+GET_PGM_PROCESSOR_INFO=1
+GET_SECTOR_INFO=1
+PROGRAM_PREPARE=1
+PROGRAM_FORMAT=1
+PROGRAM_NEXT=1
+PROGRAM_MAX=1
+PROGRAM_VERIFY=1
+WRITE_DAQ_MULTIPLE=1
+Slave Provide Timestamp Mode=On Request
+Master Request Cyclically=False
+Timestamp Size=DWORD
+EventCount=0
+EventAndCANIDCount=0
+XCPTimeStamp=1,0,0,0
+XCPStim=0,1
+DAQListCount=0
+CONNECT=1
+DISCONNECT=1
+GET_STATUS=1
+SYNCH=1
+DOWNLOAD=1
+SET_DAQ_PTR=1
+WRITE_DAQ=1
+SET_DAQ_LIST_MODE=1
+START_STOP_DAQ_LIST=1
+START_STOP_SYNCH=1
+CLEAR_DAQ_LIST=1
+PROGRAM_START=1
+PROGRAM_CLEAR=1
+PROGRAM=1
+PROGRAM_RESET=1
+
+[Memory_ELC]
+Cache enable=False
+Memory Image File=ELC_APP
+Sync Data from Flash=False
+Cache write optimization=True
+Memory synchronization for read-only=True
+Memory synchronization for writable=True
+Checksum enable=False
+Checksum method=None
+Checksum maximum block size=65535
+Enable page switch=True
+RAM page identifier=0x0
+Flash page identifier=0x1
+Sync All Characteristic=False
+Exit if sync Characteristic failed=True
+GroupCount=0
+SegmentCount=0
+FAppFileName=
+FEnableAPPFile=0
+FEnableCaliFile=1
+FCalibrationFileName=
+FVerifyMode=0
+FVerifyType=0
+FVerifyValue=0
+MergeWithAPPWhenUpload=0
+FlashDataArea=1
+TriggerSystemVarEventBeforeExit=0
+DisconnectBeforeExit=1
+SegCount=0
+
+[ELC_A2LInformation]
+A2LFileName=ELC_A2L_20251117164540.a2l
+A2LAlisMapName=

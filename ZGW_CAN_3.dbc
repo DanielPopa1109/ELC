@@ -36,6 +36,32 @@ BS_:
 BU_: ELC ZGW
 
 
+BO_ 1985 Xcp7C1: 7 ELC
+ SG_ Resp_Xcp7c0_7 : 48|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_5 : 40|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_4 : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_3 : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_2 : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_1 : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Resp_Xcp7c0_0 : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 1984 Xcp7C0: 8 ELC
+ SG_ Req_Xcp7c0_7 : 56|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_6 : 48|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_5 : 40|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_4 : 32|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_3 : 24|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_2 : 16|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_1 : 8|8@1+ (1,0) [0|255] ""  ELC
+ SG_ Req_Xcp7c0_0 : 0|8@1+ (1,0) [0|255] ""  ELC
+
+BO_ 1773 CurrentSense_L1: 4 ELC
+ SG_ CurrentSense_L1_Float : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1774 TempMeas: 8 ELC
+ SG_ McuTemperature : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ NTCTemperature_L1 : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
 BO_ 2046 StatusErrorSetting_0x703: 5 ELC
  SG_ StatusErrorSetting_Data_4 : 32|8@1+ (1,0) [0|255] ""  ZGW
  SG_ StatusErrorSetting_Data_3 : 24|8@1+ (1,0) [0|255] ""  ZGW
@@ -43,8 +69,8 @@ BO_ 2046 StatusErrorSetting_0x703: 5 ELC
  SG_ StatusErrorSetting_Data_1 : 8|8@1+ (1,0) [0|255] ""  ZGW
  SG_ StatusErrorSetting_Data_0 : 0|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 1023 Networkmanagement3_RequestStatus: 1 ZGW
- SG_ NM3RS_PN1 : 0|8@1+ (1,0) [0|255] ""  ELC
+BO_ 1023 Networkmanagement3_Status: 1 ZGW
+ SG_ NM3S_PN1 : 0|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 1795 Diag703: 8 ZGW
  SG_ Diag703_Resp_7 : 56|8@1+ (1,0) [0|255] ""  ZGW
@@ -76,9 +102,9 @@ BO_ 514 CANStandardBus_SystemDateAndTime: 7 ZGW
  SG_ CSB_SDAT_Day : 16|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 1777 LoadTracing3: 8 ELC
+ SG_ NTCError : 56|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ExternalChargerStatus : 40|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ LoadTrace_Vrefint : 48|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ LoadTrace_NTC_Temperature : 56|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ LoadTrace_McuTemperature : 40|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ LoadTrace_S2BErrorStatus : 32|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ LoadTrace_WupStat : 24|8@1+ (1,0) [0|255] ""  ZGW
  SG_ LoadTrace_RetryCnt : 16|8@1+ (1,0) [0|255] ""  ZGW
@@ -100,10 +126,6 @@ BO_ 1775 LoadTracing: 8 ELC
  SG_ LoadTrace_Voltage_Byte1 : 48|8@1+ (1,0) [0|255] ""  ZGW
  SG_ LoadTrace_T30Voltage_Byte2 : 40|8@1+ (1,0) [0|255] ""  ZGW
  SG_ LoadTrace_T30Voltage_Byte1 : 32|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_Current_Byte3 : 24|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_Current_Byte2 : 16|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_Current_Byte1 : 8|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_Current_Byte0 : 0|8@1+ (1,0) [0|255] ""  ZGW
 
 BO_ 81 LoadStatus: 4 ELC
  SG_ LoadStatus_Crc : 0|8@1+ (1,0) [0|255] "" Vector__XXX
@@ -111,8 +133,12 @@ BO_ 81 LoadStatus: 4 ELC
  SG_ LoadStatus_AliveCounter : 8|8@1+ (1,0) [0|15] "" Vector__XXX
  SG_ LoadPhysicalStatus : 24|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 80 LoadRequest: 1 ZGW
- SG_ LoadStatusRequest : 0|8@1+ (1,0) [0|255] ""  ELC
+BO_ 80 LoadRequest: 5 ZGW
+ SG_ LoadRequest_Padding : 32|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadRequest_AliveCounter : 8|8@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ LoadRequest_DataID : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadRequest_CRC : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LoadStatusRequest : 24|8@1+ (1,0) [0|255] ""  ELC
 
 
 
@@ -120,4 +146,7 @@ BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
 BA_DEF_  "BusType" STRING ;
 BA_DEF_DEF_  "MultiplexExtEnabled" "No";
 BA_DEF_DEF_  "BusType" "CAN";
+SIG_VALTYPE_ 1773 CurrentSense_L1_Float : 1;
+SIG_VALTYPE_ 1774 McuTemperature : 1;
+SIG_VALTYPE_ 1774 NTCTemperature_L1 : 1;
 

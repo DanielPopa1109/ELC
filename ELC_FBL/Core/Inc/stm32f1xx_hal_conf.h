@@ -1,20 +1,4 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    stm32f1xx_hal_conf.h
-  * @brief   HAL configuration file.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -40,7 +24,7 @@
 /*#define HAL_CAN_LEGACY_MODULE_ENABLED   */
 /*#define HAL_CEC_MODULE_ENABLED   */
 /*#define HAL_CORTEX_MODULE_ENABLED   */
-/*#define HAL_CRC_MODULE_ENABLED   */
+#define HAL_CRC_MODULE_ENABLED
 /*#define HAL_DAC_MODULE_ENABLED   */
 /*#define HAL_DMA_MODULE_ENABLED   */
 /*#define HAL_ETH_MODULE_ENABLED   */
@@ -134,7 +118,7 @@
 #define  PREFETCH_ENABLE              1U
 
 #define  USE_HAL_ADC_REGISTER_CALLBACKS         0U /* ADC register callback disabled       */
-#define  USE_HAL_CAN_REGISTER_CALLBACKS         0U /* CAN register callback disabled       */
+#define  USE_HAL_CAN_REGISTER_CALLBACKS         1U /* CAN register callback enabled       */
 #define  USE_HAL_CEC_REGISTER_CALLBACKS         0U /* CEC register callback disabled       */
 #define  USE_HAL_DAC_REGISTER_CALLBACKS         0U /* DAC register callback disabled       */
 #define  USE_HAL_ETH_REGISTER_CALLBACKS         0U /* ETH register callback disabled       */

@@ -1,0 +1,443 @@
+#include "CanH.h"
+#include "can.h"
+#include <stdbool.h>
+#include "crc.h"
+#include <string.h>
+#include <stdlib.h>
+
+CanH_ComStat_t CanH_CommunicationState = PARTIAL_COMMUNICATION;
+uint8_t CanH_RxData[8u] = {0u};
+uint8_t CanH_TxData[8u] = {0u};
+uint8_t CanH_RequestBusSleep = 0u;
+volatile uint8_t CanH_AliveCounter_LoadStatus = 0u;
+volatile uint8_t CanH_CRC_LoadStatus = 0u;
+volatile uint8_t CanH_AliveCounter_LoadRequest = 0u;
+volatile uint8_t CanH_CRC_LoadRequest = 0u;
+CAN_RxHeaderTypeDef CanH_RxHeader = {0u, 0u, 0u, 0u, 0u, 0u, 0u};
+CAN_TxHeaderTypeDef CanH_TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
+uint32_t CanH_MainCounter = 0u;
+uint32_t CanH_TxMailbox = 0u;
+uint32_t CanH_NoCommCounter = 0u;
+
+extern uint8_t SMon_NtcError;
+extern uint8_t SMon_ExternalChargerDetected;
+extern float SMon_ISenseL1_Float;
+extern CAN_RxHeaderTypeDef Dcm_DiagRxHeader;
+extern CAN_HandleTypeDef hcan;
+extern uint8_t Dcm_RxData[8u];
+extern volatile uint8_t Dcm_RequestPending;
+extern uint8_t Dcm_CC;
+extern uint8_t EcuM_SleeModeActive;
+extern uint8_t SMon_S2BErrorStatus;
+extern uint8_t SMon_I2TError;
+extern uint8_t SMon_L1_UVStatus;
+extern uint8_t SMon_CLS_Failure;
+extern uint8_t SMon_ECU_UV;
+extern uint8_t SMon_ECU_OV;
+extern uint8_t SMon_CmdStat;
+extern uint8_t SMon_WupLineState; // SYS_WKUP
+extern uint32_t SMon_ISenseL1; // I Sense L1
+extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
+extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
+extern uint8_t SMon_L1ST;
+extern uint8_t SMon_RetryCnt;
+extern uint8_t SMon_LockSupply;
+extern uint32_t SMon_I2TCounter;
+extern uint8_t EcuM_SWState;
+extern uint16_t SMon_VarefValue;
+extern float SMon_McuTempValue;
+extern float SMon_NTC_Temperature_L1;
+
+bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
+extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+void CanH_MainFunction(void);
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
+void HAL_CAN_RxFifo0MsgFullCallback(CAN_HandleTypeDef *hcan);
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
+void HAL_CAN_RxFifo1MsgFullCallback(CAN_HandleTypeDef *hcan);
+
+void CanH_RecoverIfBusOff(void)
+{
+	uint32_t esr = CAN1->ESR;
+	static uint32_t errInfo2 = 0u;
+
+	errInfo2 = HAL_CAN_GetError(&hcan);
+
+	if (esr & CAN_ESR_BOFF)
+	{
+		HAL_CAN_Stop(&hcan);
+		HAL_CAN_DeInit(&hcan);
+		__HAL_RCC_CAN1_FORCE_RESET();
+		__HAL_RCC_CAN1_RELEASE_RESET();
+		MX_CAN_Init();
+		HAL_CAN_Start(&hcan);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(errInfo2)
+	{
+		HAL_CAN_ResetError(&hcan);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+}
+
+void CanH_MainFunction(void)
+{
+	CanH_RecoverIfBusOff();
+
+	if(FULL_COMMUNICATION == CanH_CommunicationState && 0u == Dcm_CC)
+	{
+		if(CanH_MainCounter % 5 == 0)
+		{
+			if(15u > CanH_AliveCounter_LoadStatus)
+			{
+				CanH_AliveCounter_LoadStatus++;
+			}
+			else
+			{
+				CanH_AliveCounter_LoadStatus = 0u;
+			}
+
+			CanH_TxData[1u] = CanH_AliveCounter_LoadStatus;
+			CanH_TxData[2u] = 0x15u;
+			CanH_TxData[3u] = SMon_L1ST;
+			CanH_TxData[4u] = 0;
+			CanH_TxData[5u] = 0;
+			CanH_TxData[6u] = 0;
+			CanH_TxData[7u] = 0;
+
+			uint32_t tempVar = ((uint32_t)CanH_AliveCounter_LoadStatus << 16u) | ((uint32_t)0x15u << 8u) | ((uint32_t)SMon_L1ST);
+
+			CanH_TxData[0u] = (uint8_t)HAL_CRC_Calculate(&hcrc, &tempVar, 1u);
+
+			CanH_TxHeader.DLC = 4;
+			CanH_TxHeader.StdId = 0x51;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter != 0u)
+		{
+			CanH_TxData[0] = 0;
+			CanH_TxData[1] = 0;
+			CanH_TxData[2] = 0;
+			CanH_TxData[3] = 0;
+			CanH_TxData[4] = (uint8_t)(SMon_VfbT30);
+			CanH_TxData[5] = (uint8_t)(SMon_VfbT30 >> 8u);
+			CanH_TxData[6] = (uint8_t)(SMon_VfbL1);
+			CanH_TxData[7] = (uint8_t)(SMon_VfbL1 >> 8u);
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6ef;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 2 == 0)
+		{
+			memcpy(&CanH_TxData[0u], &SMon_ISenseL1_Float, sizeof(float));
+			CanH_TxHeader.DLC = 4;
+			CanH_TxHeader.StdId = 0x6ed;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 6 == 0)
+		{
+			memcpy(&CanH_TxData[0u], &SMon_NTC_Temperature_L1, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_McuTempValue, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6ee;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 3 == 0)
+		{
+			CanH_TxData[0] = SMon_ECU_UV;
+			CanH_TxData[1] = SMon_ECU_OV;
+			CanH_TxData[2] = (uint8_t)(SMon_I2TCounter);
+			CanH_TxData[3] = (uint8_t)(SMon_I2TCounter >> 8u);
+			CanH_TxData[4] = (uint8_t)(SMon_I2TCounter >> 16u);
+			CanH_TxData[5] = (uint8_t)(SMon_I2TCounter >> 24u);
+			CanH_TxData[6] = SMon_CLS_Failure;
+			CanH_TxData[7] = SMon_L1_UVStatus;
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f0;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 4 == 0)
+		{
+			CanH_TxData[0] = SMon_I2TError;
+			CanH_TxData[1] = SMon_LockSupply;
+			CanH_TxData[2] = SMon_RetryCnt;
+			CanH_TxData[3] = SMon_WupLineState;
+			CanH_TxData[4] = SMon_S2BErrorStatus;
+			CanH_TxData[5] = SMon_ExternalChargerDetected;
+			CanH_TxData[6] = SMon_VarefValue / 10u;
+			CanH_TxData[7] = SMon_NtcError;
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f1;
+
+			HAL_StatusTypeDef st;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+			} while (st != HAL_OK);
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(58u <= CanH_NoCommCounter)
+	{
+		CanH_CommunicationState = NO_COMMUNICATION;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	CanH_NoCommCounter++;
+	CanH_MainCounter++;
+
+	for(uint8_t i = 0; i < 8u; i++)
+	{
+		CanH_TxData[i] = 0u;
+	}
+}
+
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &CanH_RxHeader, CanH_RxData);
+
+	if(0x702 == CanH_RxHeader.StdId)
+	{
+		Dcm_DiagRxHeader.StdId = CanH_RxHeader.StdId;
+		Dcm_DiagRxHeader.DLC = CanH_RxHeader.DLC;
+
+		bool is_fc = Dcm_IsoTp_RxHook(&Dcm_DiagRxHeader, CanH_RxData);
+
+		if (!is_fc)
+		{
+			for (uint8_t i = 0u; i < 8u; i++)
+			{
+				Dcm_RxData[i] = CanH_RxData[i];
+			}
+
+			Dcm_RequestPending = 1u;
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	CanH_RxHeader.DLC = 0;
+	CanH_RxHeader.ExtId = 0;
+	CanH_RxHeader.FilterMatchIndex = 0;
+	CanH_RxHeader.IDE = 0;
+	CanH_RxHeader.RTR = 0;
+	CanH_RxHeader.StdId = 0;
+	CanH_RxHeader.Timestamp = 0;
+
+	for(uint8_t i = 0; i < 8; i++)
+	{
+		CanH_RxData[i] = 0;
+	}
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	if(1u == EcuM_SleeModeActive)
+	{
+		HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
+
+		if(0x3FF == CanH_RxHeader.StdId)
+		{
+			if(0x12 == CanH_RxData[0])
+			{
+				EcuM_PerformReset(0,0);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		HAL_PWR_EnableSleepOnExit();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
+
+	if(0x3ff == CanH_RxHeader.StdId)
+	{
+		if(0x12 == CanH_RxData[0])
+		{
+			CanH_RequestBusSleep = 0;
+			CanH_CommunicationState = FULL_COMMUNICATION;
+			CanH_NoCommCounter = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x50u == CanH_RxHeader.StdId)
+	{
+		CanH_CRC_LoadRequest = CanH_RxData[0u];
+
+		uint32_t tempVar = ((uint32_t)&CanH_RxData[1u] << 24u) | ((uint32_t)&CanH_RxData[2u] << 16u) | ((uint32_t)&CanH_RxData[3u] << 8u) | ((uint32_t)&CanH_RxData[4u]);
+
+		CanH_CRC_LoadRequest = HAL_CRC_Calculate(&hcrc, &tempVar, 1u);
+
+		if(CanH_CRC_LoadRequest == CanH_RxData[0u] && 0x16u == CanH_RxData[2u] && 2u > abs(CanH_AliveCounter_LoadRequest - CanH_RxData[1u]))
+		{
+			SMon_CmdStat = CanH_RxData[0u];
+		}
+		else
+		{
+			SMon_CmdStat = 0u;
+			CanH_AliveCounter_LoadRequest = CanH_RxData[1u];
+		}
+
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	CanH_RxHeader.DLC = 0;
+	CanH_RxHeader.ExtId = 0;
+	CanH_RxHeader.FilterMatchIndex = 0;
+	CanH_RxHeader.IDE = 0;
+	CanH_RxHeader.RTR = 0;
+	CanH_RxHeader.StdId = 0;
+	CanH_RxHeader.Timestamp = 0;
+
+	for(uint8_t i = 0; i < 8; i++)
+	{
+		CanH_RxData[i] = 0;
+	}
+}

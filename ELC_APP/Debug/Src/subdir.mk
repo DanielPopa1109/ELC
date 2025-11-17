@@ -11,10 +11,12 @@ C_SRCS += \
 ../Src/dma.c \
 ../Src/freertos.c \
 ../Src/gpio.c \
+../Src/iwdg.c \
 ../Src/main.c \
 ../Src/stm32f1xx_hal_msp.c \
 ../Src/stm32f1xx_hal_timebase_tim.c \
 ../Src/stm32f1xx_it.c \
+../Src/syscalls_dummy.c \
 ../Src/system_stm32f1xx.c \
 ../Src/tim.c 
 
@@ -25,10 +27,12 @@ C_DEPS += \
 ./Src/dma.d \
 ./Src/freertos.d \
 ./Src/gpio.d \
+./Src/iwdg.d \
 ./Src/main.d \
 ./Src/stm32f1xx_hal_msp.d \
 ./Src/stm32f1xx_hal_timebase_tim.d \
 ./Src/stm32f1xx_it.d \
+./Src/syscalls_dummy.d \
 ./Src/system_stm32f1xx.d \
 ./Src/tim.d 
 
@@ -39,10 +43,12 @@ OBJS += \
 ./Src/dma.o \
 ./Src/freertos.o \
 ./Src/gpio.o \
+./Src/iwdg.o \
 ./Src/main.o \
 ./Src/stm32f1xx_hal_msp.o \
 ./Src/stm32f1xx_hal_timebase_tim.o \
 ./Src/stm32f1xx_it.o \
+./Src/syscalls_dummy.o \
 ./Src/system_stm32f1xx.o \
 ./Src/tim.o 
 
@@ -54,7 +60,7 @@ Src/%.o Src/%.su Src/%.cyclo: ../Src/%.c Src/subdir.mk
 clean: clean-Src
 
 clean-Src:
-	-$(RM) ./Src/adc.cyclo ./Src/adc.d ./Src/adc.o ./Src/adc.su ./Src/can.cyclo ./Src/can.d ./Src/can.o ./Src/can.su ./Src/crc.cyclo ./Src/crc.d ./Src/crc.o ./Src/crc.su ./Src/dma.cyclo ./Src/dma.d ./Src/dma.o ./Src/dma.su ./Src/freertos.cyclo ./Src/freertos.d ./Src/freertos.o ./Src/freertos.su ./Src/gpio.cyclo ./Src/gpio.d ./Src/gpio.o ./Src/gpio.su ./Src/main.cyclo ./Src/main.d ./Src/main.o ./Src/main.su ./Src/stm32f1xx_hal_msp.cyclo ./Src/stm32f1xx_hal_msp.d ./Src/stm32f1xx_hal_msp.o ./Src/stm32f1xx_hal_msp.su ./Src/stm32f1xx_hal_timebase_tim.cyclo ./Src/stm32f1xx_hal_timebase_tim.d ./Src/stm32f1xx_hal_timebase_tim.o ./Src/stm32f1xx_hal_timebase_tim.su ./Src/stm32f1xx_it.cyclo ./Src/stm32f1xx_it.d ./Src/stm32f1xx_it.o ./Src/stm32f1xx_it.su ./Src/system_stm32f1xx.cyclo ./Src/system_stm32f1xx.d ./Src/system_stm32f1xx.o ./Src/system_stm32f1xx.su ./Src/tim.cyclo ./Src/tim.d ./Src/tim.o ./Src/tim.su
+	-$(RM) ./Src/adc.cyclo ./Src/adc.d ./Src/adc.o ./Src/adc.su ./Src/can.cyclo ./Src/can.d ./Src/can.o ./Src/can.su ./Src/crc.cyclo ./Src/crc.d ./Src/crc.o ./Src/crc.su ./Src/dma.cyclo ./Src/dma.d ./Src/dma.o ./Src/dma.su ./Src/freertos.cyclo ./Src/freertos.d ./Src/freertos.o ./Src/freertos.su ./Src/gpio.cyclo ./Src/gpio.d ./Src/gpio.o ./Src/gpio.su ./Src/iwdg.cyclo ./Src/iwdg.d ./Src/iwdg.o ./Src/iwdg.su ./Src/main.cyclo ./Src/main.d ./Src/main.o ./Src/main.su ./Src/stm32f1xx_hal_msp.cyclo ./Src/stm32f1xx_hal_msp.d ./Src/stm32f1xx_hal_msp.o ./Src/stm32f1xx_hal_msp.su ./Src/stm32f1xx_hal_timebase_tim.cyclo ./Src/stm32f1xx_hal_timebase_tim.d ./Src/stm32f1xx_hal_timebase_tim.o ./Src/stm32f1xx_hal_timebase_tim.su ./Src/stm32f1xx_it.cyclo ./Src/stm32f1xx_it.d ./Src/stm32f1xx_it.o ./Src/stm32f1xx_it.su ./Src/syscalls_dummy.cyclo ./Src/syscalls_dummy.d ./Src/syscalls_dummy.o ./Src/syscalls_dummy.su ./Src/system_stm32f1xx.cyclo ./Src/system_stm32f1xx.d ./Src/system_stm32f1xx.o ./Src/system_stm32f1xx.su ./Src/tim.cyclo ./Src/tim.d ./Src/tim.o ./Src/tim.su
 
 .PHONY: clean-Src
 

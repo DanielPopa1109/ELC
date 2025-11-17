@@ -7,16 +7,24 @@
 #include "adc.h"
 #include "Nvm.h"
 #include "Dem.h"
+#include "iwdg.h"
+#include "crc.h"
 
 extern uint8_t SMon_ShortToPlusTest; // Discharge Test Status
 extern CAN_HandleTypeDef hcan;
 extern CanH_ComStat_t CanH_CommunicationState;
 extern uint8_t SMon_CmdStat;
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
+extern uint8_t Dcm_SWV[4u];
+
 uint8_t EcuM_SWState = 1u;
 uint8_t EcuM_WUPLine = 0u;
 uint8_t EcuM_SleeModeActive = 0u;
-uint32_t EcuM_RunTimer = 58u;
-uint32_t EcuM_PostRunTimer = 58u;
+uint32_t EcuM_RunTimer = 2000u;
+uint32_t EcuM_PostRunTimer = 2000u;
+
 uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
 uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
@@ -24,23 +32,30 @@ uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
 uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
 uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
-static uint32_t mainCnt = 0u;
-extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
-extern uint8_t Dcm_SWV[4u];
+
+static uint32_t EcuM_MainCounter = 0u;
 
 extern void CanH_RecoverIfBusOff(void);
+
 void EcuM_GoSleep(void);
 void EcuM_main();
 void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
 void EcuM_main()
 {
+	HAL_IWDG_Refresh(&hiwdg);
+
 	EcuM_TimeActive += 5u;
 	EcuM_TimeWithoutReset += 5u;
-	EcuM_WUPLine = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
-	for(uint8_t i = 0; i < 4u; i++) EcuM_SWV[i] = Dcm_SWV[i];
 
-	if(0u == mainCnt)
+	EcuM_WUPLine = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+	for(uint8_t i = 0; i < 4u; i++)
+	{
+		EcuM_SWV[i] = Dcm_SWV[i];
+	}
+
+	if(0u == EcuM_MainCounter)
 	{
 		if(EcuM_ResetReason)
 		{
@@ -48,7 +63,14 @@ void EcuM_main()
 		}
 		else
 		{
-			/* Do nothing. */
+			if(0x2f == Dem_GetDtcStatus(0x57u))
+			{
+				Dem_SetDtc(0x57, 0x2e);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
 		}
 	}
 	else
@@ -59,8 +81,8 @@ void EcuM_main()
 	if(1u == SMon_CmdStat || 1u == EcuM_WUPLine || FULL_COMMUNICATION == CanH_CommunicationState)
 	{
 		EcuM_SWState = 1u;
-		EcuM_RunTimer = 58u;
-		EcuM_PostRunTimer = 58u;
+		EcuM_RunTimer = 2000u;
+		EcuM_PostRunTimer = 2000u;
 	}
 	else
 	{
@@ -86,7 +108,7 @@ void EcuM_main()
 	if(4u != SMon_ShortToPlusTest && 0u == EcuM_RunTimer)
 	{
 		EcuM_SWState = 2u;
-		EcuM_PostRunTimer = 58u;
+		EcuM_PostRunTimer = 2000u;
 	}
 	else if(4u == SMon_ShortToPlusTest && 0u == EcuM_RunTimer)
 	{
@@ -113,93 +135,79 @@ void EcuM_main()
 		/* Do nothing. */
 	}
 
-	mainCnt++;
+	EcuM_MainCounter++;
 }
 
 void EcuM_GoSleep(void)
 {
 	__disable_irq();
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_7);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_10);
-	//	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_1);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_2);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_4);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_5);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_7);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_9);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_11);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_13);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14);
-	//	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_15);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_1);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_2);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_3);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_4);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_5);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_7);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_9);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_11);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_12);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_13);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_14);
-	//	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_15);
-	//	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
+
 	Nvm_WriteAll();
+
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_14 | GPIO_PIN_13;
+
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 	GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_1 | GPIO_PIN_5 | GPIO_PIN_3;
+
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 	GPIO_InitStruct.Pin = GPIO_PIN_13;
+
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
 	__enable_irq();
+
 	HAL_ADC_Stop_DMA(&hadc1);
 	HAL_ADC_DeInit(&hadc1);
+
 	__disable_irq();
+
 	__HAL_RCC_GPIOB_CLK_DISABLE();
 	__HAL_RCC_GPIOC_CLK_DISABLE();
 	__HAL_RCC_DMA1_CLK_DISABLE();
 	__HAL_RCC_ADC1_CLK_DISABLE();
 	__HAL_RCC_AFIO_CLK_DISABLE();
 	__HAL_RCC_TIM1_CLK_DISABLE();
+
 	HAL_TIM_PWM_Stop_IT(&htim1, 0);
+	HAL_TIM_Base_Stop(&htim3);
+	HAL_CRC_DeInit(&hcrc);
 	HAL_TIM_PWM_DeInit(&htim1);
+	HAL_TIM_Base_DeInit(&htim3);
+
 	HAL_SuspendTick();
-	for(uint8_t i = 0; i < 82; i++) HAL_NVIC_ClearPendingIRQ(i);
+
+	for(uint8_t i = 0; i < 82; i++)
+	{
+		HAL_NVIC_ClearPendingIRQ(i);
+	}
+
 	SysTick->CTRL &= ~(SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk);
+
 	HAL_TIM_Base_Start_IT(&htim2);
+
 	EcuM_SleeModeActive = 1;
+
 	HAL_CAN_RequestSleep(&hcan);
+
 	__enable_irq();
+
 	HAL_DBGMCU_DisableDBGSleepMode();
+
 	HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
 	EcuM_PerformReset(0,0);
 }
 
 void EcuM_ProcessTimerInterrupt(void)
 {
-	EcuM_TimeInSleep += 100u;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	EcuM_TimeInSleep += 30u;
 
 	static uint32_t errInfo = 0u;
 
@@ -229,8 +237,19 @@ void EcuM_ProcessTimerInterrupt(void)
 void EcuM_PerformReset(uint8_t reason, uint8_t info)
 {
 	EcuM_TimeWithoutReset = 0u;
+
 	EcuM_ResetInfo = info;
+
 	EcuM_ResetReason = reason;
-	if(reason) EcuM_ResetCounter++;
+
+	if(reason)
+	{
+		EcuM_ResetCounter++;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
 	NVIC_SystemReset();
 }

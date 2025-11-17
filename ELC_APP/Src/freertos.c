@@ -24,21 +24,7 @@ typedef StaticTask_t osStaticThreadDef_t;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-volatile uint32_t oscnt;
-long long idlecnt;
-uint8_t OS_IdleIndex = 0;
-float OS_XCP_CpuLoad = 0;
-float OS_IdleRunTime = 0;
-float OS_DeltaIdleRunTime = 0;
-float OS_CpuLoad = 0;
-TaskStatus_t xTaskStatusArray[7] = {0};
-UBaseType_t uxArraySize = {0};
-float OS_AverageCpuLoad = 0;
-uint32_t ulTotalRunTime = {0};
-uint32_t localTaskCounter = 0;
-long long OS_Counter = 0;
-long long IDLE_Counter = 0;
-volatile unsigned long ulHighFrequencyTimerTicks;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,6 +34,24 @@ volatile unsigned long ulHighFrequencyTimerTicks;
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+
+uint8_t OS_IdleIndex = 0;
+volatile uint32_t oscnt;
+uint32_t ulTotalRunTime = {0};
+uint32_t localTaskCounter = 0;
+float OS_XCP_CpuLoad = 0;
+float OS_IdleRunTime = 0;
+float OS_DeltaIdleRunTime = 0;
+float OS_CpuLoad = 0;
+float OS_AverageCpuLoad = 0;
+TaskStatus_t xTaskStatusArray[7] = {0};
+UBaseType_t uxArraySize = {0};
+long long idlecnt;
+long long OS_Counter = 0;
+long long IDLE_Counter = 0;
+volatile unsigned long ulHighFrequencyTimerTicks;
+
+extern uint16_t Ain_DmaBuffer[7u];
 
 /* USER CODE END Variables */
 /* Definitions for QM_BSW */
@@ -126,48 +130,60 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
 void vApplicationMallocFailedHook(void);
 
 /* USER CODE BEGIN 1 */
-/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
+
 void configureTimerForRunTimeStats(void)
 {
 	ulHighFrequencyTimerTicks = 0;
 	HAL_TIM_Base_Start_IT(&htim3);
 }
+
 unsigned long getRunTimeCounterValue(void)
 {
 	return ulHighFrequencyTimerTicks;
 }
+
 /* USER CODE END 1 */
 
 /* USER CODE BEGIN 2 */
+
 void vApplicationIdleHook( void )
 {
 	idlecnt++;
+
 	uxArraySize = uxTaskGetSystemState(xTaskStatusArray, 7, &ulTotalRunTime);
+
 	HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 0u);
 }
+
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN 3 */
-extern uint16_t Ain_DmaBuffer[7u];
+
 void vApplicationTickHook( void )
 {
 	oscnt++;
+
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
 }
+
 /* USER CODE END 3 */
 
 /* USER CODE BEGIN 4 */
+
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)
 {
 	EcuM_PerformReset(203, 203);
 }
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN 5 */
+
 void vApplicationMallocFailedHook(void)
 {
 	EcuM_PerformReset(204, 204);
 }
+
 /* USER CODE END 5 */
 
 /**
@@ -177,15 +193,12 @@ void vApplicationMallocFailedHook(void)
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-	/* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-	/* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -193,11 +206,9 @@ void MX_FREERTOS_Init(void) {
   Alarm5msHandle = osTimerNew(Alarm5ms_Callback, osTimerPeriodic, NULL, &Alarm5ms_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
-	/* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-	/* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -218,7 +229,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-	/* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
 }
@@ -232,8 +242,10 @@ void QM_BSW_TASK(void *argument)
 	for(;;)
 	{
 		HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
+
 		CanH_MainFunction();
 		EcuM_main();
+
 		vTaskSuspend(NULL);
 	}
   /* USER CODE END QM_BSW_TASK */
@@ -253,9 +265,9 @@ void QM_APPL_TASK(void *argument)
 	for(;;)
 	{
 		HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
-		HAL_GPIO_WritePin(SMON_RUNTIME_MEAS_GPIO_Port, SMON_RUNTIME_MEAS_Pin, 1u);
+
 		SMon_main();
-		HAL_GPIO_WritePin(SMON_RUNTIME_MEAS_GPIO_Port, SMON_RUNTIME_MEAS_Pin, 0u);
+
 		vTaskSuspend(NULL);
 	}
   /* USER CODE END QM_APPL_TASK */
@@ -275,7 +287,9 @@ void QM_DIAG_TASK(void *argument)
 	for(;;)
 	{
 		HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
+
 		Dcm_main();
+
 		vTaskSuspend(NULL);
 	}
   /* USER CODE END QM_DIAG_TASK */
@@ -289,7 +303,9 @@ void CPULOAD_OS_TASK(void *argument)
 	for(;;)
 	{
 		localTaskCounter++;
+
 		OS_DeltaIdleRunTime = xTaskStatusArray[OS_IdleIndex].ulRunTimeCounter - OS_IdleRunTime;
+
 		if(0 != ulHighFrequencyTimerTicks)
 		{
 			OS_CpuLoad = 100 - (OS_DeltaIdleRunTime / ulHighFrequencyTimerTicks) * 100;
@@ -298,9 +314,11 @@ void CPULOAD_OS_TASK(void *argument)
 		{
 			/* Do nothing. */
 		}
+
 		OS_AverageCpuLoad += OS_CpuLoad;
 		ulHighFrequencyTimerTicks = 0;
 		OS_IdleRunTime = xTaskStatusArray[OS_IdleIndex].ulRunTimeCounter;
+
 		if(localTaskCounter % 12 == 0 && 0u != localTaskCounter)
 		{
 			OS_XCP_CpuLoad = OS_AverageCpuLoad / 12; /* Calculate CPU load value every 480 milliseconds. */
@@ -310,6 +328,7 @@ void CPULOAD_OS_TASK(void *argument)
 		{
 			/* Do nothing. */
 		}
+
 		vTaskSuspend(NULL);
 	}
   /* USER CODE END CPULOAD_OS_TASK */
@@ -319,21 +338,28 @@ void CPULOAD_OS_TASK(void *argument)
 void Alarm5ms_Callback(void *argument)
 {
   /* USER CODE BEGIN Alarm5ms_Callback */
+
 	static uint32_t counter = 0;
+
 	counter++;
-	if(counter % 8 == 0 && counter != 0) vTaskResume(CPULOAD_OSHandle);
+
+	if(counter % 8 == 0 && counter != 0)
+	{
+		vTaskResume(CPULOAD_OSHandle);
+	}
 	else
 	{
 		/* Do nothing. */
 	}
+
 	vTaskResume(QM_APPLHandle);
 	vTaskResume(QM_BSWHandle);
 	vTaskResume(QM_DIAGHandle);
+
   /* USER CODE END Alarm5ms_Callback */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
 /* USER CODE END Application */
 

@@ -1,20 +1,4 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    stm32f1xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -26,33 +10,33 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
+
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
 extern void EcuM_ProcessTimerInterrupt();
+
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+
 extern volatile unsigned long ulHighFrequencyTimerTicks;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -65,7 +49,6 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN EV */
-
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -77,7 +60,9 @@ extern TIM_HandleTypeDef htim4;
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+
 	EcuM_PerformReset(1, 1);
+
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
    while (1)
@@ -92,7 +77,9 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+
 	EcuM_PerformReset(2, 2);
+
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -107,7 +94,9 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+
 	EcuM_PerformReset(3, 3);
+
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -122,7 +111,9 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
+
 	EcuM_PerformReset(4, 4);
+
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -137,7 +128,9 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
+
 	EcuM_PerformReset(5, 5);
+
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
@@ -152,10 +145,8 @@ void UsageFault_Handler(void)
 void DebugMon_Handler(void)
 {
   /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-
   /* USER CODE END DebugMonitor_IRQn 0 */
   /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-
   /* USER CODE END DebugMonitor_IRQn 1 */
 }
 
@@ -172,11 +163,12 @@ void DebugMon_Handler(void)
 void PVD_IRQHandler(void)
 {
   /* USER CODE BEGIN PVD_IRQn 0 */
+
 	EcuM_PerformReset(103, 103);
+
   /* USER CODE END PVD_IRQn 0 */
   HAL_PWR_PVD_IRQHandler();
   /* USER CODE BEGIN PVD_IRQn 1 */
-
   /* USER CODE END PVD_IRQn 1 */
 }
 
@@ -186,11 +178,9 @@ void PVD_IRQHandler(void)
 void FLASH_IRQHandler(void)
 {
   /* USER CODE BEGIN FLASH_IRQn 0 */
-
   /* USER CODE END FLASH_IRQn 0 */
   HAL_FLASH_IRQHandler();
   /* USER CODE BEGIN FLASH_IRQn 1 */
-
   /* USER CODE END FLASH_IRQn 1 */
 }
 
@@ -200,10 +190,8 @@ void FLASH_IRQHandler(void)
 void RCC_IRQHandler(void)
 {
   /* USER CODE BEGIN RCC_IRQn 0 */
-
   /* USER CODE END RCC_IRQn 0 */
   /* USER CODE BEGIN RCC_IRQn 1 */
-
   /* USER CODE END RCC_IRQn 1 */
 }
 
@@ -213,11 +201,9 @@ void RCC_IRQHandler(void)
 void DMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
   /* USER CODE END DMA1_Channel1_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
-
   /* USER CODE END DMA1_Channel1_IRQn 1 */
 }
 
@@ -227,11 +213,9 @@ void DMA1_Channel1_IRQHandler(void)
 void ADC1_2_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC1_2_IRQn 0 */
-
   /* USER CODE END ADC1_2_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC1_2_IRQn 1 */
-
   /* USER CODE END ADC1_2_IRQn 1 */
 }
 
@@ -241,11 +225,9 @@ void ADC1_2_IRQHandler(void)
 void USB_HP_CAN1_TX_IRQHandler(void)
 {
   /* USER CODE BEGIN USB_HP_CAN1_TX_IRQn 0 */
-
   /* USER CODE END USB_HP_CAN1_TX_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
   /* USER CODE BEGIN USB_HP_CAN1_TX_IRQn 1 */
-
   /* USER CODE END USB_HP_CAN1_TX_IRQn 1 */
 }
 
@@ -255,11 +237,9 @@ void USB_HP_CAN1_TX_IRQHandler(void)
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 0 */
-
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 1 */
-
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 1 */
 }
 
@@ -269,11 +249,9 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 void CAN1_RX1_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN1_RX1_IRQn 0 */
-
   /* USER CODE END CAN1_RX1_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
   /* USER CODE BEGIN CAN1_RX1_IRQn 1 */
-
   /* USER CODE END CAN1_RX1_IRQn 1 */
 }
 
@@ -283,11 +261,9 @@ void CAN1_RX1_IRQHandler(void)
 void CAN1_SCE_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN1_SCE_IRQn 0 */
-
   /* USER CODE END CAN1_SCE_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
   /* USER CODE BEGIN CAN1_SCE_IRQn 1 */
-
   /* USER CODE END CAN1_SCE_IRQn 1 */
 }
 
@@ -297,11 +273,9 @@ void CAN1_SCE_IRQHandler(void)
 void TIM1_BRK_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_BRK_IRQn 0 */
-
   /* USER CODE END TIM1_BRK_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_BRK_IRQn 1 */
-
   /* USER CODE END TIM1_BRK_IRQn 1 */
 }
 
@@ -311,11 +285,9 @@ void TIM1_BRK_IRQHandler(void)
 void TIM1_UP_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_IRQn 0 */
-
   /* USER CODE END TIM1_UP_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_IRQn 1 */
-
   /* USER CODE END TIM1_UP_IRQn 1 */
 }
 
@@ -325,11 +297,9 @@ void TIM1_UP_IRQHandler(void)
 void TIM1_TRG_COM_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_TRG_COM_IRQn 0 */
-
   /* USER CODE END TIM1_TRG_COM_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_TRG_COM_IRQn 1 */
-
   /* USER CODE END TIM1_TRG_COM_IRQn 1 */
 }
 
@@ -339,11 +309,9 @@ void TIM1_TRG_COM_IRQHandler(void)
 void TIM1_CC_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_CC_IRQn 0 */
-
   /* USER CODE END TIM1_CC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_CC_IRQn 1 */
-
   /* USER CODE END TIM1_CC_IRQn 1 */
 }
 
@@ -353,11 +321,12 @@ void TIM1_CC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
+
 	EcuM_ProcessTimerInterrupt();
+
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-
   /* USER CODE END TIM2_IRQn 1 */
 }
 
@@ -367,11 +336,12 @@ void TIM2_IRQHandler(void)
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
+
 	ulHighFrequencyTimerTicks++;
+
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
-
   /* USER CODE END TIM3_IRQn 1 */
 }
 

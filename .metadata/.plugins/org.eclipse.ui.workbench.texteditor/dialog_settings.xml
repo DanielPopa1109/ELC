@@ -1,30 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="0x52"/>
+		<item key="selection" value="SMon_VfbL1"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="0x52"/>
-			<item value="else"/>
-			<item value="hardre"/>
-			<item value="Dcm_ProgrammingSession"/>
-			<item value="Nvm_FlashWriteData"/>
-			<item value="NVM_DTC_START_ADDRESS"/>
-			<item value="SMon_I2TAccumulation"/>
-			<item value="payload"/>
-			<item value="Dcm_BuildHist_RC"/>
-			<item value="PROGRA"/>
-			<item value="progra"/>
-			<item value="flash_mass_erase_range"/>
-			<item value="__disable_irq_"/>
-			<item value="__enable_irq_"/>
-			<item value="flash_batch_open"/>
+			<item value="SMon_VfbL1"/>
+			<item value="FBL_StoreApplicationCrc"/>
+			<item value="FBL_IsValidApplication"/>
+			<item value="CanH_CRC_LoadRequest"/>
+			<item value="CanH_CRC_LoadStatus"/>
+			<item value="CanH_AliveCounter_LoadStatus"/>
+			<item value="CanH_DataID_LoadStatus"/>
+			<item value="APP_FlashCrcOk"/>
+			<item value="SMon_CmdStat"/>
+			<item value="cresp"/>
+			<item value="IsoTp_OnCanRx_blob"/>
+			<item value="crcCalc"/>
+			<item value=" IsoTp_OnCanRx"/>
+			<item value="data"/>
+			<item value="isotp_rx_buf_ram"/>
 		</list>
 		<list key="replacehistory">
+			<item value="isotp_rx_buf_ram"/>
+			<item value="ISOTP_MAX_RX_LEN_RAM"/>
 			<item value="RAM_CODE"/>
 			<item value="RAMATTR"/>
 			<item value="CounterOVKL30"/>
@@ -38,8 +40,6 @@
 			<item value="SMon_ErrStat"/>
 			<item value="SMon_CounterUVL1"/>
 			<item value="SMon_CounterOVKL30"/>
-			<item value="SMon_CounterUVKL30"/>
-			<item value="SMon_MainCnt"/>
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">

@@ -4,29 +4,29 @@
 
 const uint32_t Dem_PreDefined_DTC_Table[24u] =
 {
-		0x50,
-		0x51,
-		0x52,
-		0x53,
-		0x54,
-		0x55,
-		0x56,
-		0x57,
-		0x58,
-		0x59,
-		0x5A,
-		0x5B,
-		0x5C,
-		0x5D,
-		0x5E,
-		0x5F,
-		0x60,
-		0x61,
-		0x62,
-		0x63,
-		0x64,
-		0x65,
-		0x66
+		0x50, // UV KL30
+		0x51, // OV KL30
+		0x52, // SHORT TO BATT L1
+		0x53, // OVERCURRENT L1
+		0x54, // L1 LOCKED
+		0x55, // CLS FAILURE L1
+		0x56, // UV L1
+		0x57, // MCU RESET
+		0x58, // N/A
+		0x59, // N/A
+		0x5A, // N/A
+		0x5B, // N/A
+		0x5C, // N/A
+		0x5D, // N/A
+		0x5E, // N/A
+		0x5F, // N/A
+		0x60, // N/A
+		0x61, // N/A
+		0x62, // N/A
+		0x63, // N/A
+		0x64, // N/A
+		0x65, // N/A
+		0x66  // N/A
 };
 
 uint8_t Dem_DTC_Stat[24u] = {
@@ -58,6 +58,28 @@ uint8_t Dem_DTC_Stat[24u] = {
 extern uint8_t Dcm_CDTCS;
 
 void Dem_SetDtc(uint32_t id, uint8_t stat);
+uint8_t Dem_GetDtcStatus(uint32_t id);
+
+uint8_t Dem_GetDtcStatus(uint32_t id)
+{
+	uint8_t index = 0;
+	uint8_t aux_index = 0xFFu;
+
+	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+	{
+		if(id == Dem_PreDefined_DTC_Table[index])
+		{
+			aux_index = index;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	return Dem_DTC_Stat[aux_index];;
+}
 
 void Dem_SetDtc(uint32_t id, uint8_t stat)
 {

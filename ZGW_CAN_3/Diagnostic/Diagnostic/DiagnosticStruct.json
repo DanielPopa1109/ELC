@@ -2,16 +2,16 @@
   "Items":  
   [
     {
-      "Name":"DIAG FULL RUN",
+      "Name":"DIAG FULL RUN_old",
       "Type":      1,
       "GUID":"s364860628130405067152655049",
       "SEL":"Checked",
       "REG":"False"    
     },
     {
-      "Name":"Uds Flow 1",
+      "Name":"Diagnose Full Execution",
       "Type":      1,
-      "GUID":"s46581718398368926702297068",
+      "GUID":"s1634443906471674298980024893",
       "SEL":"Checked",
       "REG":"False"    
     }  

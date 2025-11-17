@@ -1,27 +1,9 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    can.c
-  * @brief   This file provides code for the configuration
-  *          of the CAN instances.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "can.h"
 
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan;
@@ -32,10 +14,11 @@ void MX_CAN_Init(void)
 
   /* USER CODE BEGIN CAN_Init 0 */
 
+	static uint32_t notificationLocal = 0;
+
   /* USER CODE END CAN_Init 0 */
 
   /* USER CODE BEGIN CAN_Init 1 */
-
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 6;
@@ -54,6 +37,7 @@ void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
+
 	CAN_FilterTypeDef filterConfig;
 	filterConfig.FilterBank = 13;
 	filterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -61,15 +45,18 @@ void MX_CAN_Init(void)
 	filterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 	filterConfig.FilterActivation = ENABLE;
 	filterConfig.FilterIdHigh = (0x702 << 5) & 0xFFFF;
-	//filterConfig.FilterIdHigh = 0;
 	filterConfig.FilterIdLow = 0x0000;
 	filterConfig.FilterMaskIdHigh = (0x7FF << 5);
 	filterConfig.FilterMaskIdLow = 0x0000;
+
 	HAL_CAN_ConfigFilter(&hcan, &filterConfig);
-	static uint32_t notificationLocal = 0;
+
 	HAL_CAN_Start(&hcan);
-	notificationLocal = CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO0_FULL;
+
+	notificationLocal = CAN_IT_RX_FIFO0_MSG_PENDING;
+
 	HAL_CAN_ActivateNotification(&hcan, notificationLocal);
+
   /* USER CODE END CAN_Init 2 */
 
 }
@@ -81,7 +68,6 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
   if(canHandle->Instance==CAN1)
   {
   /* USER CODE BEGIN CAN1_MspInit 0 */
-
   /* USER CODE END CAN1_MspInit 0 */
     /* CAN1 clock enable */
     __HAL_RCC_CAN1_CLK_ENABLE();
@@ -102,7 +88,6 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN CAN1_MspInit 1 */
-
   /* USER CODE END CAN1_MspInit 1 */
   }
 }
@@ -113,7 +98,6 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
   if(canHandle->Instance==CAN1)
   {
   /* USER CODE BEGIN CAN1_MspDeInit 0 */
-
   /* USER CODE END CAN1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_CAN1_CLK_DISABLE();
@@ -136,5 +120,4 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 }
 
 /* USER CODE BEGIN 1 */
-
 /* USER CODE END 1 */
