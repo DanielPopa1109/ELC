@@ -132,7 +132,7 @@ void step(void) { try { // interval = 5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbUHJvZ3JhbW1hYmxlIEZpbHRlcl0_,100,228,8325750100665931534,0
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbUHJvZ3JhbW1hYmxlIEZpbHRlcl0_,100,178,8325750100665931534,0
 ScriptName=programmable_filter
 DisplayName=Programmable Filter
 IsMPLib=1

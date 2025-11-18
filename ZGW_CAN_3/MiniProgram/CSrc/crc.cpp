@@ -55,8 +55,6 @@ void InvertUint32(unsigned int *dBuf,unsigned int *srcBuf)
 	}
 	dBuf[0] = tmp[0];
 }
-
-
 // CODE BLOCK END Global_Definitions 
 
 // GEN BLOCK BEGIN Custom_Function
@@ -116,6 +114,7 @@ s32 CRC4_ITU(pu8 data, s32 datalen) { try { // Custom Function:
 	}
 	InvertUint8(&wCRCin,&wCRCin);
 	return (wCRCin);
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC4_ITU
 
@@ -147,7 +146,7 @@ s32 CRC5_EPC(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin >> 3);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC5_EPC
 
@@ -180,7 +179,7 @@ s32 CRC5_USB(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin^0x1F); 
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC5_USB
 
@@ -213,7 +212,7 @@ s32 CRC5_ITU(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin); 
-   
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC5_ITU
 
@@ -249,7 +248,7 @@ s32 CRC6_ITU(pu8 data, s32 datalen) { try { // Custom Function:
 	}
 	InvertUint8(&wCRCin,&wCRCin);
 	return (wCRCin);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC6_ITU
 
@@ -281,7 +280,7 @@ s32 CRC7_MMC(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin>>1);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC7_MMC
 
@@ -313,7 +312,7 @@ s32 CRC8(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC8
 
@@ -412,7 +411,7 @@ s32 CRC8_MAXIM(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC8_MAXIM
 
@@ -477,7 +476,7 @@ s32 CRC16_CCITT_FALSE(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
-   
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_CCITT_FALSE
 
@@ -509,7 +508,7 @@ s32 CRC16_XMODEM(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
-   
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_XMODEM
 
@@ -542,7 +541,7 @@ s32 CRC16_X25(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin^0xFFFF);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_X25
 
@@ -575,7 +574,7 @@ s32 CRC16_MODBUS(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
-   
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_MODBUS
 
@@ -674,7 +673,7 @@ s32 CRC16_USB(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin^0xFFFF);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_USB
 
@@ -707,7 +706,7 @@ s32 CRC16_DNP(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin^0xFFFF);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC16_DNP
 
@@ -741,7 +740,7 @@ s32 CRC32(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin ^ 0xFFFFFFFF);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC32
 
@@ -774,7 +773,7 @@ s32 CRC32_MPEG(pu8 data, s32 datalen) { try { // Custom Function:
 		}
 	}
 	return (wCRCin);
- 
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC32_MPEG
 
@@ -805,6 +804,7 @@ s32 CRC8_E2E_P11(pu8 data, s32 datalen) { try { // Custom Function:
     }
     wCRCin ^= 0xFF;
     return (wCRCin & 0xFF);
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); return(IDX_ERR_MP_CODE_CRASH); }}
 // CODE BLOCK END Custom_Function CRC8_E2E_P11
 
@@ -818,7 +818,7 @@ void step(void) { try { // interval = 5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,296,229406221729609361,0
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,186,229406221729609361,0
 ScriptName=crc
 DisplayName=crc
 IsMPLib=1
