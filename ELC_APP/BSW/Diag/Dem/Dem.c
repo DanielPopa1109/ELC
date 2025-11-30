@@ -1,6 +1,9 @@
 #include "Dem.h"
 #include "can.h"
 #include "Nvm.h"
+#include "CanH.h"
+
+extern CanH_ComStat_t CanH_CommunicationState;
 
 const uint32_t Dem_PreDefined_DTC_Table[24u] =
 {
@@ -12,13 +15,13 @@ const uint32_t Dem_PreDefined_DTC_Table[24u] =
 		0x55, // CLS FAILURE L1
 		0x56, // UV L1
 		0x57, // MCU RESET
-		0x58, // N/A
-		0x59, // N/A
-		0x5A, // N/A
-		0x5B, // N/A
-		0x5C, // N/A
-		0x5D, // N/A
-		0x5E, // N/A
+		0x58, // NTC ERROR
+		0x59, // EXTERNAL CHARGER DETECTED
+		0x5A, // LOAD REQUEST MSG MISSING
+		0x5B, // LOAD REQUEST E2E ERROR
+		0x5C, // SIGNAL INVALID LOAD REQUEST
+		0x5D, // VEHICLE DATA TIMEOUT
+		0x5E, // VEHICLE STATUS INVALID
 		0x5F, // N/A
 		0x60, // N/A
 		0x61, // N/A
@@ -26,10 +29,12 @@ const uint32_t Dem_PreDefined_DTC_Table[24u] =
 		0x63, // N/A
 		0x64, // N/A
 		0x65, // N/A
-		0x66  // N/A
+		0x66, // N/A
+		0x67, // N/A
 };
 
 uint8_t Dem_DTC_Stat[24u] = {
+		0x50,
 		0x50,
 		0x50,
 		0x50,
@@ -78,7 +83,7 @@ uint8_t Dem_GetDtcStatus(uint32_t id)
 		}
 	}
 
-	return Dem_DTC_Stat[aux_index];;
+	return Dem_DTC_Stat[aux_index];
 }
 
 void Dem_SetDtc(uint32_t id, uint8_t stat)
@@ -115,7 +120,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 
 		Dem_DTC_Stat[aux_index] = stat;
 
-		if(0x2f == stat && 0x2f != prevStat)
+		if(0x2f == stat && 0x2f != prevStat && FULL_COMMUNICATION == CanH_CommunicationState)
 		{
 			static uint8_t arrtx[5];
 			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};

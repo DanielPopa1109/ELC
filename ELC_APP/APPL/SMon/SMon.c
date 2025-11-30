@@ -120,8 +120,8 @@ const float SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.12348f;
 const float SMon_P_VFB_T30_TwoPointCalibration_ParamB = 21.93f;
 const float SMon_P_VFB_L1_TwoPointCalibration_ParamA = 8.0645f;
 const float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.0645f;
-const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 0; //todo
-const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 0; //todo
+const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u; // R0_cal in ohms
+const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u;  // Beta_cal in K
 const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 352; // mV sensor output at 1.2A
 const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 151; // mV sensor output at 8.8A
 const float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
@@ -138,6 +138,8 @@ const float SMon_P_AlphaFilter = 0.075f;
 const uint8_t SMon_P_L1Correction = 180.0f;
 const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) / (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
 const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+const float SMon_P_ExternalChargerThreshold = -1.0f;
+
 extern uint8_t Dcm_LoadStatus;
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
@@ -623,7 +625,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 		}
 	}
 
-	if(-2.55f > SMon_ISenseL1_Float)
+	if(SMon_P_ExternalChargerThreshold > SMon_ISenseL1_Float)
 	{
 		if(0u == localTimeStamp2)
 		{
@@ -635,24 +637,45 @@ static void SMon_ProcessLoadErrorStatus(void)
 			{
 				SMon_ExternalChargerDetected = 1u;
 				SMon_RequestPhysicalStatus = 1u;
+
 				Dem_SetDtc(0x59u, 0x2f);
+
+				localTimeStamp2 = 0;
 			}
 			else
 			{
-				SMon_ExternalChargerDetected = 0u;
+				/* Do nothing. */
 			}
 		}
 	}
 	else
 	{
-		SMon_ExternalChargerDetected = 0u;
-		if(0x2f == Dem_GetDtcStatus(0x59u))
+		if(0u == localTimeStamp2)
 		{
-			Dem_SetDtc(0x59u, 0x2e);
+			localTimeStamp2 = SMon_MainCnt;
 		}
 		else
 		{
-			/* Do nothing. */
+			if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp2))
+			{
+				SMon_ExternalChargerDetected = 0u;
+
+				if(0x2f == Dem_GetDtcStatus(0x59u))
+				{
+					Dem_SetDtc(0x59u, 0x2e);
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+
+				localTimeStamp2 = 0;
+
+			}
+			else
+			{
+				/* Do nothing. */
+			}
 		}
 	}
 

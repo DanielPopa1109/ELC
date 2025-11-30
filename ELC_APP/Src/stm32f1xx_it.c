@@ -27,6 +27,7 @@ extern void EcuM_ProcessTimerInterrupt();
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
+extern uint8_t EcuM_SleeModeActive;
 extern volatile unsigned long ulHighFrequencyTimerTicks;
 
 /* USER CODE END PV */
@@ -44,7 +45,6 @@ extern DMA_HandleTypeDef hdma_adc1;
 extern ADC_HandleTypeDef hadc1;
 extern CAN_HandleTypeDef hcan;
 extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
@@ -196,6 +196,27 @@ void RCC_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles EXTI line0 interrupt.
+  */
+void EXTI0_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI0_IRQn 0 */
+	if(1u == EcuM_SleeModeActive)
+	{
+		EcuM_PerformReset(0, 0);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+  /* USER CODE END EXTI0_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  /* USER CODE BEGIN EXTI0_IRQn 1 */
+
+  /* USER CODE END EXTI0_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA1 channel1 global interrupt.
   */
 void DMA1_Channel1_IRQHandler(void)
@@ -313,21 +334,6 @@ void TIM1_CC_IRQHandler(void)
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_CC_IRQn 1 */
   /* USER CODE END TIM1_CC_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-	EcuM_ProcessTimerInterrupt();
-
-  /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-  /* USER CODE END TIM2_IRQn 1 */
 }
 
 /**

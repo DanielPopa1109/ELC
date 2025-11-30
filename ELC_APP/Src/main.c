@@ -7,7 +7,6 @@
 #include "can.h"
 #include "crc.h"
 #include "dma.h"
-#include "iwdg.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -85,6 +84,8 @@ extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamA ;
 extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamB ;
 extern uint8_t Dcm_SWV[4u];
 extern uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
+extern const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA; // R0_cal in ohms
+extern const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;  // Beta_cal in K
 
 /* USER CODE END PV */
 
@@ -101,7 +102,7 @@ extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static int RAM_SimpleTest(void)
+__attribute__((noinline, optimize("O0"))) static uint8_t RAM_SimpleTest(void)
 {
 	uint32_t *p;
 	uint32_t *end;
@@ -109,9 +110,9 @@ static int RAM_SimpleTest(void)
 	uint32_t test_end_addr = SRAM_END_ADDR - SRAM_STACK_RESERVE;
 
 	if (sp_now < test_end_addr)
-		{
+	{
 		test_end_addr = sp_now;
-		}
+	}
 	else
 	{
 		/* Do nothing. */
@@ -133,9 +134,9 @@ static int RAM_SimpleTest(void)
 			return 0;
 		}
 		else
-			{
-				/* Do nothing. */
-			}
+		{
+			/* Do nothing. */
+		}
 
 		*p = 0xFFFFFFFFUL;
 
@@ -146,9 +147,9 @@ static int RAM_SimpleTest(void)
 			return 0;
 		}
 		else
-			{
-				/* Do nothing. */
-			}
+		{
+			/* Do nothing. */
+		}
 
 		*p = orig;
 	}
@@ -196,12 +197,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	static uint8_t firstMeas = 0u;
 
 	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
-	v4 = ((float)(SMon_P_NTC_PullUp_ResistorVale * ((SMon_P_ADC_MaxValue - Ain_DmaBuffer[4u]) / Ain_DmaBuffer[4u]))); // resistance NTC L1
+	v4 = (float)SMon_P_NTC_PullUp_ResistorVale * ((float)Ain_DmaBuffer[4u] / ((float)SMon_P_ADC_MaxValue - (float)Ain_DmaBuffer[4u]));   // Option A correctv5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
 	v5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
 	v6 = ((float)Ain_DmaBuffer[6u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
 
-	ln_ratio = logf(v4 / SMon_P_NTC_PullUp_ResistorVale);
-	inv_T    = (1.0f / SMon_P_RoomTempKelvin) + (ln_ratio / SMon_P_BetaConst);
+	ln_ratio = logf(v4 / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamA);
+	inv_T = (1.0f / SMon_P_RoomTempKelvin) + (ln_ratio / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamB);
 	T_kelvin = 1.0f / inv_T;
 	vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[3u] + SMon_P_VFB_L1_TwoPointCalibration_ParamB;
 	vfb2_mV = SMon_P_VFB_T30_TwoPointCalibration_ParamA * Ain_DmaBuffer[0u] + SMon_P_VFB_T30_TwoPointCalibration_ParamB;
@@ -280,71 +281,63 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
-	/* USER CODE BEGIN 1 */
-	__disable_irq();              /* nobody touching RAM while we test */
+  /* USER CODE BEGIN 1 */
+	volatile uint8_t g_ram_ok;
 
-	if (!RAM_SimpleTest())
+	__disable_irq();
+	__asm volatile ("nop");
+
+	g_ram_ok = RAM_SimpleTest();
+
+	if (g_ram_ok == 0u)
 	{
 		EcuM_PerformReset(75, 75);
 	}
-	else
-	{
-		/* Do nothing. */
-	}
+  /* USER CODE END 1 */
 
-	__enable_irq();
-	/* USER CODE END 1 */
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
-
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
 	PWR_PVDTypeDef sConfigPVD;
 	sConfigPVD.Mode = PWR_PVD_MODE_IT_FALLING;
 	sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
+  /* USER CODE END SysInit */
 
-	__enable_irq();
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_ADC1_Init();
+  MX_TIM1_Init();
+  MX_CAN_Init();
+  MX_CRC_Init();
+  MX_TIM3_Init();
 
-	/* USER CODE END SysInit */
-
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_ADC1_Init();
-	MX_TIM1_Init();
-	MX_CAN_Init();
-	MX_TIM2_Init();
-	MX_CRC_Init();
-	MX_TIM3_Init();
-	MX_IWDG_Init();
-
-	/* Initialize interrupts */
-	MX_NVIC_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize interrupts */
+  MX_NVIC_Init();
+  /* USER CODE BEGIN 2 */
 
 	HAL_PWR_ConfigPVD(&sConfigPVD);
 
 	HAL_ADC_Stop(&hadc1);
 
 	HAL_ADCEx_Calibration_Start(&hadc1);
-
-	HAL_Delay(1);
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
@@ -393,172 +386,173 @@ int main(void)
 
 	Nvm_ReadAll();
 
-	/* USER CODE END 2 */
+	__enable_irq();
 
-	/* Init scheduler */
-	osKernelInitialize();
+  /* USER CODE END 2 */
 
-	/* Call init function for freertos objects (in cmsis_os2.c) */
-	MX_FREERTOS_Init();
+  /* Init scheduler */
+  osKernelInitialize();
 
-	/* Start scheduler */
-	osKernelStart();
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
 
-	/* We should never get here as control is now taken by the scheduler */
+  /* Start scheduler */
+  osKernelStart();
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* We should never get here as control is now taken by the scheduler */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-	RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-	PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief NVIC Configuration.
- * @retval None
- */
+  * @brief NVIC Configuration.
+  * @retval None
+  */
 static void MX_NVIC_Init(void)
 {
-	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 7, 0);
-	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
-	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 8, 0);
-	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-	/* CAN1_RX1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 7, 0);
-	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
-	/* CAN1_SCE_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 11, 0);
-	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
-	/* TIM2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM2_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(TIM2_IRQn);
-	/* RCC_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(RCC_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(RCC_IRQn);
-	/* FLASH_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(FLASH_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(FLASH_IRQn);
-	/* PVD_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(PVD_IRQn, 7, 0);
-	HAL_NVIC_EnableIRQ(PVD_IRQn);
-	/* DMA1_Channel1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 10, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-	/* TIM1_CC_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_CC_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(TIM1_CC_IRQn);
-	/* TIM1_TRG_COM_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_TRG_COM_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(TIM1_TRG_COM_IRQn);
-	/* TIM1_UP_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_UP_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
-	/* TIM1_BRK_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(TIM1_BRK_IRQn);
-	/* ADC1_2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(ADC1_2_IRQn, 9, 0);
-	HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+  /* USB_HP_CAN1_TX_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 7, 0);
+  HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+  /* USB_LP_CAN1_RX0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 8, 0);
+  HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+  /* CAN1_RX1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 7, 0);
+  HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+  /* CAN1_SCE_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 11, 0);
+  HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+  /* RCC_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(RCC_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(RCC_IRQn);
+  /* FLASH_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(FLASH_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(FLASH_IRQn);
+  /* PVD_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(PVD_IRQn, 7, 0);
+  HAL_NVIC_EnableIRQ(PVD_IRQn);
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 10, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* TIM1_CC_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM1_CC_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(TIM1_CC_IRQn);
+  /* TIM1_TRG_COM_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM1_TRG_COM_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_IRQn);
+  /* TIM1_UP_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM1_UP_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
+  /* TIM1_BRK_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(TIM1_BRK_IRQn);
+  /* ADC1_2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(ADC1_2_IRQn, 9, 0);
+  HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+  /* EXTI0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
 /* USER CODE END 4 */
 
 /**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM4 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM4 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	/* USER CODE BEGIN Callback 0 */
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM4) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
-	/* USER CODE END Callback 1 */
+  /* USER CODE BEGIN Callback 0 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM4) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	EcuM_PerformReset(196, 196);
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
-	/* USER CODE END 6 */
+  /* USER CODE BEGIN 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

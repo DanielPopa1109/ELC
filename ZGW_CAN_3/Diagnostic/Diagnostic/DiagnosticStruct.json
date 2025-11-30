@@ -2,16 +2,30 @@
   "Items":  
   [
     {
-      "Name":"DIAG FULL RUN_old",
+      "Name":"Active Diagnostic Session And Software Block",
       "Type":      1,
-      "GUID":"s364860628130405067152655049",
+      "GUID":"s526308282733122550173453810",
       "SEL":"Checked",
       "REG":"False"    
     },
     {
-      "Name":"Diagnose Full Execution",
+      "Name":"Read Data and Control Load",
       "Type":      1,
-      "GUID":"s1634443906471674298980024893",
+      "GUID":"s32838140445293741542324637",
+      "SEL":"Checked",
+      "REG":"False"    
+    },
+    {
+      "Name":"Flashing",
+      "Type":      1,
+      "GUID":"s328394378811574474326113468",
+      "SEL":"Checked",
+      "REG":"False"    
+    },
+    {
+      "Name":"Uds Flow 1",
+      "Type":      1,
+      "GUID":"s1388184375273435076863226556",
       "SEL":"Checked",
       "REG":"False"    
     }  

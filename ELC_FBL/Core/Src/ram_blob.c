@@ -145,7 +145,7 @@ static uint32_t prog_addr        = 0;
 static uint32_t bytes_received   = 0;
 static uint8_t  pending_bytes[4];
 static uint8_t  pending_len      = 0;
-static uint8_t  sw_version[4] = {13u, 13u, 0xFFu, 0xFFu};
+static uint8_t  sw_version[4] = {20u, 20u, 0xFFu, 0xFFu};
 static uint8_t  isotp_rx_buf_ram[ISOTP_MAX_RX_LEN_RAM];
 static uint16_t isotp_rx_len      = 0u;
 static uint16_t isotp_rx_expected = 0u;
@@ -666,6 +666,36 @@ static RAM_CODE void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 
 	case 0x22u:
 	{
+		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x7eu))
+		{
+			uint8_t resp[4] =
+			{
+					0x62u, 0xf1u, 0x7e,
+					0x2u
+			};
+
+			FBL_SendUdsSingleFrame(resp, 4u);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x7fu))
+		{
+			uint8_t resp[4] =
+			{
+					0x62u, 0xf1u, 0x7f,
+					0x3u
+			};
+
+			FBL_SendUdsSingleFrame(resp, 4u);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
 		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x80u))
 		{
 			uint8_t resp[7] =

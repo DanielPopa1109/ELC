@@ -421,6 +421,48 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 	{
 	case PROGRAMMING:
 	{
+		if((sid == 0x22u) && (len == 3u) && (uds[1u] == 0xf1u) && (uds[2u] == 0x7eu))
+		{
+			uint8_t tx[8] = {0};
+
+			tx[0] = 4;
+			tx[1] = 0x62u;
+			tx[2] = 0xf1u;
+			tx[3] = 0x7e;
+			tx[4] = FBL_DSC_State;
+			FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
+			FBL_TxHeader.IDE   = CAN_ID_STD;
+			FBL_TxHeader.RTR   = CAN_RTR_DATA;
+			FBL_TxHeader.DLC   = 5u;
+
+			HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if((sid == 0x22u) && (len == 3u) && (uds[1u] == 0xf1u) && (uds[2u] == 0x7fu))
+		{
+			uint8_t tx[8] = {0};
+
+			tx[0] = 4;
+			tx[1] = 0x62u;
+			tx[2] = 0xf1u;
+			tx[3] = 0x7f;
+			tx[4] = 0x02u;
+			FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
+			FBL_TxHeader.IDE   = CAN_ID_STD;
+			FBL_TxHeader.RTR   = CAN_RTR_DATA;
+			FBL_TxHeader.DLC   = 5u;
+
+			HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
 		if ((sid == 0x31u) && (len == 8u) && (uds[1] == 0x01u) && (uds[2] == 0x00u) && (uds[3] == 0x00u))
 		{
 			if ((FBL_BlockLength == 0u) || (FBL_BytesReceived == 0u))

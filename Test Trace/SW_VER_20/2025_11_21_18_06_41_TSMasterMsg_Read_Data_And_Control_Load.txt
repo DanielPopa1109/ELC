@@ -1,0 +1,63 @@
+18:06:31 Default Session: start executing
+18:06:31 Default Session: command success
+18:06:31 Extended Session: start executing
+18:06:31 Extended Session: command success
+18:06:31 TesterPresent: start executing
+18:06:31 TesterPresent: command success
+18:06:31 Secure Access: start executing
+18:06:31 Secure Access: command success
+18:06:31 Secure Access: start executing
+18:06:31 Secure Access: command success
+18:06:31 Read Software Version: start executing
+18:06:31 Read Software Version: command success
+18:06:31 Read Reset Counter: start executing
+18:06:31 Read Reset Counter: command success
+18:06:32 Read Time In Sleep: start executing
+18:06:32 Read Time In Sleep: command success
+18:06:32 Read Time Active: start executing
+18:06:32 Read Time Active: command success
+18:06:32 Read Time Without Reset: start executing
+18:06:32 Read Time Without Reset: command success
+18:06:32 Read Reset Data: start executing
+18:06:32 Read Reset Data: command success
+18:06:32 Read Cpu Load: start executing
+18:06:32 Read Cpu Load: command success
+18:06:32 ReadDTCInformation: start executing
+18:06:32 ReadDTCInformation: command success
+18:06:32 ClearDiagnosticInformation: start executing
+18:06:32 ClearDiagnosticInformation: command success
+18:06:32 CommunicationControl: start executing
+18:06:32 CommunicationControl: command success
+18:06:32 CommunicationControl: start executing
+18:06:32 CommunicationControl: command success
+18:06:33 ControlDTCSetting: start executing
+18:06:33 ControlDTCSetting: command success
+18:06:33 ControlDTCSetting: start executing
+18:06:33 ControlDTCSetting: command success
+18:06:33 Heal Supply: start executing
+18:06:33 Heal Supply: command success
+18:06:33 Load Control: start executing
+18:06:33 Load Control: command success
+18:06:33 Programming Session: start executing
+18:06:33 Programming Session: command success
+18:06:33 Hard Reset: start executing
+18:06:33 Hard Reset: command success
+18:06:33 Read Histograms: start executing
+18:06:33 Read Histograms: command success
+18:06:33 Load Control: start executing
+18:06:33 Load Control: command success
+18:06:33 Hard Reset: start executing
+18:06:33 Hard Reset: command success
+18:06:34 Default Session: start executing
+18:06:34 Default Session: command success
+18:06:34 CommunicationControl: start executing
+18:06:34 CommunicationControl: command success
+18:06:34 ControlDTCSetting: start executing
+18:06:34 ControlDTCSetting: command success
+18:06:34 Read Histograms: start executing
+18:06:34 Read Histograms: command success
+18:06:34 Load Control: start executing
+18:06:34 Load Control: command success
+18:06:34 Programming Session: start executing
+18:06:34 Programming Session: command success
+18:06:34 Test Flow Completed, Time:3.512s

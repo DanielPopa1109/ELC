@@ -1,3 +1,23 @@
 {
-
+  "Items":  
+  [
+    {
+      "Name":"Bus Sleep Wake-Up",
+      "Type":      1,
+      "GUID":"s166009068298163954420580592",
+      "SEL":"Checked",
+      "REG":"False",
+      "CYCLIC":"1",
+      "CURNODE":"False"    
+    },
+    {
+      "Name":"High Bus Load Test",
+      "Type":      1,
+      "GUID":"s322164211745426652751652634",
+      "SEL":"Checked",
+      "REG":"False",
+      "CYCLIC":"99999",
+      "CURNODE":"True"    
+    }  
+  ]
 }

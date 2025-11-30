@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_VfbL1"/>
+		<item key="selection" value="CDTC"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="cdtc"/>
+			<item value="EcuM_WUPLine"/>
+			<item value="SMon_WupLineState"/>
+			<item value="CanH_CommunicationState"/>
+			<item value="Dcm_RDBI_TimeInSleep"/>
+			<item value="OS_XCP_CpuLoad"/>
+			<item value="CanH_MissingLoadRequest"/>
+			<item value="RAM_SimpleTest"/>
+			<item value="SMon_ProcessLoadErrorStatus"/>
+			<item value="external"/>
+			<item value="localTimeStamp"/>
+			<item value="SMon_P_ExternalChargerThreshold"/>
+			<item value="SMon_L1_UVStatus"/>
+			<item value="uv"/>
 			<item value="SMon_VfbL1"/>
-			<item value="FBL_StoreApplicationCrc"/>
-			<item value="FBL_IsValidApplication"/>
-			<item value="CanH_CRC_LoadRequest"/>
-			<item value="CanH_CRC_LoadStatus"/>
-			<item value="CanH_AliveCounter_LoadStatus"/>
-			<item value="CanH_DataID_LoadStatus"/>
-			<item value="APP_FlashCrcOk"/>
-			<item value="SMon_CmdStat"/>
-			<item value="cresp"/>
-			<item value="IsoTp_OnCanRx_blob"/>
-			<item value="crcCalc"/>
-			<item value=" IsoTp_OnCanRx"/>
-			<item value="data"/>
-			<item value="isotp_rx_buf_ram"/>
 		</list>
 		<list key="replacehistory">
 			<item value="isotp_rx_buf_ram"/>

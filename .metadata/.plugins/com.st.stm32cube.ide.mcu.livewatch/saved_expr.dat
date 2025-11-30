@@ -1,2 +1,7 @@
 OS_XCP_CpuLoad
 oscnt
+SMon_ExternalChargerDetected
+EcuM_SWState
+SMon_L1ST
+SMon_WupLineState
+EcuM_WUPLine

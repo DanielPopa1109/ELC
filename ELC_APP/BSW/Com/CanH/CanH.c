@@ -4,27 +4,21 @@
 #include "crc.h"
 #include <string.h>
 #include <stdlib.h>
+#include "Dem.h"
 
 #define XCP_CAN_RX_ID      0x7c0u  /* Master -> ECU CTO */
 #define XCP_CAN_TX_ID      0x7c1u  /* ECU   -> Master CTO */
-
-/* PIDs / command codes (XCP on CAN) */
 #define XCP_PID_RES            0xFFu   /* Positive response */
 #define XCP_PID_ERR            0xFEu   /* Error response */
-
 #define XCP_CMD_CONNECT             0xFFu
 #define XCP_CMD_DISCONNECT          0xFEu
 #define XCP_CMD_GET_STATUS          0xFDu
 #define XCP_CMD_GET_COMM_MODE_INFO  0xFBu
 #define XCP_CMD_GET_ID              0xFAu
 #define XCP_CMD_SHORT_UPLOAD        0xF4u
-
-/* Error codes (subset) */
 #define XCP_ERR_OK             0x00u
 #define XCP_ERR_CMD_UNKNOWN    0x20u
 #define XCP_ERR_OUT_OF_RANGE   0x22u
-
-
 
 typedef struct
 {
@@ -36,9 +30,11 @@ static Xcp_State_t Xcp_State = {0u, 0u};
 static uint8_t Xcp_TxData[8u];
 static CAN_TxHeaderTypeDef Xcp_TxHeader;
 CanH_ComStat_t CanH_CommunicationState = PARTIAL_COMMUNICATION;
+uint8_t CanH_NM3PN1_Value = 0u;
 uint8_t CanH_RxData[8u] = {0u};
 uint8_t CanH_TxData[8u] = {0u};
 uint8_t CanH_RequestBusSleep = 0u;
+volatile uint8_t CanH_VehicleStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadRequest = 0u;
 volatile uint32_t CanH_CRC_LoadRequest = 0u;
@@ -47,6 +43,9 @@ CAN_TxHeaderTypeDef CanH_TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 uint32_t CanH_MainCounter = 0u;
 uint32_t CanH_TxMailbox = 0u;
 uint32_t CanH_NoCommCounter = 0u;
+uint32_t CanH_MissingLoadRequest = 0u;
+uint32_t CanH_MissingVehicleData = 0u;
+uint32_t CanH_E2eErrCnt;
 
 extern uint8_t SMon_NtcError;
 extern uint8_t SMon_ExternalChargerDetected;
@@ -257,63 +256,63 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		break;
 	}
 
-    case XCP_CMD_GET_COMM_MODE_INFO:
-    {
-        /* Positive response to GET_COMM_MODE_INFO (0xFB)
-         * byte0: RES PID (0xFF)
-         * byte1: reserved
-         * byte2: COMM_MODE_OPTIONAL (all 0 -> no master/slave block, etc.)
-         * byte3: reserved
-         * byte4: MAX_BS     (0 -> no master block mode)
-         * byte5: MIN_ST     (0 -> no min separation time)
-         * byte6: QUEUE_SIZE (0 -> no TX queue info)
-         * byte7: driver version (0x10 = v1.0)
-         */
-        Xcp_TxData[0] = XCP_PID_RES;
-        Xcp_TxData[1] = 0x00u;
-        Xcp_TxData[2] = 0x00u;  /* COMM_MODE_OPTIONAL: all flags 0 */
-        Xcp_TxData[3] = 0x00u;
-        Xcp_TxData[4] = 0x00u;  /* MAX_BS */
-        Xcp_TxData[5] = 0x00u;  /* MIN_ST */
-        Xcp_TxData[6] = 0x00u;  /* QUEUE_SIZE */
-        Xcp_TxData[7] = 0x10u;  /* driver version 1.0 */
+	case XCP_CMD_GET_COMM_MODE_INFO:
+	{
+		/* Positive response to GET_COMM_MODE_INFO (0xFB)
+		 * byte0: RES PID (0xFF)
+		 * byte1: reserved
+		 * byte2: COMM_MODE_OPTIONAL (all 0 -> no master/slave block, etc.)
+		 * byte3: reserved
+		 * byte4: MAX_BS     (0 -> no master block mode)
+		 * byte5: MIN_ST     (0 -> no min separation time)
+		 * byte6: QUEUE_SIZE (0 -> no TX queue info)
+		 * byte7: driver version (0x10 = v1.0)
+		 */
+		Xcp_TxData[0] = XCP_PID_RES;
+		Xcp_TxData[1] = 0x00u;
+		Xcp_TxData[2] = 0x00u;  /* COMM_MODE_OPTIONAL: all flags 0 */
+		Xcp_TxData[3] = 0x00u;
+		Xcp_TxData[4] = 0x00u;  /* MAX_BS */
+		Xcp_TxData[5] = 0x00u;  /* MIN_ST */
+		Xcp_TxData[6] = 0x00u;  /* QUEUE_SIZE */
+		Xcp_TxData[7] = 0x10u;  /* driver version 1.0 */
 
-        Xcp_Send(8u);
-        break;
-    }
+		Xcp_Send(8u);
+		break;
+	}
 
-    case XCP_CMD_GET_ID:
-    {
-        /* Tool asks for ECU/A2L identification.
-         * We answer "type supported but no ID string" (length = 0).
-         * That’s valid and most tools accept it.
-         */
-        if (len < 2u)
-        {
-            Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
-            break;
-        }
+	case XCP_CMD_GET_ID:
+	{
+		/* Tool asks for ECU/A2L identification.
+		 * We answer "type supported but no ID string" (length = 0).
+		 * That’s valid and most tools accept it.
+		 */
+		if (len < 2u)
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+			break;
+		}
 
-        /* uint8_t reqType = data[1]; */ /* currently unused */
+		/* uint8_t reqType = data[1]; */ /* currently unused */
 
-        /* Positive response:
-         * byte0: RES PID
-         * byte1: MODE = 1 (ID in CTO)
-         * byte2-3: reserved
-         * byte4-7: Length = 0 (no ID bytes)
-         */
-        Xcp_TxData[0] = XCP_PID_RES;
-        Xcp_TxData[1] = 0x01u;  /* MODE = 1 */
-        Xcp_TxData[2] = 0x00u;
-        Xcp_TxData[3] = 0x00u;
-        Xcp_TxData[4] = 0x00u;  /* length = 0 (DWORD) */
-        Xcp_TxData[5] = 0x00u;
-        Xcp_TxData[6] = 0x00u;
-        Xcp_TxData[7] = 0x00u;
+		/* Positive response:
+		 * byte0: RES PID
+		 * byte1: MODE = 1 (ID in CTO)
+		 * byte2-3: reserved
+		 * byte4-7: Length = 0 (no ID bytes)
+		 */
+		Xcp_TxData[0] = XCP_PID_RES;
+		Xcp_TxData[1] = 0x01u;  /* MODE = 1 */
+		Xcp_TxData[2] = 0x00u;
+		Xcp_TxData[3] = 0x00u;
+		Xcp_TxData[4] = 0x00u;  /* length = 0 (DWORD) */
+		Xcp_TxData[5] = 0x00u;
+		Xcp_TxData[6] = 0x00u;
+		Xcp_TxData[7] = 0x00u;
 
-        Xcp_Send(8u);
-        break;
-    }
+		Xcp_Send(8u);
+		break;
+	}
 
 
 	default:
@@ -368,12 +367,16 @@ void CanH_RecoverIfBusOff(void)
 
 void CanH_MainFunction(void)
 {
+	static uint8_t prevSMon_L1ST = 0u;
+
 	CanH_RecoverIfBusOff();
 
 	if(FULL_COMMUNICATION == CanH_CommunicationState && 0u == Dcm_CC)
 	{
-		if(CanH_MainCounter % 5 == 0)
+		if(CanH_MainCounter % 200 == 0 || prevSMon_L1ST != SMon_L1ST)
 		{
+			prevSMon_L1ST = SMon_L1ST;
+
 			if(15u > CanH_AliveCounter_LoadStatus)
 			{
 				CanH_AliveCounter_LoadStatus++;
@@ -418,7 +421,7 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter != 0u)
+		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
 			CanH_TxData[0] = 0;
 			CanH_TxData[1] = 0;
@@ -451,7 +454,7 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 2 == 0)
+		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
 			memcpy(&CanH_TxData[0u], &SMon_ISenseL1_Float, sizeof(float));
 			CanH_TxHeader.DLC = 4;
@@ -477,7 +480,7 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 6 == 0)
+		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
 			memcpy(&CanH_TxData[0u], &SMon_NTC_Temperature_L1, sizeof(float));
 			memcpy(&CanH_TxData[4u], &SMon_McuTempValue, sizeof(float));
@@ -505,7 +508,7 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 3 == 0)
+		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
 			CanH_TxData[0] = SMon_ECU_UV;
 			CanH_TxData[1] = SMon_ECU_OV;
@@ -538,7 +541,7 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 4 == 0)
+		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
 			CanH_TxData[0] = SMon_I2TError;
 			CanH_TxData[1] = SMon_LockSupply;
@@ -576,7 +579,7 @@ void CanH_MainFunction(void)
 		/* Do nothing. */
 	}
 
-	if(58u <= CanH_NoCommCounter)
+	if(200u <= CanH_NoCommCounter)
 	{
 		CanH_CommunicationState = NO_COMMUNICATION;
 	}
@@ -587,6 +590,56 @@ void CanH_MainFunction(void)
 
 	CanH_NoCommCounter++;
 	CanH_MainCounter++;
+	CanH_MissingLoadRequest++;
+	CanH_MissingVehicleData++;
+
+	if(2000u < CanH_MissingLoadRequest && FULL_COMMUNICATION == CanH_CommunicationState)
+	{
+		Dem_SetDtc(0x5Au, 0x2f);
+	}
+	else
+	{
+		if(0x2f == Dem_GetDtcStatus(0x5Au))
+		{
+			Dem_SetDtc(0x5Au, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(2000u < CanH_MissingVehicleData && FULL_COMMUNICATION == CanH_CommunicationState)
+	{
+		Dem_SetDtc(0x5Du, 0x2f);
+	}
+	else
+	{
+		if(0x2f == Dem_GetDtcStatus(0x5Du))
+		{
+			Dem_SetDtc(0x5Du, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(50u < CanH_E2eErrCnt  && FULL_COMMUNICATION == CanH_CommunicationState)
+	{
+		Dem_SetDtc(0x5Bu, 0x2f);
+	}
+	else
+	{
+		if(0x2f == Dem_GetDtcStatus(0x5Au))
+		{
+			Dem_SetDtc(0x5Bu, 0x2e);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
 
 	for(uint8_t i = 0; i < 8u; i++)
 	{
@@ -657,36 +710,9 @@ static uint8_t crc8_ts(const uint8_t *data, uint32_t len)
 	return crc;                    /* no final xor */
 }
 
-volatile uint8_t calc_crc;
-
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	if(1u == EcuM_SleeModeActive)
-	{
-		HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
-
-		if(0x3FF == CanH_RxHeader.StdId)
-		{
-			if(0x12 == CanH_RxData[0])
-			{
-				EcuM_PerformReset(0,0);
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		HAL_PWR_EnableSleepOnExit();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
+	volatile uint8_t calc_crc;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
 
@@ -711,11 +737,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	if(0x3ff == CanH_RxHeader.StdId)
 	{
-		if(0x12 == CanH_RxData[0])
+		CanH_NM3PN1_Value = CanH_RxData[0];
+
+		if ( CanH_RxData[0u] & ((1u << 5) | (1u << 6)) )
 		{
-			CanH_RequestBusSleep = 0;
+
+			CanH_RequestBusSleep = 0u;
 			CanH_CommunicationState = FULL_COMMUNICATION;
-			CanH_NoCommCounter = 0;
+			CanH_NoCommCounter = 0u;
 		}
 		else
 		{
@@ -727,18 +756,60 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		/* Do nothing. */
 	}
 
+	if(0x97u == CanH_RxHeader.StdId)
+	{
+		CanH_MissingVehicleData = 0u;
+		CanH_VehicleStatus = CanH_RxData[5u];
+
+		if(6u < CanH_RxData[5u])
+		{
+			Dem_SetDtc(0x5Eu, 0x2fu);
+		}
+		else
+		{
+			if(0x2fu == Dem_GetDtcStatus(0x5Eu))
+			{
+				Dem_SetDtc(0x5Eu, 0x2eu);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+	}
+
 	if(0x50u == CanH_RxHeader.StdId)
 	{
+		CanH_MissingLoadRequest = 0u;
+
 		calc_crc = crc8_ts(&CanH_RxData[1u], 4u);
 		CanH_AliveCounter_LoadRequest++;
 
 		if(calc_crc == CanH_RxData[0u] && 0x16u == CanH_RxData[2u] && 2u > abs(CanH_AliveCounter_LoadRequest - CanH_RxData[1u]))
 		{
 			SMon_CmdStat = CanH_RxData[3u];
+			CanH_E2eErrCnt = 0;
 		}
 		else
 		{
 			CanH_AliveCounter_LoadRequest = CanH_RxData[1u];
+			CanH_E2eErrCnt++;
+		}
+
+		if(1u < CanH_RxData[3u])
+		{
+			Dem_SetDtc(0x5Cu, 0x2fu);
+		}
+		else
+		{
+			if(0x2fu == Dem_GetDtcStatus(0x5cu))
+			{
+				Dem_SetDtc(0x5Cu, 0x2eu);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
 		}
 	}
 	else

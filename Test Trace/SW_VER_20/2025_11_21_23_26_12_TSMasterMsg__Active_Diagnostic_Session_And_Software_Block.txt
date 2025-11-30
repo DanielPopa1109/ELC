@@ -1,0 +1,43 @@
+23:26:08 Default Session: start executing
+23:26:08 Default Session: command success
+23:26:08 Read Software Version: start executing
+23:26:08 Read Software Version: command success
+23:26:08 Read Active Diagnostic Session: start executing
+23:26:08 Read Active Diagnostic Session: command success
+23:26:08 Read Active Software Block: start executing
+23:26:08 Read Active Software Block: command success
+23:26:08 Extended Session: start executing
+23:26:08 Extended Session: command success
+23:26:08 Read Active Diagnostic Session: start executing
+23:26:08 Read Active Diagnostic Session: command success
+23:26:09 Programming Session: start executing
+23:26:09 Programming Session: command success
+23:26:09 Read Active Diagnostic Session: start executing
+23:26:09 Read Active Diagnostic Session: command success
+23:26:09 Secure Access: start executing
+23:26:09 Secure Access: command success
+23:26:09 Secure Access: start executing
+23:26:09 Secure Access: command success
+23:26:09 Programming Session: start executing
+23:26:09 Programming Session: command success
+23:26:09 Read Active Diagnostic Session: start executing
+23:26:09 Read Active Diagnostic Session: command success
+23:26:09 Read Active Software Block: start executing
+23:26:09 Read Active Software Block: command success
+23:26:09 Read Software Version: start executing
+23:26:09 Read Software Version: command success
+23:26:09 Request FBL Update: start executing
+23:26:09 Request FBL Update: command success
+23:26:10 Read Software Version: start executing
+23:26:10 Read Software Version: command success
+23:26:10 Read Active Diagnostic Session: start executing
+23:26:10 Read Active Diagnostic Session: command success
+23:26:10 Read Active Software Block: start executing
+23:26:10 Read Active Software Block: command success
+23:26:10 Hard Reset: start executing
+23:26:10 Hard Reset: command success
+23:26:10 Hard Reset: start executing
+23:26:10 Hard Reset: command success
+23:26:10 Default Session: start executing
+23:26:10 Default Session: command success
+23:26:10 Test Flow Completed, Time:2.332s
