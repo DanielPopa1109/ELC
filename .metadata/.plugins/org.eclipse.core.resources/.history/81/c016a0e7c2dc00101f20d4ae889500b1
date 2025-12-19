@@ -387,6 +387,22 @@ int main(void)
 	Nvm_ReadAll();
 	__enable_irq();
 
+<<<<<<< HEAD
+  /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
+=======
+	__enable_irq();
 
   /* USER CODE END 2 */
 
@@ -401,6 +417,7 @@ int main(void)
 
   /* We should never get here as control is now taken by the scheduler */
 
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)

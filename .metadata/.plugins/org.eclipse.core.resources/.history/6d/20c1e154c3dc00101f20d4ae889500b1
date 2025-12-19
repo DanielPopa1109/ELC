@@ -24,7 +24,7 @@ const uint32_t Dem_PreDefined_DTC_Table[17u] =
 		0x5E, // VEHICLE STATUS INVALID
 		0x5F, // SHORT TO BATT L1 P2
 		0x60, // SHORT TO BATT L1 P3
-};
+}
 
 uint8_t Dem_DTC_Stat[17u] = {
 		0x50,

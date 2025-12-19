@@ -2,6 +2,11 @@
 #include "can.h"
 #include "Nvm.h"
 #include "CanH.h"
+<<<<<<< HEAD
+=======
+
+extern CanH_ComStat_t CanH_CommunicationState;
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 extern CanH_ComStat_t CanH_CommunicationState;
 
@@ -22,8 +27,20 @@ const uint32_t Dem_PreDefined_DTC_Table[17u] =
 		0x5C, // SIGNAL INVALID LOAD REQUEST
 		0x5D, // VEHICLE DATA TIMEOUT
 		0x5E, // VEHICLE STATUS INVALID
+<<<<<<< HEAD
 		0x5F, // SHORT TO BATT L1 P2
 		0x60, // SHORT TO BATT L1 P3
+=======
+		0x5F, // N/A
+		0x60, // N/A
+		0x61, // N/A
+		0x62, // N/A
+		0x63, // N/A
+		0x64, // N/A
+		0x65, // N/A
+		0x66, // N/A
+		0x67, // N/A
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 };
 
 uint8_t Dem_DTC_Stat[17u] = {
@@ -43,6 +60,11 @@ uint8_t Dem_DTC_Stat[17u] = {
 		0x50,
 		0x50,
 		0x50,
+<<<<<<< HEAD
+		0x50
+=======
+		0x50,
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 };
 
 extern uint8_t Dcm_CDTCS;

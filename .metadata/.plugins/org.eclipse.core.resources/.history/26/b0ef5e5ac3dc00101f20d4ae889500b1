@@ -275,6 +275,7 @@ void QM_APPL_TASK(void *argument)
 		HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
 
 		SMon_main();
+		ParamH_main();
 
 		vTaskSuspend(NULL);
 	}
