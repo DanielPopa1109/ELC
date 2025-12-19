@@ -26,6 +26,7 @@
       "Name":"Uds Flow 1",
       "Type":      1,
       "GUID":"s1388184375273435076863226556",
+<<<<<<< HEAD
       "SEL":"Checked",
       "REG":"False"    
     },
@@ -33,6 +34,8 @@
       "Name":"Uds Flow 1",
       "Type":      1,
       "GUID":"s2029200462043228885147886976",
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
       "SEL":"Checked",
       "REG":"False"    
     }  

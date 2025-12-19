@@ -429,6 +429,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -438,6 +439,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadMemoryByAddress]
 SubServiceCount=0
@@ -1310,6 +1313,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -1319,6 +1323,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RoutineControl_5_ResPara0]
 FByteOrder=1
@@ -1537,6 +1543,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -1546,6 +1553,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_DownloadFile_4]
 isRegSystemVar=0
@@ -1911,6 +1920,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -1920,6 +1930,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_DiagnosticSessionControl_1]
 isRegSystemVar=0
@@ -2152,6 +2164,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -2161,6 +2174,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_2]
 isRegSystemVar=0
@@ -2341,6 +2356,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -2350,6 +2366,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_3]
 isRegSystemVar=0
@@ -2530,6 +2548,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -2539,6 +2558,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_4]
 isRegSystemVar=0
@@ -2719,6 +2740,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -2728,6 +2750,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_5]
 isRegSystemVar=0
@@ -2908,6 +2932,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -2917,6 +2942,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ClearDiagnosticInformation_0]
 isRegSystemVar=0
@@ -3137,6 +3164,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -3146,6 +3174,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_6]
 isRegSystemVar=0
@@ -3325,6 +3355,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -3334,6 +3365,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_CommunicationControl_0]
 isRegSystemVar=0
@@ -3622,6 +3655,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -3631,6 +3665,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestDownload_0_ReqPara1]
 FByteOrder=1
@@ -3775,6 +3811,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -3784,6 +3821,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestDownload_0_ReqPara2]
 FByteOrder=1
@@ -3928,6 +3967,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -3937,6 +3977,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestDownload_0_ResPara0]
 FByteOrder=1
@@ -4081,6 +4123,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4090,6 +4133,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestDownload_0_ResPara1]
 FByteOrder=1
@@ -4234,6 +4279,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4243,6 +4289,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestUpload_0]
 isRegSystemVar=0
@@ -4407,6 +4455,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4416,6 +4465,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestUpload_0_ReqPara1]
 FByteOrder=1
@@ -4560,6 +4611,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4569,6 +4621,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestUpload_0_ReqPara2]
 FByteOrder=1
@@ -4713,6 +4767,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4722,6 +4777,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestUpload_0_ResPara0]
 FByteOrder=1
@@ -4866,6 +4923,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -4875,6 +4933,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestUpload_0_ResPara1]
 FByteOrder=1
@@ -5019,6 +5079,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5028,6 +5089,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_TransferData_0]
 isRegSystemVar=0
@@ -5192,6 +5255,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5201,6 +5265,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_TransferData_0_ReqPara1]
 FByteOrder=1
@@ -5345,6 +5411,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5354,6 +5421,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_TransferData_0_ResPara0]
 FByteOrder=1
@@ -5498,6 +5567,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5507,6 +5577,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_TransferData_0_ResPara1]
 FByteOrder=1
@@ -5651,6 +5723,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5660,6 +5733,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestTransferExit_0]
 isRegSystemVar=0
@@ -5824,6 +5899,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5833,6 +5909,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_RequestTransferExit_0_ResPara0]
 FByteOrder=1
@@ -5977,6 +6055,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -5986,6 +6065,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_FileTransfer_0]
 isRegSystemVar=0
@@ -6156,6 +6237,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -6165,6 +6247,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_SecurityAccess_0_ResPara0]
 FByteOrder=1
@@ -6307,6 +6391,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -6316,6 +6401,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_SecurityAccess_1_ReqPara0]
 FByteOrder=1
@@ -6458,6 +6545,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -6467,6 +6555,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_DownloadFile_6]
 isRegSystemVar=0
@@ -6742,6 +6832,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -6751,6 +6842,8 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 
 [TfrmDiagnostics_ReadDataByIdentifier_8]
 isRegSystemVar=0
@@ -6838,6 +6931,7 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+<<<<<<< HEAD
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
@@ -6847,3 +6941,5 @@ supporttexttable=0
 supporttexttable=0
 supporttexttable=0
 supporttexttable=0
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd

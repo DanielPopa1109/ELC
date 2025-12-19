@@ -7133,6 +7133,7 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY org.eclipse.core.jobs 2 2 2025-11-30 17:22:40.961
 !MESSAGE Job found still running after platform shutdown.  Jobs should be canceled by the plugin that scheduled them during shutdown: org.eclipse.ui.internal.Workbench$39
+<<<<<<< HEAD
 !SESSION 2025-12-01 20:12:12.176 -----------------------------------------------
 eclipse.buildId=Version 1.16.0
 java.version=17.0.11
@@ -7365,3 +7366,5 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY org.eclipse.core.jobs 2 2 2025-12-19 12:05:32.614
 !MESSAGE Job found still running after platform shutdown.  Jobs should be canceled by the plugin that scheduled them during shutdown: org.eclipse.ui.internal.Workbench$39
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd

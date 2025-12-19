@@ -33,7 +33,11 @@ else cnt2++;
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
+<<<<<<< HEAD
 UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMTc1XQ__,100,165,7021393766468547402,0
+=======
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMTc1XQ__,100,175,7021393766468547402,0
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ScriptName=CCode2175
 DisplayName=CCode2175
 DBDeps=ZGW_CAN_3

@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+<<<<<<< HEAD
 		<item key="selection" value="ParamH_Validate"/>
+=======
+		<item key="selection" value="CDTC"/>
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+<<<<<<< HEAD
 			<item value="ParamH_Validate"/>
 			<item value="SMon_P_LowDisTimeCyc"/>
 			<item value="SMon_P_DischargeTimeCycles"/>
 			<item value="SMon_CmdStat"/>
 			<item value="SMon_ShortToPlusTest"/>
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 			<item value="cdtc"/>
 			<item value="EcuM_WUPLine"/>
 			<item value="SMon_WupLineState"/>
@@ -23,6 +30,14 @@
 			<item value="RAM_SimpleTest"/>
 			<item value="SMon_ProcessLoadErrorStatus"/>
 			<item value="external"/>
+<<<<<<< HEAD
+=======
+			<item value="localTimeStamp"/>
+			<item value="SMon_P_ExternalChargerThreshold"/>
+			<item value="SMon_L1_UVStatus"/>
+			<item value="uv"/>
+			<item value="SMon_VfbL1"/>
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 		</list>
 		<list key="replacehistory">
 			<item value="isotp_rx_buf_ram"/>

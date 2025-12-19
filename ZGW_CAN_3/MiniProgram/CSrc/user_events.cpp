@@ -120,7 +120,11 @@ void step(void) { try { // interval = 5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
+<<<<<<< HEAD
 UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbdXNlciBldmVudHNd,100,179,1762883143543930451,0
+=======
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbdXNlciBldmVudHNd,100,220,1762883143543930451,0
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ScriptName=user_events
 DisplayName=user events
 IsMPLib=1

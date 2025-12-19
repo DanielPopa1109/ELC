@@ -1,9 +1,17 @@
 ﻿[TSMaster]
+<<<<<<< HEAD
 TSMasterVersion=2025.12.19.1772
+=======
+TSMasterVersion=2025.11.28.1740
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 TSMasterArchitect=x64
 
 [Project]
 GUID=5F57932F-7463-4A1A-94FB-F1B1041A157B
+<<<<<<< HEAD
 LoadCount=81
+=======
+LoadCount=74
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 TSAppVersion=100
 

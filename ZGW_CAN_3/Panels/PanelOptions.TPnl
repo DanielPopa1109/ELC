@@ -6,8 +6,13 @@ DisplayVarNames=1
 EatFirstClick=0
 
 [FormSettings]
+<<<<<<< HEAD
 Width=390
 Height=200
+=======
+Width=350
+Height=140
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 Title=Panel 3661
 Backcolor=16777215
 AllowSnapGuideLine=1
@@ -15,10 +20,17 @@ AllowSnapGuideLine=1
 [Switch1]
 Name=Switch1
 ClassType=15
+<<<<<<< HEAD
 ConPosX=8
 ConPosY=0
 ConWidth=259
 ConHeight=40
+=======
+ConPosX=0
+ConPosY=0
+ConWidth=246
+ConHeight=36
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ConRotAng=0
 Opacity=1
 MLeft=0
@@ -51,7 +63,11 @@ FontType=Segoe UI
 FontStyle=0
 FontColor=4278190080
 LabelVis=1
+<<<<<<< HEAD
 LabelWidth=180
+=======
+LabelWidth=175
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ActiveColor=4278219477
 InctiveColor=4287664272
 BkgdColor=4294967295
@@ -59,10 +75,17 @@ BkgdColor=4294967295
 [Switch0]
 Name=Switch0
 ClassType=15
+<<<<<<< HEAD
 ConPosX=8
 ConPosY=40
 ConWidth=260
 ConHeight=40
+=======
+ConPosX=0
+ConPosY=32
+ConWidth=244
+ConHeight=35
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ConRotAng=0
 Opacity=1
 MLeft=0
@@ -95,7 +118,11 @@ FontType=Segoe UI
 FontStyle=0
 FontColor=4278190080
 LabelVis=1
+<<<<<<< HEAD
 LabelWidth=180
+=======
+LabelWidth=175
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ActiveColor=4278219477
 InctiveColor=4287664272
 BkgdColor=4294967295
@@ -103,8 +130,13 @@ BkgdColor=4294967295
 [Selector0]
 Name=Selector0
 ClassType=10
+<<<<<<< HEAD
 ConPosX=112
 ConPosY=128
+=======
+ConPosX=96
+ConPosY=104
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ConWidth=240
 ConHeight=22
 ConRotAng=0
@@ -152,9 +184,15 @@ AutoLookupList=0
 Name=Switch2
 ClassType=15
 ConPosX=0
+<<<<<<< HEAD
 ConPosY=80
 ConWidth=267
 ConHeight=40
+=======
+ConPosY=64
+ConWidth=245
+ConHeight=35
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ConRotAng=0
 Opacity=1
 MLeft=0
@@ -187,7 +225,11 @@ FontType=Segoe UI
 FontStyle=0
 FontColor=4278190080
 LabelVis=1
+<<<<<<< HEAD
 LabelWidth=190
+=======
+LabelWidth=175
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ActiveColor=4278219477
 InctiveColor=4287664272
 BkgdColor=4294967295

@@ -196,6 +196,7 @@ void RCC_IRQHandler(void)
 }
 
 /**
+<<<<<<< HEAD
  * @brief This function handles EXTI line0 interrupt.
  */
 void EXTI0_IRQHandler(void)
@@ -236,11 +237,22 @@ void EXTI0_IRQHandler(void)
 		{
 			HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 		}
+=======
+  * @brief This function handles EXTI line0 interrupt.
+  */
+void EXTI0_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI0_IRQn 0 */
+	if(1u == EcuM_SleeModeActive)
+	{
+		EcuM_PerformReset(0, 0);
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 	}
 	else
 	{
 		/* Do nothing. */
 	}
+<<<<<<< HEAD
 	/* USER CODE END EXTI0_IRQn 0 */
 	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
 	/* USER CODE BEGIN EXTI0_IRQn 1 */
@@ -251,6 +263,18 @@ void EXTI0_IRQHandler(void)
 /**
  * @brief This function handles DMA1 channel1 global interrupt.
  */
+=======
+  /* USER CODE END EXTI0_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  /* USER CODE BEGIN EXTI0_IRQn 1 */
+
+  /* USER CODE END EXTI0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 channel1 global interrupt.
+  */
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 void DMA1_Channel1_IRQHandler(void)
 {
 	/* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
@@ -369,8 +393,13 @@ void TIM1_CC_IRQHandler(void)
 }
 
 /**
+<<<<<<< HEAD
  * @brief This function handles TIM3 global interrupt.
  */
+=======
+  * @brief This function handles TIM3 global interrupt.
+  */
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 void TIM3_IRQHandler(void)
 {
 	/* USER CODE BEGIN TIM3_IRQn 0 */

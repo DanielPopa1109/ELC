@@ -818,7 +818,11 @@ void step(void) { try { // interval = 5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
+<<<<<<< HEAD
 UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,170,229406221729609361,0
+=======
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,183,229406221729609361,0
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
 ScriptName=crc
 DisplayName=crc
 IsMPLib=1

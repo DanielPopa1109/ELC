@@ -5,6 +5,7 @@ EcuM_SWState
 SMon_L1ST
 SMon_WupLineState
 EcuM_WUPLine
+<<<<<<< HEAD
 SMon_NTC_Temperature_L1
 SMon_McuTempValue
 SMon_ShortToPlusTest
@@ -14,3 +15,5 @@ FBL_DSC_Status
 Dcm_SessionCounter
 Dcm_ActiveSessionState
 SMon_VfbL1
+=======
+>>>>>>> 1704938b511455f6c7930b3c0d8abf990dcb87cd
