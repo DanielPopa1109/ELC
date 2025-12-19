@@ -6,8 +6,8 @@ DisplayVarNames=1
 EatFirstClick=0
 
 [FormSettings]
-Width=185
-Height=80
+Width=390
+Height=200
 Title=Panel 3661
 Backcolor=16777215
 AllowSnapGuideLine=1
@@ -15,10 +15,10 @@ AllowSnapGuideLine=1
 [Switch1]
 Name=Switch1
 ClassType=15
-ConPosX=-40
+ConPosX=8
 ConPosY=0
-ConWidth=225
-ConHeight=37
+ConWidth=259
+ConHeight=40
 ConRotAng=0
 Opacity=1
 MLeft=0
@@ -51,7 +51,7 @@ FontType=Segoe UI
 FontStyle=0
 FontColor=4278190080
 LabelVis=1
-LabelWidth=150
+LabelWidth=180
 ActiveColor=4278219477
 InctiveColor=4287664272
 BkgdColor=4294967295
@@ -59,10 +59,54 @@ BkgdColor=4294967295
 [Switch0]
 Name=Switch0
 ClassType=15
-ConPosX=-40
-ConPosY=32
-ConWidth=225
-ConHeight=37
+ConPosX=8
+ConPosY=40
+ConWidth=260
+ConHeight=40
+ConRotAng=0
+Opacity=1
+MLeft=0
+MTop=0
+MRight=0
+MBottom=0
+PLeft=0
+PTop=0
+PRight=0
+PBottom=0
+Align=0
+ReadOnly=0
+FSigIsReadOnly=0
+RCenterX=0.5
+RCenterY=0.5
+ScaleX=1
+ScaleY=1
+RAngle=0
+Enabled=1
+VarType=3
+VarLink=EM_A_NM3_PN1
+VarId=-1
+PageIdx=0
+ChildObjs=0
+CheckedValue=1
+UncheckedValue=0
+Text=EnergyModule_Active_NM3PN1
+FontSize=12
+FontType=Segoe UI
+FontStyle=0
+FontColor=4278190080
+LabelVis=1
+LabelWidth=180
+ActiveColor=4278219477
+InctiveColor=4287664272
+BkgdColor=4294967295
+
+[Selector0]
+Name=Selector0
+ClassType=10
+ConPosX=112
+ConPosY=128
+ConWidth=240
+ConHeight=22
 ConRotAng=0
 Opacity=1
 MLeft=0
@@ -83,24 +127,74 @@ ScaleY=1
 RAngle=0
 Enabled=1
 VarType=1
-VarLink=0,ZGW_CAN_3,ZGW,Networkmanagement3_Status,NM3S_PN1
+VarLink=0,ZGW_CAN_3,ZGW,VehicleData,VehicleStatus
 VarId=-1
 PageIdx=0
 ChildObjs=0
-CheckedValue=18
+VarName=VehicleStatus
+FontSize=12
+FontType=Segoe UI
+FontStyle=0
+FontColor=4278190080
+ValuesCount=7
+Values0=Park_Ignition_OFF = 1
+Values1=Park_Ignition_ON   = 2
+Values2=Standing                 = 3
+Values3=Driving                    = 4
+Values4=Vehicle Error           = 5
+Values5=Vehicle Diagnosis    = 6
+Values6=Signal invalid           = 255
+LabelWidth=80
+KillFocusByReturn=1
+AutoLookupList=0
+
+[Switch2]
+Name=Switch2
+ClassType=15
+ConPosX=0
+ConPosY=80
+ConWidth=267
+ConHeight=40
+ConRotAng=0
+Opacity=1
+MLeft=0
+MTop=0
+MRight=0
+MBottom=0
+PLeft=0
+PTop=0
+PRight=0
+PBottom=0
+Align=0
+ReadOnly=0
+FSigIsReadOnly=0
+RCenterX=0.5
+RCenterY=0.5
+ScaleX=1
+ScaleY=1
+RAngle=0
+Enabled=1
+VarType=3
+VarLink=EM_T_NM3_PN1
+VarId=-1
+PageIdx=0
+ChildObjs=0
+CheckedValue=1
 UncheckedValue=0
-Text=NM3RS_PN1
+Text=EnergyModule_Tracing_NM3PN1
 FontSize=12
 FontType=Segoe UI
 FontStyle=0
 FontColor=4278190080
 LabelVis=1
-LabelWidth=150
+LabelWidth=190
 ActiveColor=4278219477
 InctiveColor=4287664272
 BkgdColor=4294967295
 
 [ControlNames]
-ControlsCount=2
+ControlsCount=4
 Controls0=Switch1
 Controls1=Switch0
+Controls2=Selector0
+Controls3=Switch2

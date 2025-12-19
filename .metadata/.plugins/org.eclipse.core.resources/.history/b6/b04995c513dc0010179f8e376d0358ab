@@ -1,0 +1,3 @@
+
+extern void ParamH_init(void);
+extern void ParamH_main(void);

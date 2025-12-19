@@ -1,2 +1,16 @@
 OS_XCP_CpuLoad
 oscnt
+SMon_ExternalChargerDetected
+EcuM_SWState
+SMon_L1ST
+SMon_WupLineState
+EcuM_WUPLine
+SMon_NTC_Temperature_L1
+SMon_McuTempValue
+SMon_ShortToPlusTest
+SMon_CmdStat
+SMon_RequestPhysicalStatus
+FBL_DSC_Status
+Dcm_SessionCounter
+Dcm_ActiveSessionState
+SMon_VfbL1

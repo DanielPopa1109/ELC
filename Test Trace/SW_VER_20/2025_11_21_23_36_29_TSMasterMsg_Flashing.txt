@@ -1,0 +1,89 @@
+23:35:37 TesterPresent: start executing
+23:35:37 TesterPresent: command success
+23:35:37 ReadDTCInformation: start executing
+23:35:37 ReadDTCInformation: command success
+23:35:37 ClearDiagnosticInformation: start executing
+23:35:37 ClearDiagnosticInformation: command success
+23:35:37 Extended Session: start executing
+23:35:37 Extended Session: command success
+23:35:37 CommunicationControl: start executing
+23:35:37 CommunicationControl: command success
+23:35:38 ControlDTCSetting: start executing
+23:35:38 ControlDTCSetting: command success
+23:35:38 Read Software Version: start executing
+23:35:38 Read Software Version: command success
+23:35:38 Read Active Diagnostic Session: start executing
+23:35:38 Read Active Diagnostic Session: command success
+23:35:38 Read Active Software Block: start executing
+23:35:38 Read Active Software Block: command success
+23:35:38 Secure Access: start executing
+23:35:38 Secure Access: command success
+23:35:38 Secure Access: start executing
+23:35:38 Secure Access: command success
+23:35:38 Programming Session: start executing
+23:35:38 Programming Session: command success
+23:35:38 Read Software Version: start executing
+23:35:38 Read Software Version: command success
+23:35:38 Read Active Diagnostic Session: start executing
+23:35:38 Read Active Diagnostic Session: command success
+23:35:39 Read Active Software Block: start executing
+23:35:39 Read Active Software Block: command success
+23:35:39 Request FBL Update: start executing
+23:35:39 Request FBL Update: command success
+23:35:39 Read Software Version: start executing
+23:35:39 Read Software Version: command success
+23:35:39 Read Active Diagnostic Session: start executing
+23:35:39 Read Active Diagnostic Session: command success
+23:35:39 Read Active Software Block: start executing
+23:35:39 Read Active Software Block: command success
+23:35:39 Mass Erase FBL: start executing
+23:35:39 Mass Erase FBL: command success
+23:35:40 Flashing_FBL: Prepare: start executing
+23:35:40 Flashing_FBL: Prepare: command success
+23:35:40 Flashing_FBL: [Block0]ReqDownload: start executing
+23:35:40 Flashing_FBL: [Block0]ReqDownload: command success
+23:35:40 Flashing_FBL: [Block0]TransferData: start executing
+23:35:51 Flashing_FBL: [Block0]TransferData: command success
+23:35:51 Flashing_FBL: [Block0]TransferExit: start executing
+23:35:51 Flashing_FBL: [Block0]TransferExit: command success
+23:35:51 Flashing_FBL: [Block0]CheckSum: start executing
+23:35:51 Flashing_FBL: [Block0]CheckSum: command success
+23:35:51 Hard Reset: start executing
+23:35:51 Hard Reset: command success
+23:35:51 Read Software Version: start executing
+23:35:51 Read Software Version: command success
+23:35:51 Read Active Diagnostic Session: start executing
+23:35:51 Read Active Diagnostic Session: command success
+23:35:51 Read Active Software Block: start executing
+23:35:51 Read Active Software Block: command success
+23:35:51 Mass Erase Application: start executing
+23:35:53 Mass Erase Application: command success
+23:35:53 Flashing_APP: Prepare: start executing
+23:35:53 Flashing_APP: Prepare: command success
+23:35:53 Flashing_APP: [Block0]ReqDownload: start executing
+23:35:53 Flashing_APP: [Block0]ReqDownload: command success
+23:35:53 Flashing_APP: [Block0]TransferData: start executing
+23:35:53 Flashing_APP: [Block0]TransferData: command success
+23:35:53 Flashing_APP: [Block0]TransferExit: start executing
+23:35:53 Flashing_APP: [Block0]TransferExit: command success
+23:35:53 Flashing_APP: [Block0]CheckSum: start executing
+23:35:53 Flashing_APP: [Block0]CheckSum: command success
+23:35:53 Flashing_APP: [Block1]ReqDownload: start executing
+23:35:53 Flashing_APP: [Block1]ReqDownload: command success
+23:35:53 Flashing_APP: [Block1]TransferData: start executing
+23:36:23 Flashing_APP: [Block1]TransferData: command success
+23:36:23 Flashing_APP: [Block1]TransferExit: start executing
+23:36:23 Flashing_APP: [Block1]TransferExit: command success
+23:36:23 Flashing_APP: [Block1]CheckSum: start executing
+23:36:23 Flashing_APP: [Block1]CheckSum: command success
+23:36:23 Hard Reset: start executing
+23:36:23 Hard Reset: command success
+23:36:23 Default Session: start executing
+23:36:23 Default Session: command success
+23:36:24 Read Software Version: start executing
+23:36:24 Read Software Version: command success
+23:36:24 Read Active Diagnostic Session: start executing
+23:36:24 Read Active Diagnostic Session: command success
+23:36:24 Read Active Software Block: start executing
+23:36:24 Read Active Software Block: command success
+23:36:24 Test Flow Completed, Time:46.942s

@@ -35,6 +35,7 @@ void DebugMon_Handler(void);
 void PVD_IRQHandler(void);
 void FLASH_IRQHandler(void);
 void RCC_IRQHandler(void);
+void EXTI0_IRQHandler(void);
 void DMA1_Channel1_IRQHandler(void);
 void ADC1_2_IRQHandler(void);
 void USB_HP_CAN1_TX_IRQHandler(void);
@@ -45,7 +46,6 @@ void TIM1_BRK_IRQHandler(void);
 void TIM1_UP_IRQHandler(void);
 void TIM1_TRG_COM_IRQHandler(void);
 void TIM1_CC_IRQHandler(void);
-void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 void TIM4_IRQHandler(void);
 /* USER CODE BEGIN EFP */

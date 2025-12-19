@@ -1,0 +1,59 @@
+#include "ParamH.h"
+
+extern uint8_t SMon_P_Rtcntmax;
+extern uint8_t SMon_P_CLSTime ;
+extern uint8_t SMon_P_WaitTimeOVUV ;
+extern uint8_t SMon_P_WaitTimeCPC;
+extern uint8_t SMon_P_I2TDecrementPercentFactor ;
+extern uint16_t SMon_P_ClsFailureWaitTime ;
+extern uint32_t SMon_P_DischargeTimeCycles ;
+extern uint16_t SMon_P_LowVoltage ;
+extern uint16_t SMon_P_UV_KL30 ;
+extern uint16_t SMon_P_OV_KL30;
+extern uint16_t SMon_P_UV_CLS ;
+extern uint16_t SMon_P_Varef;
+extern uint16_t SMon_P_Vrefint ;
+extern uint16_t SMon_P_ADC_MaxValue;
+extern uint16_t SMon_P_NTC_PullUp_ResistorVale;
+extern uint16_t SMon_P_BetaConst ;
+extern uint32_t SMon_P_LongDischargeTimeCycles ;
+extern uint32_t SMon_P_LowDisTimeCyc ;
+extern uint32_t SMon_P_PeakCurrent;
+extern uint32_t SMon_P_NoLoad_ISense;
+extern float SMon_P_VFB_T30_TwoPointCalibration_ParamA;
+extern float SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+extern float SMon_P_VFB_L1_TwoPointCalibration_ParamA ;
+extern float SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+extern uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA ;
+extern uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;
+extern uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA ;
+extern uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB;
+extern float SMon_P_ISenseNominal;
+extern float SMon_P_I2TRating;
+extern float SMon_P_RoomTempKelvin ;
+extern float SMon_P_VoltsAt25 ;
+extern float SMon_P_AvgSlope ;
+extern float SMon_P_RoomTemperature ;
+extern float SMon_P_Sens3V3 ;
+extern float SMon_P_ConvFacISense;
+extern float SMon_P_Kelvin ;
+extern float SMon_P_VoltageDivider ;
+extern float SMon_P_AlphaFilter ;
+extern uint8_t SMon_P_L1Correction ;
+extern float SMon_P_TwoPointCalib_ConvFacISense ;
+extern float SMon_P_TwoPointCalib_NoLoad_ISense ;
+extern float SMon_P_ExternalChargerThreshold ;
+extern uint8_t SMon_P_StatusVoltageL1Filter ;
+
+void ParamH_init(void);
+void ParamH_main(void);
+
+void ParamH_init(void)
+{
+
+}
+
+void ParamH_main(void)
+{
+
+}

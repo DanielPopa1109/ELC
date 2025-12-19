@@ -1,0 +1,91 @@
+#pragma once
+#include <stdint.h>
+#include <stdbool.h>
+#include "can.h"
+
+#define PARAMH_MAGIC0 'P'
+#define PARAMH_MAGIC1 'H'
+#define PARAMH_MAGIC2 '0'
+#define PARAMH_MAGIC3 '1'
+#define PARAMH_VERSION  (1u)
+
+typedef struct __attribute__((packed))
+{
+    uint8_t  magic[4];     /* "PH01" */
+    uint16_t version;      /* PARAMH_VERSION */
+    uint16_t length;       /* sizeof(ParamH_Params_t) */
+} ParamH_BlobHdr_t;
+
+typedef struct __attribute__((packed))
+{
+    uint8_t  SMon_P_Rtcntmax;
+    uint8_t  SMon_P_CLSTime;
+    uint8_t  SMon_P_WaitTimeOVUV;
+    uint8_t  SMon_P_WaitTimeCPC;
+    uint8_t  SMon_P_I2TDecrementPercentFactor;
+
+    uint16_t SMon_P_ClsFailureWaitTime;
+    uint32_t SMon_P_DischargeTimeCycles;
+    uint16_t SMon_P_LowVoltage;
+    uint16_t SMon_P_UV_KL30;
+    uint16_t SMon_P_OV_KL30;
+    uint16_t SMon_P_UV_CLS;
+
+    uint16_t SMon_P_Varef;
+    uint16_t SMon_P_Vrefint;
+    uint16_t SMon_P_ADC_MaxValue;
+    uint16_t SMon_P_NTC_PullUp_ResistorVale;
+    uint16_t SMon_P_BetaConst;
+
+    uint32_t SMon_P_LongDischargeTimeCycles;
+    uint32_t SMon_P_LowDisTimeCyc;
+    uint32_t SMon_P_PeakCurrent;
+    uint32_t SMon_P_NoLoad_ISense;
+
+    float    SMon_P_VFB_T30_TwoPointCalibration_ParamA;
+    float    SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+    float    SMon_P_VFB_L1_TwoPointCalibration_ParamA;
+    float    SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+
+    uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA;
+    uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;
+    uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA;
+    uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB;
+
+    float    SMon_P_ISenseNominal;
+    float    SMon_P_I2TRating;
+
+    float    SMon_P_RoomTempKelvin;
+    float    SMon_P_VoltsAt25;
+    float    SMon_P_AvgSlope;
+    float    SMon_P_RoomTemperature;
+
+    float    SMon_P_Sens3V3;
+    float    SMon_P_ConvFacISense;
+    float    SMon_P_Kelvin;
+    float    SMon_P_VoltageDivider;
+    float    SMon_P_AlphaFilter;
+
+    uint8_t  SMon_P_L1Correction; /* fix: treat as uint8, store 180u */
+    float    SMon_P_TwoPointCalib_ConvFacISense;
+    float    SMon_P_TwoPointCalib_NoLoad_ISense;
+    float    SMon_P_ExternalChargerThreshold;
+
+    uint8_t  SMon_P_StatusVoltageL1Filter;
+} ParamH_Params_t;
+
+typedef struct
+{
+    ParamH_BlobHdr_t  hdr;
+    ParamH_Params_t   p;
+} ParamH_Blob_t;
+
+/* lifecycle */
+void ParamH_init(void);
+void ParamH_main(void);
+
+/* DCM hooks */
+bool ParamH_HandleRoutine_0101AA_Read(uint32_t req_canid);
+bool ParamH_HandleRoutine_0101AB_Write(uint32_t req_canid, const uint8_t *uds, uint16_t uds_len);
+bool ParamH_IsoTpRx_Feed(const CAN_RxHeaderTypeDef *rh, const uint8_t *d);
+bool ParamH_IsoTpRx_Pop(uint32_t *req_canid, uint8_t *uds, uint16_t *uds_len);

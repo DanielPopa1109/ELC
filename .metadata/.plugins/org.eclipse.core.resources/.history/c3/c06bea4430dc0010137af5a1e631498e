@@ -1,0 +1,564 @@
+#include "ParamH.h"
+#include <string.h>
+#include <math.h>      /* isfinite */
+#include "Nvm.h"
+#include "Dcm.h"
+
+extern uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
+extern bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
+extern CAN_HandleTypeDef hcan;
+
+#define PARAMH_RX_MAX            256u
+#define PARAMH_RX_TIMEOUT_MS     1000u
+#define DCM_RESP_ID_DELTA        0x01u   /* your system */
+
+/* one-slot queue to ParamH_main */
+static volatile uint8_t  q_pending = 0u;
+static uint32_t          q_reqid   = 0u;
+static uint16_t          q_len     = 0u;
+static uint8_t           q_uds[PARAMH_RX_MAX];
+
+/* ISO-TP RX state */
+typedef struct
+{
+	uint8_t  active;
+	uint32_t req_canid;
+	uint16_t total_len;
+	uint16_t idx;
+	uint8_t  next_sn;
+	uint32_t deadline_ms;
+} ph_isorx_t;
+
+
+/* ---------- NVM integration ---------- */
+/* Pick a new NVM blockId for ParamH, e.g. 2 (you must extend NVM_NO_BLOCKS and tables) */
+#define NVM_BLOCKID_PARAMH   (2u)
+
+/* RAM mirror (this is what you store in NVM) */
+ParamH_Blob_t ParamH_RamMirror;
+/* async write job */
+static uint8_t  job_active = 0u;
+static uint32_t job_reqid  = 0u;
+static uint8_t  job_blob[512];
+
+
+/* Defaults (ROM) */
+static const ParamH_Blob_t ParamH_Defaults =
+{
+		.hdr = { {PARAMH_MAGIC0, PARAMH_MAGIC1, PARAMH_MAGIC2, PARAMH_MAGIC3},
+				PARAMH_VERSION,
+				(uint16_t)sizeof(ParamH_Params_t) },
+
+				.p =
+				{
+						.SMon_P_Rtcntmax = 10u,
+						.SMon_P_CLSTime = 22u,
+						.SMon_P_WaitTimeOVUV = 60u,
+						.SMon_P_WaitTimeCPC = 10u,
+						.SMon_P_I2TDecrementPercentFactor = 85u,
+						.SMon_P_ClsFailureWaitTime = 300u,
+						.SMon_P_DischargeTimeCycles = 132000u,
+						.SMon_P_LowVoltage = 800u,
+						.SMon_P_UV_KL30 = 7000u,
+						.SMon_P_OV_KL30 = 17000u,
+						.SMon_P_UV_CLS = 1633u,
+						.SMon_P_Varef = 3300u,
+						.SMon_P_Vrefint = 1200u,
+						.SMon_P_ADC_MaxValue = 4095u,
+						.SMon_P_NTC_PullUp_ResistorVale = 10000u,
+						.SMon_P_BetaConst = 3950u,
+						.SMon_P_LongDischargeTimeCycles = 460400u,
+						.SMon_P_LowDisTimeCyc = 229600u,
+						.SMon_P_PeakCurrent = 60000u,
+						.SMon_P_NoLoad_ISense = 391u,
+
+						.SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.12348f,
+						.SMon_P_VFB_T30_TwoPointCalibration_ParamB = 21.93f,
+						.SMon_P_VFB_L1_TwoPointCalibration_ParamA  = 8.0645f,
+						.SMon_P_VFB_L1_TwoPointCalibration_ParamB  = 8.0645f,
+
+						.SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u,
+						.SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u,
+						.SMon_P_ISense_L1_TwoPointCalibration_ParamA = 352u,
+						.SMon_P_ISense_L1_TwoPointCalibration_ParamB = 151u,
+
+						.SMon_P_ISenseNominal = 10.5f,
+						.SMon_P_I2TRating = 1640.0f,
+						.SMon_P_RoomTempKelvin = 298.15f,
+						.SMon_P_VoltsAt25 = 1430.0f,
+						.SMon_P_AvgSlope = 4.30f,
+						.SMon_P_RoomTemperature = 25.0f,
+						.SMon_P_Sens3V3 = 26.4f,
+						.SMon_P_ConvFacISense = 37.88f,
+						.SMon_P_Kelvin = 273.15f,
+						.SMon_P_VoltageDivider = 10.10f,
+						.SMon_P_AlphaFilter = 0.075f,
+						.SMon_P_L1Correction = 180u,
+						.SMon_P_TwoPointCalib_ConvFacISense = -37.81f,
+						.SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f,
+						.SMon_P_ExternalChargerThreshold = -1.0f,
+						.SMon_P_StatusVoltageL1Filter = 250u
+				}
+};
+
+/* ---------- LIVE globals used by other modules ----------
+   If you want zero refactor, keep your existing globals and copy in/out here.
+   If you prefer clean design, delete those globals and make everyone read ParamH_RamMirror.p.*
+ */
+extern uint8_t  SMon_P_Rtcntmax;
+extern uint8_t  SMon_P_CLSTime;
+extern uint8_t  SMon_P_WaitTimeOVUV;
+extern uint8_t  SMon_P_WaitTimeCPC;
+extern uint8_t  SMon_P_I2TDecrementPercentFactor;
+extern uint16_t SMon_P_ClsFailureWaitTime;
+extern uint32_t SMon_P_DischargeTimeCycles;
+extern uint16_t SMon_P_LowVoltage;
+extern uint16_t SMon_P_UV_KL30;
+extern uint16_t SMon_P_OV_KL30;
+extern uint16_t SMon_P_UV_CLS;
+extern uint16_t SMon_P_Varef;
+extern uint16_t SMon_P_Vrefint;
+extern uint16_t SMon_P_ADC_MaxValue;
+extern uint16_t SMon_P_NTC_PullUp_ResistorVale;
+extern uint16_t SMon_P_BetaConst;
+extern uint32_t SMon_P_LongDischargeTimeCycles;
+extern uint32_t SMon_P_LowDisTimeCyc;
+extern uint32_t SMon_P_PeakCurrent;
+extern uint32_t SMon_P_NoLoad_ISense;
+extern float    SMon_P_VFB_T30_TwoPointCalibration_ParamA;
+extern float    SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+extern float    SMon_P_VFB_L1_TwoPointCalibration_ParamA;
+extern float    SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+extern uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA;
+extern uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;
+extern uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA;
+extern uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB;
+extern float    SMon_P_ISenseNominal;
+extern float    SMon_P_I2TRating;
+extern float    SMon_P_RoomTempKelvin;
+extern float    SMon_P_VoltsAt25;
+extern float    SMon_P_AvgSlope;
+extern float    SMon_P_RoomTemperature;
+extern float    SMon_P_Sens3V3;
+extern float    SMon_P_ConvFacISense;
+extern float    SMon_P_Kelvin;
+extern float    SMon_P_VoltageDivider;
+extern float    SMon_P_AlphaFilter;
+extern uint8_t  SMon_P_L1Correction;
+extern float    SMon_P_TwoPointCalib_ConvFacISense;
+extern float    SMon_P_TwoPointCalib_NoLoad_ISense;
+extern float    SMon_P_ExternalChargerThreshold;
+extern uint8_t  SMon_P_StatusVoltageL1Filter;
+
+static ph_isorx_t r = {0};
+
+#define ParamH_BlobSize  ((uint16_t)sizeof(ParamH_Blob_t))
+static bool ParamH_Validate(const ParamH_Blob_t *b); // forward decl
+
+static void ParamH_SendNrc(uint32_t reqid, uint8_t sid, uint8_t nrc)
+{
+	uint8_t p[3] = {0x7Fu, sid, nrc};
+	(void)Dcm_IsoTp_Send(reqid, p, 3u, 0x00u, 1u);
+}
+
+static inline ParamH_Blob_t *ParamH_GetRamMirrorBlob(void)
+{
+    extern ParamH_Blob_t ParamH_RamMirror;
+    return &ParamH_RamMirror;
+}
+
+static bool ParamH_ValidateBlob(const uint8_t *blob)
+{
+    const ParamH_Blob_t *b = (const ParamH_Blob_t *)blob;
+    return ParamH_Validate(b);
+}
+
+
+static void ParamH_SendPos(uint32_t reqid, uint8_t ridLo)
+{
+	uint8_t p[5] = {0x71u, 0x01u, 0x01u, ridLo, 0x00u};
+	(void)Dcm_IsoTp_Send(reqid, p, 5u, 0x00u, 1u);
+}
+
+static void ph_reset(void)
+{
+	r.active = 0u;
+	r.req_canid = 0u;
+	r.total_len = 0u;
+	r.idx = 0u;
+	r.next_sn = 1u;
+	r.deadline_ms = 0u;
+}
+
+static void ph_queue(uint32_t req_canid, const uint8_t *uds, uint16_t len)
+{
+	if (len > PARAMH_RX_MAX) { ph_reset(); return; }
+
+	q_reqid = req_canid;
+	q_len   = len;
+	memcpy(q_uds, uds, len);
+	q_pending = 1u;
+}
+
+static void ph_send_fc(uint32_t req_canid, uint8_t fs, uint8_t bs, uint8_t stmin)
+{
+	CAN_TxHeaderTypeDef th = {0};
+	uint32_t mbx;
+	uint8_t  fc[8] = {0};
+
+	th.StdId = req_canid + DCM_RESP_ID_DELTA; /* ECU->tester */
+	th.IDE   = CAN_ID_STD;
+	th.RTR   = CAN_RTR_DATA;
+	th.DLC   = 8u;
+
+	fc[0] = (uint8_t)(0x30u | (fs & 0x0Fu));
+	fc[1] = bs;
+	fc[2] = stmin;
+
+	HAL_StatusTypeDef st;
+	do { st = HAL_CAN_AddTxMessage(&hcan, &th, fc, &mbx); } while (st != HAL_OK);
+}
+
+/* accept only RoutineControl 31 01 01 AA/AB */
+static bool ph_is_paramh_routine(const uint8_t *uds, uint16_t len)
+{
+	if (len < 4u) return false;
+	if (uds[0] != 0x31u) return false;
+	if (uds[1] != 0x01u) return false;
+	if (uds[2] != 0x01u) return false;
+	if ((uds[3] != 0xAAu) && (uds[3] != 0xABu)) return false;
+	return true;
+}
+
+bool ParamH_IsoTpRx_Feed(const CAN_RxHeaderTypeDef *rh, const uint8_t *d)
+{
+	if (rh->IDE != CAN_ID_STD) return false;
+
+	/* handle timeout */
+	if (r.active && (HAL_GetTick() > r.deadline_ms))
+	{
+		ph_reset();
+	}
+
+	uint8_t pci_type = (uint8_t)(d[0] & 0xF0u);
+
+	/* Single Frame */
+	if (pci_type == 0x00u)
+	{
+		uint8_t sf_len = (uint8_t)(d[0] & 0x0Fu);
+		if (sf_len == 0u || sf_len > 7u) return false;
+
+		uint8_t uds[7];
+		memcpy(uds, &d[1], sf_len);
+
+		if (!ph_is_paramh_routine(uds, sf_len)) return false;
+
+		ph_queue(rh->StdId, uds, sf_len);
+		return true;
+	}
+
+	/* First Frame */
+	if (pci_type == 0x10u)
+	{
+		uint16_t total = (uint16_t)(((uint16_t)(d[0] & 0x0Fu) << 8) | d[1]);
+		if (total < 8u || total > PARAMH_RX_MAX) return false;
+
+		uint8_t first6[6];
+		memcpy(first6, &d[2], 6u);
+
+		if (!ph_is_paramh_routine(first6, 4u)) /* need at least SID..RID */
+		{
+			return false; /* let DCM see it */
+		}
+
+		/* start reassembly */
+		r.active = 1u;
+		r.req_canid = rh->StdId;
+		r.total_len = total;
+		r.idx = 0u;
+		r.next_sn = 1u;
+		r.deadline_ms = HAL_GetTick() + PARAMH_RX_TIMEOUT_MS;
+
+		memcpy(&q_uds[0], first6, 6u);
+		r.idx = 6u;
+
+		/* send FlowControl: CTS, BS=0 (unlimited), STmin=0 */
+		ph_send_fc(r.req_canid, 0x00u, 0x00u, 0x00u);
+
+		return true;
+	}
+
+	/* Consecutive Frame */
+	if (pci_type == 0x20u)
+	{
+		if (!r.active) return false;
+		if (rh->StdId != r.req_canid) return false;
+
+		uint8_t sn = (uint8_t)(d[0] & 0x0Fu);
+		if (sn != (r.next_sn & 0x0Fu))
+		{
+			ph_reset();
+			return true; /* consumed but invalid */
+		}
+
+		uint16_t remain = (uint16_t)(r.total_len - r.idx);
+		uint8_t  take   = (remain >= 7u) ? 7u : (uint8_t)remain;
+
+		memcpy(&q_uds[r.idx], &d[1], take);
+		r.idx = (uint16_t)(r.idx + take);
+
+		r.next_sn = (uint8_t)((r.next_sn + 1u) & 0x0Fu);
+		r.deadline_ms = HAL_GetTick() + PARAMH_RX_TIMEOUT_MS;
+
+		if (r.idx >= r.total_len)
+		{
+			ph_queue(r.req_canid, q_uds, r.total_len);
+			ph_reset();
+		}
+
+		return true;
+	}
+
+	/* FlowControl frames belong to TX side (DCM), ignore here */
+	return false;
+}
+
+bool ParamH_IsoTpRx_Pop(uint32_t *req_canid, uint8_t *uds, uint16_t *uds_len)
+{
+	if (!q_pending) return false;
+
+	__disable_irq();
+	q_pending = 0u;
+	*req_canid = q_reqid;
+	*uds_len   = q_len;
+	memcpy(uds, q_uds, q_len);
+	__enable_irq();
+
+	return true;
+}
+
+static void ParamH_ApplyToGlobals(const ParamH_Params_t *p)
+{
+	SMon_P_Rtcntmax = p->SMon_P_Rtcntmax;
+	SMon_P_CLSTime  = p->SMon_P_CLSTime;
+	SMon_P_WaitTimeOVUV = p->SMon_P_WaitTimeOVUV;
+	SMon_P_WaitTimeCPC  = p->SMon_P_WaitTimeCPC;
+	SMon_P_I2TDecrementPercentFactor = p->SMon_P_I2TDecrementPercentFactor;
+
+	SMon_P_ClsFailureWaitTime = p->SMon_P_ClsFailureWaitTime;
+	SMon_P_DischargeTimeCycles = p->SMon_P_DischargeTimeCycles;
+	SMon_P_LowVoltage = p->SMon_P_LowVoltage;
+	SMon_P_UV_KL30 = p->SMon_P_UV_KL30;
+	SMon_P_OV_KL30 = p->SMon_P_OV_KL30;
+	SMon_P_UV_CLS  = p->SMon_P_UV_CLS;
+
+	SMon_P_Varef = p->SMon_P_Varef;
+	SMon_P_Vrefint = p->SMon_P_Vrefint;
+	SMon_P_ADC_MaxValue = p->SMon_P_ADC_MaxValue;
+	SMon_P_NTC_PullUp_ResistorVale = p->SMon_P_NTC_PullUp_ResistorVale;
+	SMon_P_BetaConst = p->SMon_P_BetaConst;
+
+	SMon_P_LongDischargeTimeCycles = p->SMon_P_LongDischargeTimeCycles;
+	SMon_P_LowDisTimeCyc = p->SMon_P_LowDisTimeCyc;
+	SMon_P_PeakCurrent = p->SMon_P_PeakCurrent;
+	SMon_P_NoLoad_ISense = p->SMon_P_NoLoad_ISense;
+
+	SMon_P_VFB_T30_TwoPointCalibration_ParamA = p->SMon_P_VFB_T30_TwoPointCalibration_ParamA;
+	SMon_P_VFB_T30_TwoPointCalibration_ParamB = p->SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+	SMon_P_VFB_L1_TwoPointCalibration_ParamA  = p->SMon_P_VFB_L1_TwoPointCalibration_ParamA;
+	SMon_P_VFB_L1_TwoPointCalibration_ParamB  = p->SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+
+	SMon_P_NTC_L1_TwoPointCalibration_ParamA = p->SMon_P_NTC_L1_TwoPointCalibration_ParamA;
+	SMon_P_NTC_L1_TwoPointCalibration_ParamB = p->SMon_P_NTC_L1_TwoPointCalibration_ParamB;
+	SMon_P_ISense_L1_TwoPointCalibration_ParamA = p->SMon_P_ISense_L1_TwoPointCalibration_ParamA;
+	SMon_P_ISense_L1_TwoPointCalibration_ParamB = p->SMon_P_ISense_L1_TwoPointCalibration_ParamB;
+
+	SMon_P_ISenseNominal = p->SMon_P_ISenseNominal;
+	SMon_P_I2TRating = p->SMon_P_I2TRating;
+
+	SMon_P_RoomTempKelvin = p->SMon_P_RoomTempKelvin;
+	SMon_P_VoltsAt25 = p->SMon_P_VoltsAt25;
+	SMon_P_AvgSlope = p->SMon_P_AvgSlope;
+	SMon_P_RoomTemperature = p->SMon_P_RoomTemperature;
+
+	SMon_P_Sens3V3 = p->SMon_P_Sens3V3;
+	SMon_P_ConvFacISense = p->SMon_P_ConvFacISense;
+	SMon_P_Kelvin = p->SMon_P_Kelvin;
+	SMon_P_VoltageDivider = p->SMon_P_VoltageDivider;
+	SMon_P_AlphaFilter = p->SMon_P_AlphaFilter;
+
+	SMon_P_L1Correction = p->SMon_P_L1Correction;
+	SMon_P_TwoPointCalib_ConvFacISense = p->SMon_P_TwoPointCalib_ConvFacISense;
+	SMon_P_TwoPointCalib_NoLoad_ISense = p->SMon_P_TwoPointCalib_NoLoad_ISense;
+	SMon_P_ExternalChargerThreshold = p->SMon_P_ExternalChargerThreshold;
+
+	SMon_P_StatusVoltageL1Filter = p->SMon_P_StatusVoltageL1Filter;
+}
+
+static bool f_ok(float x, float lo, float hi)
+{
+	return (isfinite(x) && (x >= lo) && (x <= hi));
+}
+
+static bool ParamH_Validate(const ParamH_Blob_t *b)
+{
+	/* header */
+	if (b->hdr.magic[0] != PARAMH_MAGIC0 ||
+			b->hdr.magic[1] != PARAMH_MAGIC1 ||
+			b->hdr.magic[2] != PARAMH_MAGIC2 ||
+			b->hdr.magic[3] != PARAMH_MAGIC3) return false;
+
+	if (b->hdr.version != PARAMH_VERSION) return false;
+	if (b->hdr.length  != (uint16_t)sizeof(ParamH_Params_t)) return false;
+
+	const ParamH_Params_t *p = &b->p;
+
+	/* hard checks (add more as needed) */
+	if (p->SMon_P_UV_KL30 >= p->SMon_P_OV_KL30) return false;
+	if (p->SMon_P_ADC_MaxValue != 4095u) return false;
+
+	if (p->SMon_P_Varef < 2500u || p->SMon_P_Varef > 3600u) return false;
+	if (p->SMon_P_Vrefint < 800u || p->SMon_P_Vrefint > 1600u) return false;
+
+	if (p->SMon_P_NTC_PullUp_ResistorVale < 1000u || p->SMon_P_NTC_PullUp_ResistorVale > 100000u) return false;
+	if (p->SMon_P_BetaConst < 2000u || p->SMon_P_BetaConst > 6000u) return false;
+
+	if (!f_ok(p->SMon_P_VoltageDivider, 0.1f, 100.0f)) return false;
+	if (!f_ok(p->SMon_P_AlphaFilter, 0.0f, 1.0f)) return false;
+	if (!f_ok(p->SMon_P_ISenseNominal, 0.0f, 1000.0f)) return false;
+	if (!f_ok(p->SMon_P_I2TRating, 0.0f, 1e9f)) return false;
+
+	return true;
+}
+
+void ParamH_init(void)
+{
+	/* assumption: Nvm_ReadAll() already ran and loaded ParamH_RamMirror from flash via NVM block list */
+	if (!ParamH_Validate(&ParamH_RamMirror))
+	{
+		ParamH_RamMirror = ParamH_Defaults;
+		ParamH_ApplyToGlobals(&ParamH_RamMirror.p);
+		Nvm_WriteBlock(NVM_BLOCKID_PARAMH, (uint32_t*)&ParamH_RamMirror);
+	}
+	else
+	{
+		ParamH_ApplyToGlobals(&ParamH_RamMirror.p);
+	}
+}
+
+void ParamH_main(void)
+{
+	/* finish deferred write */
+	if (job_active)
+	{
+		/* commit blob -> ram mirror -> globals -> NVM */
+		memcpy(ParamH_GetRamMirrorBlob(), job_blob, ParamH_BlobSize);
+		ParamH_ApplyToGlobals(&ParamH_GetRamMirrorBlob()->p);
+		Nvm_WriteBlock(NVM_BLOCKID_PARAMH, (uint32_t*)ParamH_GetRamMirrorBlob());
+
+		ParamH_SendPos(job_reqid, 0xABu);
+		job_active = 0u;
+	}
+
+	uint32_t reqid;
+	uint16_t len;
+	uint8_t  uds[512];
+
+	if (!ParamH_IsoTpRx_Pop(&reqid, uds, &len))
+		return;
+
+	/* only extended session */
+	if (3u != Dcm_ActiveSessionState)
+	{
+		ParamH_SendNrc(reqid, 0x31u, 0x7Eu); /* subfunction not supported in active session */
+		return;
+	}
+
+	/* must be 31 01 01 AA/AB */
+	if (len < 4u || uds[0] != 0x31u || uds[1] != 0x01u || uds[2] != 0x01u)
+	{
+		ParamH_SendNrc(reqid, 0x31u, 0x13u); /* incorrect length/format */
+		return;
+	}
+
+	uint8_t ridLo = uds[3];
+
+	if (ridLo == 0xAAu)
+	{
+		/* build: 71 01 01 AA + blob (multi-frame response) */
+		uint8_t out[4u + 512u];
+		uint16_t outLen = (uint16_t)(4u + ParamH_BlobSize);
+
+		out[0] = 0x71u; out[1] = 0x01u; out[2] = 0x01u; out[3] = 0xAAu;
+		memcpy(&out[4], ParamH_GetRamMirrorBlob(), ParamH_BlobSize);
+
+		(void)Dcm_IsoTp_Send(reqid, out, outLen, 0x55u, 1u);
+		return;
+	}
+
+	if (ridLo == 0xABu)
+	{
+		/* write: expects blob after 31 01 01 AB */
+		if (len != (uint16_t)(4u + ParamH_BlobSize))
+		{
+			ParamH_SendNrc(reqid, 0x31u, 0x13u);
+			return;
+		}
+
+		if (!ParamH_ValidateBlob(&uds[4]))
+		{
+			ParamH_SendNrc(reqid, 0x31u, 0x31u); /* request out of range */
+			return;
+		}
+
+		/* async: reply pending now, commit next tick */
+		ParamH_SendNrc(reqid, 0x31u, 0x78u); /* response pending */
+
+		job_reqid = reqid;
+		memcpy(job_blob, &uds[4], ParamH_BlobSize);
+		job_active = 1u;
+		return;
+	}
+
+	ParamH_SendNrc(reqid, 0x31u, 0x12u); /* subfunction not supported */
+}
+
+bool ParamH_HandleRoutine_0101AA_Read(uint32_t req_canid)
+{
+	uint8_t payload[4u + sizeof(ParamH_Blob_t)];
+	uint16_t idx = 0u;
+
+	/* 0x71 response, routine status record follows */
+	payload[idx++] = 0x71u;
+	payload[idx++] = 0x01u; /* subfunction echo */
+	payload[idx++] = 0x01u; /* routineId hi */
+	payload[idx++] = 0xAAu; /* routineId lo */
+
+	/* always send the RAM mirror (current effective values) */
+	memcpy(&payload[idx], &ParamH_RamMirror, sizeof(ParamH_Blob_t));
+	idx = (uint16_t)(idx + sizeof(ParamH_Blob_t));
+
+	return Dcm_IsoTp_Send(req_canid, payload, idx, 0x55u, 1u);
+}
+
+bool ParamH_HandleRoutine_0101AB_Write(uint32_t req_canid, const uint8_t *uds, uint16_t uds_len)
+{
+	/* uds points to SID=0x31 ... (NO ISO-TP PCI bytes), len is full UDS payload length */
+
+	/* minimal format check: 31 01 01 AB + blob */
+	if (uds_len < 4u + sizeof(ParamH_Blob_t)) return false;
+	if (uds[0] != 0x31u || uds[1] != 0x01u || uds[2] != 0x01u || uds[3] != 0xABu) return false;
+
+	const ParamH_Blob_t *in = (const ParamH_Blob_t*)&uds[4];
+
+	if (!ParamH_Validate(in)) return false;
+
+	ParamH_RamMirror = *in;
+	ParamH_ApplyToGlobals(&ParamH_RamMirror.p);
+
+	Nvm_WriteBlock(NVM_BLOCKID_PARAMH, (uint32_t*)&ParamH_RamMirror);
+
+	/* positive response */
+	uint8_t resp[5] = {0x71u, 0x01u, 0x01u, 0xABu, 0x00u};
+	return Dcm_IsoTp_Send(req_canid, resp, (uint16_t)sizeof(resp), 0x00u, 1u);
+}

@@ -1,0 +1,253 @@
+#include "ParamH.h"
+#include "SMon.h"
+#include "Dcm.h"
+#include "Nvm.h"
+#include <string.h>
+
+/* =====================================================================
+ * Local constants / macros
+ * ===================================================================== */
+#define PARAMH_HEADER_PATTERN  0xA5A5A5A5u
+#define PARAMH_VALID_PATTERN   0xDEADBEEFu
+
+/* =====================================================================
+ * Static data
+ * ===================================================================== */
+static uint8_t  ParamH_RamMirrorBlob[sizeof(
+    SMon_P_Rtcntmax           + SMon_P_CLSTime + SMon_P_WaitTimeOVUV +
+    SMon_P_WaitTimeCPC        + SMon_P_I2TDecrementPercentFactor +
+    SMon_P_ClsFailureWaitTime + SMon_P_DischargeTimeCycles +
+    SMon_P_LowVoltage         + SMon_P_UV_KL30 + SMon_P_OV_KL30 +
+    SMon_P_UV_CLS             + SMon_P_Varef + SMon_P_Vrefint +
+    SMon_P_ADC_MaxValue       + SMon_P_NTC_PullUp_ResistorVale +
+    SMon_P_BetaConst          + SMon_P_LongDischargeTimeCycles +
+    SMon_P_LowDisTimeCyc      + SMon_P_PeakCurrent + SMon_P_NoLoad_ISense +
+    SMon_P_VFB_T30_TwoPointCalibration_ParamA +
+    SMon_P_VFB_T30_TwoPointCalibration_ParamB +
+    SMon_P_VFB_L1_TwoPointCalibration_ParamA +
+    SMon_P_VFB_L1_TwoPointCalibration_ParamB +
+    SMon_P_NTC_L1_TwoPointCalibration_ParamA +
+    SMon_P_NTC_L1_TwoPointCalibration_ParamB +
+    SMon_P_ISense_L1_TwoPointCalibration_ParamA +
+    SMon_P_ISense_L1_TwoPointCalibration_ParamB +
+    SMon_P_ISenseNominal + SMon_P_I2TRating +
+    SMon_P_RoomTempKelvin + SMon_P_VoltsAt25 + SMon_P_AvgSlope +
+    SMon_P_RoomTemperature + SMon_P_Sens3V3 + SMon_P_ConvFacISense +
+    SMon_P_Kelvin + SMon_P_VoltageDivider + SMon_P_AlphaFilter +
+    SMon_P_L1Correction + SMon_P_TwoPointCalib_ConvFacISense +
+    SMon_P_TwoPointCalib_NoLoad_ISense + SMon_P_ExternalChargerThreshold +
+    SMon_P_StatusVoltageL1Filter )];
+
+/* runtime flags */
+static uint8_t  ParamH_PendingRead  = 0u;
+static uint8_t  ParamH_PendingWrite = 0u;
+static uint32_t ParamH_Header       = 0u;
+
+/* =====================================================================
+ * Local helpers
+ * ===================================================================== */
+
+/* Build blob from globals */
+static void ParamH_FillBlob(void)
+{
+    uint8_t *p = ParamH_RamMirrorBlob;
+
+#define COPY_TO_BLOB(var) memcpy(p, &(var), sizeof(var)); p += sizeof(var)
+
+    COPY_TO_BLOB(SMon_P_Rtcntmax);
+    COPY_TO_BLOB(SMon_P_CLSTime);
+    COPY_TO_BLOB(SMon_P_WaitTimeOVUV);
+    COPY_TO_BLOB(SMon_P_WaitTimeCPC);
+    COPY_TO_BLOB(SMon_P_I2TDecrementPercentFactor);
+    COPY_TO_BLOB(SMon_P_ClsFailureWaitTime);
+    COPY_TO_BLOB(SMon_P_DischargeTimeCycles);
+    COPY_TO_BLOB(SMon_P_LowVoltage);
+    COPY_TO_BLOB(SMon_P_UV_KL30);
+    COPY_TO_BLOB(SMon_P_OV_KL30);
+    COPY_TO_BLOB(SMon_P_UV_CLS);
+    COPY_TO_BLOB(SMon_P_Varef);
+    COPY_TO_BLOB(SMon_P_Vrefint);
+    COPY_TO_BLOB(SMon_P_ADC_MaxValue);
+    COPY_TO_BLOB(SMon_P_NTC_PullUp_ResistorVale);
+    COPY_TO_BLOB(SMon_P_BetaConst);
+    COPY_TO_BLOB(SMon_P_LongDischargeTimeCycles);
+    COPY_TO_BLOB(SMon_P_LowDisTimeCyc);
+    COPY_TO_BLOB(SMon_P_PeakCurrent);
+    COPY_TO_BLOB(SMon_P_NoLoad_ISense);
+    COPY_TO_BLOB(SMon_P_VFB_T30_TwoPointCalibration_ParamA);
+    COPY_TO_BLOB(SMon_P_VFB_T30_TwoPointCalibration_ParamB);
+    COPY_TO_BLOB(SMon_P_VFB_L1_TwoPointCalibration_ParamA);
+    COPY_TO_BLOB(SMon_P_VFB_L1_TwoPointCalibration_ParamB);
+    COPY_TO_BLOB(SMon_P_NTC_L1_TwoPointCalibration_ParamA);
+    COPY_TO_BLOB(SMon_P_NTC_L1_TwoPointCalibration_ParamB);
+    COPY_TO_BLOB(SMon_P_ISense_L1_TwoPointCalibration_ParamA);
+    COPY_TO_BLOB(SMon_P_ISense_L1_TwoPointCalibration_ParamB);
+    COPY_TO_BLOB(SMon_P_ISenseNominal);
+    COPY_TO_BLOB(SMon_P_I2TRating);
+    COPY_TO_BLOB(SMon_P_RoomTempKelvin);
+    COPY_TO_BLOB(SMon_P_VoltsAt25);
+    COPY_TO_BLOB(SMon_P_AvgSlope);
+    COPY_TO_BLOB(SMon_P_RoomTemperature);
+    COPY_TO_BLOB(SMon_P_Sens3V3);
+    COPY_TO_BLOB(SMon_P_ConvFacISense);
+    COPY_TO_BLOB(SMon_P_Kelvin);
+    COPY_TO_BLOB(SMon_P_VoltageDivider);
+    COPY_TO_BLOB(SMon_P_AlphaFilter);
+    COPY_TO_BLOB(SMon_P_L1Correction);
+    COPY_TO_BLOB(SMon_P_TwoPointCalib_ConvFacISense);
+    COPY_TO_BLOB(SMon_P_TwoPointCalib_NoLoad_ISense);
+    COPY_TO_BLOB(SMon_P_ExternalChargerThreshold);
+    COPY_TO_BLOB(SMon_P_StatusVoltageL1Filter);
+
+#undef COPY_TO_BLOB
+}
+
+/* Write blob data back to globals */
+static void ParamH_ApplyBlob(const uint8_t *blob)
+{
+    const uint8_t *p = blob;
+
+#define COPY_FROM_BLOB(var) memcpy(&(var), p, sizeof(var)); p += sizeof(var)
+
+    COPY_FROM_BLOB(SMon_P_Rtcntmax);
+    COPY_FROM_BLOB(SMon_P_CLSTime);
+    COPY_FROM_BLOB(SMon_P_WaitTimeOVUV);
+    COPY_FROM_BLOB(SMon_P_WaitTimeCPC);
+    COPY_FROM_BLOB(SMon_P_I2TDecrementPercentFactor);
+    COPY_FROM_BLOB(SMon_P_ClsFailureWaitTime);
+    COPY_FROM_BLOB(SMon_P_DischargeTimeCycles);
+    COPY_FROM_BLOB(SMon_P_LowVoltage);
+    COPY_FROM_BLOB(SMon_P_UV_KL30);
+    COPY_FROM_BLOB(SMon_P_OV_KL30);
+    COPY_FROM_BLOB(SMon_P_UV_CLS);
+    COPY_FROM_BLOB(SMon_P_Varef);
+    COPY_FROM_BLOB(SMon_P_Vrefint);
+    COPY_FROM_BLOB(SMon_P_ADC_MaxValue);
+    COPY_FROM_BLOB(SMon_P_NTC_PullUp_ResistorVale);
+    COPY_FROM_BLOB(SMon_P_BetaConst);
+    COPY_FROM_BLOB(SMon_P_LongDischargeTimeCycles);
+    COPY_FROM_BLOB(SMon_P_LowDisTimeCyc);
+    COPY_FROM_BLOB(SMon_P_PeakCurrent);
+    COPY_FROM_BLOB(SMon_P_NoLoad_ISense);
+    COPY_FROM_BLOB(SMon_P_VFB_T30_TwoPointCalibration_ParamA);
+    COPY_FROM_BLOB(SMon_P_VFB_T30_TwoPointCalibration_ParamB);
+    COPY_FROM_BLOB(SMon_P_VFB_L1_TwoPointCalibration_ParamA);
+    COPY_FROM_BLOB(SMon_P_VFB_L1_TwoPointCalibration_ParamB);
+    COPY_FROM_BLOB(SMon_P_NTC_L1_TwoPointCalibration_ParamA);
+    COPY_FROM_BLOB(SMon_P_NTC_L1_TwoPointCalibration_ParamB);
+    COPY_FROM_BLOB(SMon_P_ISense_L1_TwoPointCalibration_ParamA);
+    COPY_FROM_BLOB(SMon_P_ISense_L1_TwoPointCalibration_ParamB);
+    COPY_FROM_BLOB(SMon_P_ISenseNominal);
+    COPY_FROM_BLOB(SMon_P_I2TRating);
+    COPY_FROM_BLOB(SMon_P_RoomTempKelvin);
+    COPY_FROM_BLOB(SMon_P_VoltsAt25);
+    COPY_FROM_BLOB(SMon_P_AvgSlope);
+    COPY_FROM_BLOB(SMon_P_RoomTemperature);
+    COPY_FROM_BLOB(SMon_P_Sens3V3);
+    COPY_FROM_BLOB(SMon_P_ConvFacISense);
+    COPY_FROM_BLOB(SMon_P_Kelvin);
+    COPY_FROM_BLOB(SMon_P_VoltageDivider);
+    COPY_FROM_BLOB(SMon_P_AlphaFilter);
+    COPY_FROM_BLOB(SMon_P_L1Correction);
+    COPY_FROM_BLOB(SMon_P_TwoPointCalib_ConvFacISense);
+    COPY_FROM_BLOB(SMon_P_TwoPointCalib_NoLoad_ISense);
+    COPY_FROM_BLOB(SMon_P_ExternalChargerThreshold);
+    COPY_FROM_BLOB(SMon_P_StatusVoltageL1Filter);
+
+#undef COPY_FROM_BLOB
+}
+
+/* Basic range validation stub */
+static bool ParamH_ValidateBlob(const uint8_t *blob)
+{
+    (void)blob;
+    return true; /* extend with real checks if needed */
+}
+
+/* =====================================================================
+ * Public functions
+ * ===================================================================== */
+void ParamH_init(void)
+{
+    ParamH_Header = PARAMH_HEADER_PATTERN;
+
+    /* Try reading from NVM */
+    Nvm_ReadAll();
+
+    /* You could verify CRC or header here if stored */
+    if (ParamH_Header != PARAMH_HEADER_PATTERN)
+    {
+        /* Defaults already in SMon globals */
+    }
+
+    ParamH_FillBlob();
+}
+
+void ParamH_main(void)
+{
+    if (ParamH_PendingRead)
+    {
+        ParamH_PendingRead = 0u;
+        ParamH_FillBlob();
+
+        Dcm_SendIsoTpResponse(0x71u, PARAMH_ROUTINE_READ_ID,
+                              ParamH_RamMirrorBlob, sizeof(ParamH_RamMirrorBlob));
+    }
+
+    if (ParamH_PendingWrite)
+    {
+        ParamH_PendingWrite = 0u;
+        ParamH_ApplyBlob(ParamH_RamMirrorBlob);
+        Nvm_WriteAll();
+
+        Dcm_SendIsoTpResponse(0x71u, PARAMH_ROUTINE_WRITE_ID, NULL, 0u);
+    }
+}
+
+/* Called by DCM when new RoutineControl request arrives */
+void ParamH_ProcessRoutine(uint8_t routineId, const uint8_t *data, uint16_t len)
+{
+    switch (routineId)
+    {
+        case PARAMH_ROUTINE_READ_ID:
+        {
+            ParamH_PendingRead = 1u;
+            break;
+        }
+
+        case PARAMH_ROUTINE_WRITE_ID:
+        {
+            if ((data != NULL) && (len == sizeof(ParamH_RamMirrorBlob)))
+            {
+                if (ParamH_ValidateBlob(data))
+                {
+                    memcpy(ParamH_RamMirrorBlob, data, len);
+                    ParamH_PendingWrite = 1u;
+                }
+                else
+                {
+                    Dcm_SendNegResponse(0x31u, 0x13u); /* Invalid data */
+                }
+            }
+            else
+            {
+                Dcm_SendNegResponse(0x31u, 0x13u);
+            }
+            break;
+        }
+
+        default:
+            Dcm_SendNegResponse(0x31u, 0x12u); /* Subfunction not supported */
+            break;
+    }
+}
+
+uint8_t *ParamH_GetRamMirrorBlob(void)
+{
+    return ParamH_RamMirrorBlob;
+}
+
+uint32_t ParamH_GetBlobSize(void)
+{
+    return sizeof(ParamH_RamMirrorBlob);
+}

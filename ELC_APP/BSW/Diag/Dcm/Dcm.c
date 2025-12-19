@@ -36,7 +36,7 @@ uint8_t Dcm_SWV[4u] = {20u, 20u, 0xFFu, 0xFFu};
 uint8_t Dcm_LoadStatus;
 uint8_t Dcm_CC = 0u;
 uint8_t Dcm_CDTCS = 0u;
-uint32_t Dcm_SessionCounter = 1000u;
+uint32_t Dcm_SessionCounter = 2000u;
 uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 uint32_t Dcm_MainCounter = 0u;
 uint32_t Dcm_TxMailbox = 0;
@@ -57,7 +57,6 @@ extern uint32_t SMon_Vrefint_RMS_5s;
 extern uint32_t SMon_Vrefint_RMS_10s;
 extern uint32_t SMon_McuTemp_RMS_5s;
 extern uint32_t SMon_McuTemp_RMS_10s;
-extern uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
 extern uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
@@ -66,6 +65,7 @@ extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 extern float OS_XCP_CpuLoad;
 extern uint8_t Dem_DTC_Stat[24u];
 extern const uint32_t Dem_PreDefined_DTC_Table[24u];
+extern volatile uint8_t CanH_VehicleStatus;
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
@@ -93,10 +93,56 @@ void Dcm_CDTCI();
 void Dcm_RDTCI();
 void Dcm_RequestSeed();
 void Dcm_SendKey();
+void Dcm_RDBI_ReadActiveDiagnosticSession();
+void Dcm_RDBI_ReadActiveSoftwareBlock();
 uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level);
 void SecCalcKeyFromSeed(const uint8_t *seedBytes, uint8_t *keyBytes, uint8_t seedLen, uint8_t level);
 static HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId,uint8_t *data,uint8_t len);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
+void Dcm_RDBI_ReadActiveSoftwareBlock()
+{
+	Dcm_TxData[0u] = rx[0u] + 1;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = 0x01u;;
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_RDBI_ReadActiveDiagnosticSession()
+{
+	Dcm_TxData[0u] = rx[0u] + 1;
+	Dcm_TxData[1u] = rx[1u] + 0x40u;
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = Dcm_ActiveSessionState;
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
 
 uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level)
 {
@@ -245,9 +291,12 @@ void Dcm_CDTCI()
 
 	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
 
-	for(uint8_t i = 0; i < sizeof(Dem_DTC_Stat); i++) Dem_DTC_Stat[i] = 0x50;
+	for(uint8_t i = 0; i < sizeof(Dem_DTC_Stat); i++)
+	{
+		Dem_DTC_Stat[i] = 0x50;
+	}
 
-	HAL_Delay(4);
+	Nvm_WriteBlock(1u, (uint32_t*)&Dem_DTC_Stat[0u]);
 
 	Dcm_TxData[0u] = rx[0u];
 	Dcm_TxData[1u] = rx[1u] + 0x40u;
@@ -285,11 +334,18 @@ void Dcm_RDTCI()
 		uint8_t st = Dem_DTC_Stat[i];
 		uint32_t dtc = Dem_PreDefined_DTC_Table[i];
 
-		spayload[slen + 0u] = st; /* status byte */
-		spayload[slen + 1u] = (uint8_t)(dtc >> 16);
-		spayload[slen + 2u] = (uint8_t)(dtc >> 8);
-		spayload[slen + 3u] = (uint8_t)(dtc);
-		slen += 4u;
+		if(0x50u != st)
+		{
+			spayload[slen + 0u] = st; /* status byte */
+			spayload[slen + 1u] = (uint8_t)(dtc >> 16);
+			spayload[slen + 2u] = (uint8_t)(dtc >> 8);
+			spayload[slen + 3u] = (uint8_t)(dtc);
+			slen += 4u;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
 	}
 
 	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, spayload, slen, 0x00u, 0u);
@@ -401,28 +457,6 @@ void Dcm_RDBI_ResetCounter()
 	Dcm_TxData[5u] = (uint8_t)(EcuM_ResetCounter >> 8u);
 	Dcm_TxData[6u] = (uint8_t)(EcuM_ResetCounter >> 16u);
 	Dcm_TxData[7u] = (uint8_t)(EcuM_ResetCounter >> 24u);
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_TimeInSleep()
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-	Dcm_TxData[4u] = (uint8_t)(EcuM_TimeInSleep);
-	Dcm_TxData[5u] = (uint8_t)(EcuM_TimeInSleep >> 8u);
-	Dcm_TxData[6u] = (uint8_t)(EcuM_TimeInSleep >> 16u);
-	Dcm_TxData[7u] = (uint8_t)(EcuM_TimeInSleep >> 24u);
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
 
@@ -1045,7 +1079,6 @@ void Dcm_RC_HealSupply()
 
 void Dcm_main()
 {
-	/* Atomic snapshot of pending request */
 	__disable_irq();
 
 	if (Dcm_RequestPending)
@@ -1139,18 +1172,12 @@ void Dcm_main()
 
 	if(0x22u == rx[1u])
 	{
-
 		switch(rx[3u])
 		{
 
 		case 0x01u:
 
 			Dcm_RDBI_ResetCounter();
-
-			break;
-		case 0x02u:
-
-			Dcm_RDBI_TimeInSleep();
 
 			break;
 		case 0x03u:
@@ -1178,6 +1205,18 @@ void Dcm_main()
 			Dcm_ReadSWV();
 
 			break;
+
+		case 0x7Eu:
+
+			Dcm_RDBI_ReadActiveDiagnosticSession();
+
+			break;
+
+		case 0x7Fu:
+
+			Dcm_RDBI_ReadActiveSoftwareBlock();
+
+			break;
 		default:
 
 			Dcm_SendNrc();
@@ -1185,7 +1224,6 @@ void Dcm_main()
 			break;
 
 		}
-
 	}
 	else
 	{
@@ -1210,11 +1248,11 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0x02 == rx[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus) && 3u == Dcm_ActiveSessionState)
+	if(0x02 == rx[2u] && (0u == SMon_CmdStat && 0u == Dcm_LoadStatus) && 3u == Dcm_ActiveSessionState && (1u == g_sec_unlocked) && 6u == CanH_VehicleStatus)
 	{
 		Dcm_ProgrammingSession();
 	}
-	else if(0x02 == rx[2u] && (1u == SMon_CmdStat || 1u == Dcm_LoadStatus))
+	else if(0x02 == rx[2u] && ((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) || 3u != Dcm_ActiveSessionState || 0u == g_sec_unlocked || 6u != CanH_VehicleStatus))
 	{
 		Dcm_SendNrc();
 	}

@@ -26,25 +26,29 @@ Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 {
 		{0u, 0u, 0u, 0u}, // block 0 dummy not used
-		{1u, 24u, 0u, 0u}
+		{1u, 17u, 0u, 0u},
+		//{2u, sizeof(ParamH_Blob_t), 0u, 0u} // ParamH
 };
 
 Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
 {
 		{0u, 0u, 0u}, // block 0 dummy not used
-		{24u, 0u, 0u,},
+		{17u, 0u, 0u,},
+		//{sizeof(ParamH_Blob_t), 0u, 0u}
 };
 
 Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =
 {
 		{0u, 0u}, // block 0 dummy not used
 		{(uint32_t*)&Dem_DTC_Stat, 0u},
+		//{(uint32_t*)&ParamH_RamMirror, 0u}
 };
 
 Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS] =
 {
 		{0u, 0u}, // block 0 dummy not used
 		{(uint32_t*)&Dem_DTC_Stat, 0u},
+		//{(uint32_t*)&ParamH_RamMirror, 0u}
 };
 
 uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u};

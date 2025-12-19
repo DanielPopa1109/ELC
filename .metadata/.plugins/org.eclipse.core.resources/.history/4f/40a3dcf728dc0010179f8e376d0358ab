@@ -1,0 +1,33 @@
+#ifndef PARAMH_H
+#define PARAMH_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+/* =====================================================================
+ * ParamH - Parameter Handler
+ * Handles read/write of system parameters via DCM routines
+ * 0x31 01 01 AA  -> Read all parameters (ISO-TP)
+ * 0x31 01 01 AB  -> Write all parameters (ISO-TP)
+ * ===================================================================== */
+
+#define PARAMH_ROUTINE_READ_ID   0xAAu
+#define PARAMH_ROUTINE_WRITE_ID  0xABu
+
+/* Return status */
+typedef enum
+{
+    PARAMH_OK = 0u,
+    PARAMH_ERR_INVALID = 1u,
+    PARAMH_ERR_RANGE   = 2u,
+    PARAMH_ERR_SESSION = 3u
+} ParamH_Status_t;
+
+/* External API */
+void     ParamH_init(void);
+void     ParamH_main(void);
+void     ParamH_ProcessRoutine(uint8_t routineId, const uint8_t *data, uint16_t len);
+uint8_t *ParamH_GetRamMirrorBlob(void);
+uint32_t ParamH_GetBlobSize(void);
+
+#endif /* PARAMH_H */

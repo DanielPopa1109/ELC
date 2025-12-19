@@ -39,6 +39,7 @@ uint8_t OS_IdleIndex = 0;
 volatile uint32_t oscnt;
 uint32_t ulTotalRunTime = {0};
 uint32_t localTaskCounter = 0;
+uint8_t OS_XCP_U8_CPU_Load = 0u;
 float OS_XCP_CpuLoad = 0;
 float OS_IdleRunTime = 0;
 float OS_DeltaIdleRunTime = 0;
@@ -158,12 +159,19 @@ void vApplicationIdleHook( void )
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN 3 */
-
+extern uint8_t EcuM_SWState;
 void vApplicationTickHook( void )
 {
 	oscnt++;
 
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
+	if(EcuM_SWState < 3)
+	{
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
 }
 
 /* USER CODE END 3 */
@@ -267,6 +275,7 @@ void QM_APPL_TASK(void *argument)
 		HAL_GPIO_WritePin(ALL_RUNTIME_MEAS_GPIO_Port, ALL_RUNTIME_MEAS_Pin, 1u);
 
 		SMon_main();
+		ParamH_main();
 
 		vTaskSuspend(NULL);
 	}
@@ -322,6 +331,7 @@ void CPULOAD_OS_TASK(void *argument)
 		if(localTaskCounter % 12 == 0 && 0u != localTaskCounter)
 		{
 			OS_XCP_CpuLoad = OS_AverageCpuLoad / 12; /* Calculate CPU load value every 480 milliseconds. */
+			OS_XCP_U8_CPU_Load = (uint8_t)OS_XCP_CpuLoad;
 			OS_AverageCpuLoad = 0;
 		}
 		else

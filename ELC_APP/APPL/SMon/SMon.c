@@ -96,48 +96,51 @@ uint32_t SMon_McuTemp_RMS_10s;
 float SMon_NTC_Temperature_L1;
 float SMon_ISenseL1_Float;
 float SMon_PeakCurrent;
-const uint8_t SMon_P_Rtcntmax = 10u; // Retry Counter Parameter
-const uint8_t SMon_P_CLSTime = 22u; // CLS Duration Parameter
-const uint8_t SMon_P_WaitTimeOVUV = 60u; // OV UV De-bounce Time Parameter
-const uint8_t SMon_P_WaitTimeCPC = 10u; // Wait Before Changing States For CPC Parameter
-const uint8_t SMon_P_I2TDecrementPercentFactor = 85u; // Cooling Off Factor Parameter
-const uint16_t SMon_P_ClsFailureWaitTime = 300u; // Wait Time Between CLS Retries Parameter
-const uint16_t SMon_P_DischargeTimeCycles = 50600u; // ~50% Starting Voltage Discharge Time Parameter
-const uint16_t SMon_P_LowVoltage = 800u; // 5TAU / Maximum Discharge Voltage Threshold Parameter
-const uint16_t SMon_P_UV_KL30 = 7000u; // UV KL30 TH Parameter
-const uint16_t SMon_P_OV_KL30 = 17000u; // OV KL30 TH Parameter
-const uint16_t SMon_P_UV_CLS = 1633u; // Threshold For CLS OUT To Be After 5ms Parameter
-const uint16_t SMon_P_Varef = 3300u;
-const uint16_t SMon_P_Vrefint = 1200u;
-const uint16_t SMon_P_ADC_MaxValue = 4095u;
-const uint16_t SMon_P_NTC_PullUp_ResistorVale = 10000u;
-const uint16_t SMon_P_BetaConst = 3950u;
-const uint32_t SMon_P_LongDischargeTimeCycles = 1044000u; // Maximum Discharge Time Parameter
-const uint32_t SMon_P_LowDisTimeCyc = 420000u; // 2TAU Discharge Time Parameter
-const uint32_t SMon_P_PeakCurrent = 60000u;
-const uint32_t SMon_P_NoLoad_ISense = 391u;
-const float SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.12348f;
-const float SMon_P_VFB_T30_TwoPointCalibration_ParamB = 21.93f;
-const float SMon_P_VFB_L1_TwoPointCalibration_ParamA = 8.0645f;
-const float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.0645f;
-const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 0; //todo
-const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 0; //todo
-const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 352; // mV sensor output at 1.2A
-const uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 151; // mV sensor output at 8.8A
-const float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
-const float SMon_P_I2TRating = 1640; // I2T Rating Parameter
-const float SMon_P_RoomTempKelvin = 298.15f;
-const float SMon_P_VoltsAt25 = 1430.0f;
-const float SMon_P_AvgSlope = 4.30f;
-const float SMon_P_RoomTemperature = 25.0f;
-const float SMon_P_Sens3V3 = 26.4f; // 40 * 3300 / 5000 = mV / A
-const float SMon_P_ConvFacISense = 37.88f; // 1000 / 26.4 = mA / mV
-const float SMon_P_Kelvin = 273.15f;
-const float SMon_P_VoltageDivider = 10.10f;
-const float SMon_P_AlphaFilter = 0.075f;
-const uint8_t SMon_P_L1Correction = 180.0f;
-const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) / (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
-const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+uint8_t SMon_P_Rtcntmax = 10u; // Retry Counter Parameter
+uint8_t SMon_P_CLSTime = 22u; // CLS Duration Parameter
+uint8_t SMon_P_WaitTimeOVUV = 60u; // OV UV De-bounce Time Parameter
+uint8_t SMon_P_WaitTimeCPC = 10u; // Wait Before Changing States For CPC Parameter
+uint8_t SMon_P_I2TDecrementPercentFactor = 85u; // Cooling Off Factor Parameter
+uint16_t SMon_P_ClsFailureWaitTime = 300u; // Wait Time Between CLS Retries Parameter
+uint32_t SMon_P_DischargeTimeCycles = 132000u; // ~50% Starting Voltage Discharge Time Parameter
+uint16_t SMon_P_LowVoltage = 800u; // 5TAU / Maximum Discharge Voltage Threshold Parameter
+uint16_t SMon_P_UV_KL30 = 7000u; // UV KL30 TH Parameter
+uint16_t SMon_P_OV_KL30 = 17000u; // OV KL30 TH Parameter
+uint16_t SMon_P_UV_CLS = 1633u; // Threshold For CLS OUT To Be After 5ms Parameter
+uint16_t SMon_P_Varef = 3300u;
+uint16_t SMon_P_Vrefint = 1200u;
+uint16_t SMon_P_ADC_MaxValue = 4095u;
+uint16_t SMon_P_NTC_PullUp_ResistorVale = 10000u;
+uint16_t SMon_P_BetaConst = 3950u;
+uint32_t SMon_P_LongDischargeTimeCycles = 460400; // Maximum Discharge Time Parameter
+uint32_t SMon_P_LowDisTimeCyc = 229600; // 2TAU Discharge Time Parameter
+uint32_t SMon_P_PeakCurrent = 60000u;
+uint32_t SMon_P_NoLoad_ISense = 391u;
+float SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.12348f;
+float SMon_P_VFB_T30_TwoPointCalibration_ParamB = 21.93f;
+float SMon_P_VFB_L1_TwoPointCalibration_ParamA = 8.0645f;
+float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.0645f;
+uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u; // R0_cal in ohms
+uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u;  // Beta_cal in K
+uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamA = 352; // mV sensor output at 1.2A
+uint32_t SMon_P_ISense_L1_TwoPointCalibration_ParamB = 151; // mV sensor output at 8.8A
+float SMon_P_ISenseNominal = 10.5; // Nominal Current Parameter
+float SMon_P_I2TRating = 1640; // I2T Rating Parameter
+float SMon_P_RoomTempKelvin = 298.15f;
+float SMon_P_VoltsAt25 = 1430.0f;
+float SMon_P_AvgSlope = 4.30f;
+float SMon_P_RoomTemperature = 25.0f;
+float SMon_P_Sens3V3 = 26.4f; // 40 * 3300 / 5000 = mV / A
+float SMon_P_ConvFacISense = 37.88f; // 1000 / 26.4 = mA / mV
+float SMon_P_Kelvin = 273.15f;
+float SMon_P_VoltageDivider = 10.10f;
+float SMon_P_AlphaFilter = 0.075f;
+uint8_t SMon_P_L1Correction = 180.0f;
+float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) / (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
+float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+float SMon_P_ExternalChargerThreshold = -1.0f;
+uint8_t SMon_P_StatusVoltageL1Filter = 250u;
+
 extern uint8_t Dcm_LoadStatus;
 
 static uint32_t SMon_UpdateHistWindow(SMon_HistWindow* hw, uint32_t new_v);
@@ -327,7 +330,7 @@ static void SMon_ProcessShortToPlusTest(void)
 	static uint32_t localLowDisTimer = 0u; // very low voltage discharge counter
 	static uint32_t localS2BCounter = 0u; // longer case discharge time counter
 
-	if(1u != SMon_CmdStat)
+	if(1u != SMon_RequestPhysicalStatus)
 	{
 		if(0u == SMon_ShortToPlusTest)
 		{
@@ -338,7 +341,7 @@ static void SMon_ProcessShortToPlusTest(void)
 			/* Do nothing. */
 		}
 	}
-	else if(1u == SMon_CmdStat)
+	else if(1u == SMon_RequestPhysicalStatus)
 	{
 		SMon_ShortToPlusTest = 0u; // reset short to plus test status
 		localDischargeTimer = 0u; // reset normal discharge counter
@@ -408,7 +411,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if((SMon_VfbT30 * 3 / 10) <= SMon_VfbL1)
 					{
-						Dem_SetDtc(0x52, 0x2f);
+						Dem_SetDtc(0x5f, 0x2f);
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 2u;
 					}
@@ -426,7 +429,7 @@ static void SMon_ProcessShortToPlusTest(void)
 
 						if(0x2f == Dem_GetDtcStatus(0x52u))
 						{
-							Dem_SetDtc(0x52, 0x2e);
+							Dem_SetDtc(0x5f, 0x2e);
 						}
 						else
 						{
@@ -447,7 +450,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if(SMon_P_LowVoltage <= SMon_VfbL1)
 					{
-						Dem_SetDtc(0x52, 0x2f);
+						Dem_SetDtc(0x60, 0x2f);
 						SMon_S2BErrorStatus = 3u;
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 					}
@@ -465,7 +468,7 @@ static void SMon_ProcessShortToPlusTest(void)
 
 						if(0x2f == Dem_GetDtcStatus(0x52u))
 						{
-							Dem_SetDtc(0x52, 0x2e);
+							Dem_SetDtc(0x60, 0x2e);
 						}
 						else
 						{
@@ -495,15 +498,22 @@ static void SMon_ProcessShortToPlusTest(void)
 
 static void SMon_ProcessLoadCurrentState(void)
 {
-	SMon_T30P50 = ((SMon_VfbT30 * 5u) / 10u); // get 50% of T30
+	SMon_T30P50 = (SMon_VfbT30 * 5u) / 10u;  // 50% of T30 = 6300
 
-	if(SMon_VfbL1 >= SMon_T30P50)
+	uint32_t thresh_on  = SMon_T30P50 + SMon_P_StatusVoltageL1Filter;  // 6300 + 250 = 6550
+	uint32_t thresh_off = SMon_T30P50 - SMon_P_StatusVoltageL1Filter;  // 6300 - 250 = 6050
+
+	if((SMon_L1ST == 0u) && (SMon_VfbL1 >= thresh_on))
 	{
 		SMon_L1ST = 1u;
 	}
-	else
+	else if ((SMon_L1ST == 1u) && (SMon_VfbL1 <= thresh_off))
 	{
 		SMon_L1ST = 0u;
+	}
+	else
+	{
+		/* Do nothing. */
 	}
 
 	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus) && 0u == SMon_CLS_Failure && 0u == SMon_L1_UVStatus)
@@ -623,7 +633,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 		}
 	}
 
-	if(-2.55f > SMon_ISenseL1_Float)
+	if(SMon_P_ExternalChargerThreshold > SMon_ISenseL1_Float)
 	{
 		if(0u == localTimeStamp2)
 		{
@@ -635,24 +645,45 @@ static void SMon_ProcessLoadErrorStatus(void)
 			{
 				SMon_ExternalChargerDetected = 1u;
 				SMon_RequestPhysicalStatus = 1u;
+
 				Dem_SetDtc(0x59u, 0x2f);
+
+				localTimeStamp2 = 0;
 			}
 			else
 			{
-				SMon_ExternalChargerDetected = 0u;
+				/* Do nothing. */
 			}
 		}
 	}
 	else
 	{
-		SMon_ExternalChargerDetected = 0u;
-		if(0x2f == Dem_GetDtcStatus(0x59u))
+		if(0u == localTimeStamp2)
 		{
-			Dem_SetDtc(0x59u, 0x2e);
+			localTimeStamp2 = SMon_MainCnt;
 		}
 		else
 		{
-			/* Do nothing. */
+			if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp2))
+			{
+				SMon_ExternalChargerDetected = 0u;
+
+				if(0x2f == Dem_GetDtcStatus(0x59u))
+				{
+					Dem_SetDtc(0x59u, 0x2e);
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+
+				localTimeStamp2 = 0;
+
+			}
+			else
+			{
+				/* Do nothing. */
+			}
 		}
 	}
 
