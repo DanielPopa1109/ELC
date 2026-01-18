@@ -1,0 +1,24 @@
+# Build outputs
+Binaries/
+Debug/
+Release/
+.build/
+*.elf
+*.map
+*.bin
+
+# CAN / diagnostics / logs
+Logging/
+Test Trace/
+Diagnostic Export/
+*.blf
+*.asc
+*.trc
+*.log
+
+# Measurements
+Oscilloscope Measurements/
+
+# IDE
+*.user
+*.launch

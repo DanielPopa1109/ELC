@@ -1,0 +1,62 @@
+/* USER CODE BEGIN Header */
+/* USER CODE END Header */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __MAIN_H
+#define __MAIN_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f1xx_hal.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+/* USER CODE END Includes */
+
+/* Exported types ------------------------------------------------------------*/
+/* USER CODE BEGIN ET */
+/* USER CODE END ET */
+
+/* Exported constants --------------------------------------------------------*/
+/* USER CODE BEGIN EC */
+/* USER CODE END EC */
+
+/* Exported macro ------------------------------------------------------------*/
+/* USER CODE BEGIN EM */
+/* USER CODE END EM */
+
+/* Exported functions prototypes ---------------------------------------------*/
+void Error_Handler(void);
+
+/* USER CODE BEGIN EFP */
+/* USER CODE END EFP */
+
+/* Private defines -----------------------------------------------------------*/
+#define WUP_LINE_Pin GPIO_PIN_0
+#define WUP_LINE_GPIO_Port GPIOA
+#define ANT30VFB_Pin GPIO_PIN_1
+#define ANT30VFB_GPIO_Port GPIOA
+#define AN_ISENSE_L1_Pin GPIO_PIN_2
+#define AN_ISENSE_L1_GPIO_Port GPIOA
+#define NA_Pin GPIO_PIN_3
+#define NA_GPIO_Port GPIOA
+#define ANL1VFB_Pin GPIO_PIN_4
+#define ANL1VFB_GPIO_Port GPIOA
+#define AN_NTC_IN_Pin GPIO_PIN_5
+#define AN_NTC_IN_GPIO_Port GPIOA
+#define ENL1CLS_Pin GPIO_PIN_1
+#define ENL1CLS_GPIO_Port GPIOB
+#define ENL1_Pin GPIO_PIN_10
+#define ENL1_GPIO_Port GPIOB
+
+/* USER CODE BEGIN Private defines */
+/* USER CODE END Private defines */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __MAIN_H */

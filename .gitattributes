@@ -1,0 +1,10 @@
+Logging/** filter=lfs diff=lfs merge=lfs -text
+Test[[:space:]]Trace/** filter=lfs diff=lfs merge=lfs -text
+Diagnostic[[:space:]]Export/** filter=lfs diff=lfs merge=lfs -text
+Oscilloscope[[:space:]]Measurements/** filter=lfs diff=lfs merge=lfs -text
+*.blf filter=lfs diff=lfs merge=lfs -text
+*.asc filter=lfs diff=lfs merge=lfs -text
+*.trc filter=lfs diff=lfs merge=lfs -text
+*.log filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.xlsx filter=lfs diff=lfs merge=lfs -text

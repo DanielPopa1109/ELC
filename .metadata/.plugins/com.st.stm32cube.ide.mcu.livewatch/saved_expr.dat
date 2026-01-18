@@ -1,0 +1,13 @@
+oscnt
+EcuM_ResetInfo
+EcuM_ResetReason
+Nvm_CurrentAddress
+Nvm_CurrentSector
+Nvm_SectorSwitchActivated
+Dcm_ActiveSessionState
+SMon_CalculatedCommand
+g_sec_unlocked
+CanH_VehicleStatus
+Nvm_HistogramBlock
+EcuM_ResetCounter
+FBL_DSC_Status

@@ -1,0 +1,45 @@
+﻿// GEN BLOCK BEGIN Include
+#define TSMP_IMPL
+#include "TSMaster.h"
+#include "MPLibrary.h"
+#include "Database.h"
+#include "TSMasterBaseInclude.h"
+#include "Configuration.h"
+// GEN BLOCK END Include
+
+// CODE BLOCK BEGIN Global_Definitions 
+               #include <time.h>
+// CODE BLOCK END Global_Definitions 
+
+// CODE BLOCK BEGIN Step_Function  MQ__
+// Main step function being executed every 1 ms
+void step(void) { try { // interval = 1 ms
+                                    time_t rawtime = time(NULL);
+struct tm* timeinfo = localtime(&rawtime);
+int full_year = timeinfo->tm_year + 1900;
+int year_two_digits = full_year % 100;
+static int cnt;
+static int cnt2;
+
+cnt++;
+TCAN f0 = {0,0x1,7,0,0x202,705108399,{(u8)year_two_digits, (u8)(timeinfo->tm_mon + 1), (u8)timeinfo->tm_mday, (u8)timeinfo->tm_hour,  (u8)timeinfo->tm_min, (u8)timeinfo->tm_sec, (u8)cnt2, 0x0}};
+if(cnt != 0 && (cnt % 800 == 0))
+{
+   com.transmit_can_async(&f0);
+}
+else cnt2++;  
+
+} catch (...) { log_nok("CRASH detected"); app.terminate_application(); }}
+// CODE BLOCK END Step_Function 
+
+// CODE BLOCK BEGIN Configuration
+/* 
+[UI]
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,174,4505007066452424418,0
+ScriptName=CCode2360
+DisplayName=CCode2360
+DBDeps=ZGW_CAN_3
+LastBuildTime=2026-01-06 16:09:15
+*/
+// CODE BLOCK END Configuration
+

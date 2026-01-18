@@ -1,0 +1,167 @@
+#include "EcuM.h"
+#include "stm32f1xx.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include <string.h>
+
+#define FAULT_HANDLER(name)                      \
+		__attribute__((naked)) void name(void) \
+		{     \
+	__asm volatile \
+	(                         \
+			"TST lr, #4         \n\t"             \
+			"ITE EQ             \n\t"             \
+			"MRSEQ r0, MSP      \n\t"             \
+			"MRSNE r0, PSP      \n\t"             \
+			"MOV r1, lr         \n\t"             \
+			"MOV r2, #0         \n\t"             \
+			"B EcuM_PerformReset \n\t"             \
+	);                                        \
+		}
+
+FAULT_HANDLER(HardFault_Handler)
+FAULT_HANDLER(MemManage_Handler)
+FAULT_HANDLER(BusFault_Handler)
+FAULT_HANDLER(UsageFault_Handler)
+FAULT_HANDLER(NMI_Handler)
+
+extern uint8_t SMon_ExternalChargerDetected; // Charge of battery mode
+extern uint8_t SMon_WupLineState; // SYS_WKUP
+extern uint8_t SMon_SWState; // EcuM SW state
+extern uint8_t SMon_KeepAwakeReason; // event ongoing
+extern uint8_t SMon_KeepAwakeReason2; // event ongoing
+extern uint8_t SMon_CmdStat __attribute((section(".ncr")));
+extern uint32_t Dcm_AliveCounter __attribute((section(".ncr")));
+extern uint32_t SMon_TimeoutLin __attribute((section(".ncr"))); // Timeout Counter
+FaultInfo_t EcuM_ResetData[3u] __attribute((section(".ncr")));
+uint8_t EcuM_IndexArray __attribute((section(".ncr")));
+uint8_t EcuM_ResetDetected __attribute((section(".ncr")));
+uint8_t EcuM_SWState = 0u;
+uint32_t EcuM_RunTimer = 200u;
+uint32_t EcuM_PostRunTimer = 200u;
+
+extern void Dem_SetDtc(uint8_t id, uint8_t status, uint8_t reason);
+extern void NvM_WriteAll(void);
+
+void EcuM_GoStandby(void);
+void EcuM_main();
+void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
+void EcuM_main()
+{
+	static uint32_t mainCnt = 0u;
+
+	SMon_SWState = EcuM_SWState;
+
+	if(0u == mainCnt)
+	{
+		EcuM_SWState = 1u;
+
+		if(1u == EcuM_ResetDetected)
+		{
+			EcuM_ResetDetected = 0u;
+			Dem_SetDtc(0x4du, 1u, EcuM_ResetData[EcuM_IndexArray].reset);
+		}
+		else
+		{
+			Dem_SetDtc(0x4du, 0u, 0u);
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if((((SMon_KeepAwakeReason & (1u << 4u)))
+			|| ((SMon_KeepAwakeReason & (1u << 6u))))
+			|| 1u == SMon_WupLineState
+			|| 2000u >= SMon_TimeoutLin)
+	{
+		EcuM_SWState = 1u;
+		EcuM_RunTimer = 200u;
+		EcuM_PostRunTimer = 200u;
+	}
+	else
+	{
+		if(0u < EcuM_RunTimer)
+		{
+			EcuM_RunTimer--;
+
+			if(0u == EcuM_RunTimer)
+			{
+				EcuM_SWState = 2u;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(((SMon_KeepAwakeReason2 & (1u << 0u))))
+	{
+		EcuM_SWState = 2u;
+		EcuM_PostRunTimer = 200u;
+	}
+	else
+	{
+		if(0u < EcuM_PostRunTimer)
+		{
+			EcuM_PostRunTimer--;
+
+			if(0u == EcuM_PostRunTimer)
+			{
+				EcuM_GoStandby();
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	mainCnt++;
+}
+
+void EcuM_GoStandby(void)
+{
+	__disable_irq();
+	NvM_WriteAll();
+	HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+	HAL_PWR_EnterSTANDBYMode();
+}
+
+void EcuM_PerformReset(uint8_t reason, uint8_t info)
+{
+	if(0u == reason)
+	{
+
+	}
+	else
+	{
+		EcuM_ResetDetected = 1u;
+		EcuM_ResetData[EcuM_IndexArray].reset = reason;
+		EcuM_ResetData[EcuM_IndexArray].info = info;
+		EcuM_IndexArray++;
+
+		if(3u <= EcuM_IndexArray)
+		{
+			EcuM_IndexArray = 0u;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+
+	NVIC_SystemReset();
+}

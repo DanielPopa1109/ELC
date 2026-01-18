@@ -1,0 +1,9 @@
+﻿[UserVariables]
+Count=7
+u0=LoadRequestStatus,,,User,1,0,0,255,0,,-1,,,-1,-1,MA__
+u1=NM3RSPN1,,,User,1,0,0,255,18,,-1,,,-1,-1,MA__
+u2=Var0,,,User,0,0,0,100,22,,-1,,,0,-1,MjI_
+u3=ClassicTestSystemHtmlHandle,,Classic Test System Handle for Html,MP,2,0,0,100,0,,-1,,,0,-1,MA__
+u4=LatestHTMLPath,,HTML file address,MP,9,0,0,100,,,-1,,,0,-1,
+u5=EM_A_NM3_PN1,,,User,1,0,0,255,1,,-1,,,0,-1,MA__
+u6=EM_T_NM3_PN1,,,User,1,0,0,255,1,,-1,,,0,-1,MA__

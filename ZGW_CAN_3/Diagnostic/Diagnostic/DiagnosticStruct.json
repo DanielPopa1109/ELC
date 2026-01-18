@@ -1,0 +1,33 @@
+{
+  "Items":  
+  [
+    {
+      "Name":"CDTCI RDTCI",
+      "Type":      1,
+      "GUID":"s414933289011140319352854437",
+      "SEL":"Checked",
+      "REG":"False"    
+    },
+    {
+      "Name":"Flashing APP",
+      "Type":      1,
+      "GUID":"s44329250905223968398714248",
+      "SEL":"Checked",
+      "REG":"False"    
+    },
+    {
+      "Name":"Flashing FBL APP",
+      "Type":      1,
+      "GUID":"s130422815322973415002662052",
+      "SEL":"Checked",
+      "REG":"False"    
+    },
+    {
+      "Name":"Diagnostic Export",
+      "Type":      1,
+      "GUID":"s432338282156380228923305779",
+      "SEL":"Checked",
+      "REG":"False"    
+    }  
+  ]
+}

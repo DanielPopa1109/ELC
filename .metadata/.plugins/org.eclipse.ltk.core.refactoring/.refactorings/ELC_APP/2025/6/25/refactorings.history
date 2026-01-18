@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;SPM_APP/BSW/Sys/Ecum&apos; to &apos;EcuM&apos;" description="Rename resource &apos;Ecum&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="BSW/Sys/Ecum" name="EcuM" stamp="1750419103912" updateReferences="true"/>
+</session>

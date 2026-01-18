@@ -1,0 +1,131 @@
+#include "Dem.h"
+#include <string.h>
+
+extern uint8_t SMon_ExternalChargerDetected; // Charge of battery mode
+extern uint8_t SMon_SWState; // EcuM SW state
+extern uint8_t SMon_KeepAwakeReason; // event ongoing
+extern uint8_t SMon_KeepAwakeReason2; // event ongoing
+extern uint16_t SMon_ISenseCLS; // I Sense CLS
+extern uint16_t SMon_ISenseL1; // I Sense L1
+extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
+extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
+extern uint8_t SMon_ShortToPlusTest __attribute((section(".ncr"))); // Discharge Test Status
+extern uint8_t SMon_CmdStat __attribute((section(".ncr"))); // LIN Command Status
+extern uint8_t SMon_L1ST __attribute((section(".ncr"))); // L1 Status
+extern uint8_t SMon_RetryCnt __attribute((section(".ncr"))); // Retry Counter
+extern uint8_t SMon_LockSupply __attribute((section(".ncr"))); // Lock Supply Output
+extern uint16_t SMon_TimeoutLin __attribute((section(".ncr"))); // Timeout Counter
+extern uint8_t Dcm_CDTCS_Status;
+extern uint32_t Dcm_AliveCounter __attribute((section(".ncr")));
+extern FaultInfo_t EcuM_ResetData[3u] __attribute((section(".ncr")));
+extern uint8_t EcuM_IndexArray __attribute((section(".ncr")));
+
+Dem_Dtc_t Dem_Dtc_FullBlock[DEM_NO_DTCS];
+uint8_t Dem_Dtc_IdList[DEM_NO_DTCS] =
+{
+		0x40u, // name of DTC: Undervoltage KL30 // position 0 - error id 0x40 <=> reason - UNDERVOLTAGE_KL30 1
+		0x41u, // name of DTC: Overvoltage KL30 // position 1 - error id 0x41 <=> reason - OVERVOLTAGE_KL30 2
+		0x42u, // name of DTC: Undervoltage CLS // position 2 - error id 0x42 <=> reason - UNDERVOLTAGE_CLS 3
+		0x43u, // name of DTC: L1 Supply Locked // position 3 - error id 0x46 <=> reason - LOCKSUPPLY_L1 4
+		0x44u, // name of DTC: L1 Improper Discharge // position 4 - error id 0x47 <=> reason - VOLTAGE_50P_IN_OFF_STATE 5
+		0x45u, // name of DTC: L1 Low Voltage In Off State // position 5 - error id 0x48 <=> reason - VOLTAGE_LOW_IN_OFF_STATE 6
+		0x46u, // name of DTC: L1 Short To KL30 In Off State // position 6 - error id 0x49 <=> reason - SHORT_TO_KL30_IN_OFF_STATE 7
+		0x47u, // name of DTC: L1 Improper Switch On // position 7 - error id 0x4A <=> reason - VOLTAGE_50P_IN_ON_STATE 8
+		0x48u, // name of DTC: L1 Short To KL30 In On State // position 8 - error id 0x4B <=> reason - SHORT_TO_KL30_IN_ON_STATE 9
+		0x49u // name of DTC: Reset occurred // position 10 - error id 0x49 <=> reset reason
+};
+
+void Dem_SetDtc(uint8_t id, uint8_t status, uint8_t reason);
+void Dem_ClearDtc();
+
+void Dem_SetDtc(uint8_t id, uint8_t status, uint8_t reason)
+{
+	uint8_t localIterator = 0xFFu;
+	uint8_t localFFIterator = 0x00u;
+
+	if(1u == Dcm_CDTCS_Status)
+	{
+		for(uint8_t i = 0u; i < DEM_NO_DTCS; i++)
+		{
+			if(id == Dem_Dtc_IdList[i])
+			{
+				localIterator = i;
+				break;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+
+		if(0xFFu != localIterator)
+		{
+			Dem_Dtc_FullBlock[localIterator].id = Dem_Dtc_IdList[localIterator];
+
+			if(Dem_Dtc_FullBlock[localIterator].id != status && 1u == status)
+			{
+				Dem_Dtc_FullBlock[localIterator].id = id;
+				Dem_Dtc_FullBlock[localIterator].status = status;
+
+				for(uint8_t i = 0u; i < DEM_NO_FF; i++)
+				{
+					if(0u == Dem_Dtc_FullBlock[localIterator].vfbt30_ff[i])
+					{
+						localFFIterator = i;
+						break;
+					}
+					else
+					{
+						localFFIterator++;
+
+						if(localFFIterator == (DEM_NO_FF - 1u))
+						{
+							break;
+						}
+						else
+						{
+							/* Do nothing. */
+						}
+					}
+				}
+
+				Dem_Dtc_FullBlock[localIterator].locksupply_ff[localFFIterator] = SMon_LockSupply;
+				Dem_Dtc_FullBlock[localIterator].s2btststat_ff[localFFIterator] = SMon_ShortToPlusTest;
+				Dem_Dtc_FullBlock[localIterator].swstate_ff[localFFIterator] = SMon_SWState;
+				Dem_Dtc_FullBlock[localIterator].cmdstat_ff[localFFIterator] = SMon_CmdStat;
+				Dem_Dtc_FullBlock[localIterator].keepawakereason_ff[localFFIterator] = SMon_KeepAwakeReason;
+				Dem_Dtc_FullBlock[localIterator].keepawakereason2_ff[localFFIterator] = SMon_KeepAwakeReason2;
+				Dem_Dtc_FullBlock[localIterator].retrycnt_ff[localFFIterator] = SMon_RetryCnt;
+				Dem_Dtc_FullBlock[localIterator].reason_ff[localFFIterator] = reason;
+				Dem_Dtc_FullBlock[localIterator].vfbl1_ff[localFFIterator] = SMon_VfbL1;
+				Dem_Dtc_FullBlock[localIterator].vfbt30_ff[localFFIterator] = SMon_VfbT30;
+				Dem_Dtc_FullBlock[localIterator].isensecls_ff[localFFIterator] = SMon_ISenseCLS;
+				Dem_Dtc_FullBlock[localIterator].isensel1_ff[localFFIterator] = SMon_ISenseL1;
+				Dem_Dtc_FullBlock[localIterator].timeoutcntlin_ff[localFFIterator] = SMon_TimeoutLin;
+				Dem_Dtc_FullBlock[localIterator].alivetime_ff[localFFIterator] = Dcm_AliveCounter;
+				memcpy(&Dem_Dtc_FullBlock[localIterator].resetdata_ff[localFFIterator].r0, &EcuM_ResetData[EcuM_IndexArray].r0, sizeof(FaultInfo_t));
+			}
+			else if(Dem_Dtc_FullBlock[localIterator].id != status && 0u == status)
+			{
+				Dem_Dtc_FullBlock[localIterator].status = status;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+}
+
+void Dem_ClearDtc()
+{
+	memset(&Dem_Dtc_FullBlock[0u].id, 0u, sizeof(Dem_Dtc_FullBlock));
+}
