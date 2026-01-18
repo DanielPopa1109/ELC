@@ -160,7 +160,7 @@ extern s32 CRC32(pu8 data, s32 datalen);
 extern s32 CRC32_MPEG(pu8 data, s32 datalen);
 extern s32 CRC8_E2E_P11(pu8 data, s32 datalen);
 DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMasterFunction AReg) {
-  #define TSMASTER_VERSION "2025.12.31.1800"
+  #define TSMASTER_VERSION "2026.1.17.1821"
   if (!AReg(AObj, "check_mp_internal", "version", TSMASTER_VERSION, 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_app", (void *)sizeof(TTSMasterConfiguration), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_tcan", (void *)sizeof(TCAN), "")) return -1;
