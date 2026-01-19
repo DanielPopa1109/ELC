@@ -145,7 +145,7 @@ static uint32_t prog_addr        = 0;
 static uint32_t bytes_received   = 0;
 static uint8_t  pending_bytes[4];
 static uint8_t  pending_len      = 0;
-static uint8_t  sw_version[4] = {17u, 17u, 0xFFu, 0xFFu};
+static uint8_t  sw_version[4] = {22u, 22u, 0xFFu, 0xFFu};
 static uint8_t  isotp_rx_buf_ram[ISOTP_MAX_RX_LEN_RAM];
 static uint16_t isotp_rx_len      = 0u;
 static uint16_t isotp_rx_expected = 0u;

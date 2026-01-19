@@ -21,7 +21,7 @@ ECU0=ELC
 
 [ECU_ELC]
 Driver=XCP
-Database=A2L_20260113014620_20260113014859_20260113015026_20260114183615.a2l
+Database=A2L.a2l
 Transport Layer=CAN
 Logic Channel=1
 Enabled=True
@@ -160,7 +160,7 @@ DisconnectBeforeExit=1
 SegCount=0
 
 [ELC_A2LInformation]
-A2LFileName=ELC_A2L_20260113014620_20260113014859_20260113015026_20260114183615.a2l
+A2LFileName=ELC_A2L.a2l
 A2LAlisMapName=
 
 [MeasGroup]

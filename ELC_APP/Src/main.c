@@ -271,6 +271,9 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		/* Do nothing. */
 	}
 }
+
+volatile uint8_t Debug_CallbackCalled = 0u;
+
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 {
 	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus || 1u == EcuM_WUPLine))
@@ -286,6 +289,8 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 		SMon_PeakCurrent = ((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
 		SMon_ISenseL1_Float = (((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) / 1000u;
 		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
+
+		Debug_CallbackCalled = 1u;
 	}
 	else
 	{

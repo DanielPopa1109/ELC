@@ -131,7 +131,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 	{
 		prevStat = Dem_DTC_Stat[aux_index];
 
-		if(stat != Dem_DTC_Stat[aux_index])
+		if(stat != Dem_DTC_Stat[aux_index] && stat == 0x2fu)
 		{
 			Nvm_WriteBlock(1u, &Dem_DTC_Stat[0u]);
 			Dem_CaptureFreezeFrame(aux_index);

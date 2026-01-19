@@ -35,11 +35,11 @@ else cnt2++;
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,254,4505007066452424418,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,182,4505007066452424418,0
 ScriptName=CCode2360
 DisplayName=CCode2360
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-01-18 13:04:41
+LastBuildTime=2026-01-18 17:26:54
 */
 // CODE BLOCK END Configuration
 

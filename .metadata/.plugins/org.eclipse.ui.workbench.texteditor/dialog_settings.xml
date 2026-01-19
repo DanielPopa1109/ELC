@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="Dcm_LoadTimer"/>
+		<item key="selection" value="SMon_PeakCurrent"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="SMon_PeakCurrent"/>
+			<item value="ntc"/>
 			<item value="Dcm_LoadTimer"/>
 			<item value="calcula"/>
 			<item value="SMon_ISenseL1_RMS_5s"/>
@@ -21,8 +23,6 @@
 			<item value="CanH_CommunicationState"/>
 			<item value="dcm_rdtci"/>
 			<item value="Dcm_RDTCI"/>
-			<item value="Nvm_CurrentSector"/>
-			<item value="Dcm_RDTCI_19_04"/>
 		</list>
 		<list key="replacehistory">
 		</list>
