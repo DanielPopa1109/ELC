@@ -26,12 +26,12 @@ void MX_CAN_Init(void)
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_8TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_3TQ;
-  hcan.Init.TimeTriggeredMode = DISABLE;
+  hcan.Init.TimeTriggeredMode = ENABLE;
   hcan.Init.AutoBusOff = ENABLE;
   hcan.Init.AutoWakeUp = ENABLE;
   hcan.Init.AutoRetransmission = ENABLE;
-  hcan.Init.ReceiveFifoLocked = DISABLE;
-  hcan.Init.TransmitFifoPriority = DISABLE;
+  hcan.Init.ReceiveFifoLocked = ENABLE;
+  hcan.Init.TransmitFifoPriority = ENABLE;
   if (HAL_CAN_Init(&hcan) != HAL_OK)
   {
     Error_Handler();

@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include <stdlib.h>
 #include "crc.h"
+#include "adc.h"
 
 #define BYTES_TO_WORDS(x)  ((uint16_t)((x) / 4u))  /* all your sizes are multiples of 4 */
 #define NVM_LARGEST_BLOCK_SIZE sizeof(Dem_FF)
@@ -16,16 +17,7 @@
 #define DFLASH_STARTING_ADDRESS     	0x0800F800
 
 extern uint32_t Dem_DTC_Stat[19u];
-extern float SMon_ISenseL1_RMS_5s;
-extern uint32_t SMon_VfbT30_RMS_5s;
-extern uint32_t SMon_VfbL1_RMS_5s;
-extern float SMon_NTC_RMS_5s;
-extern uint32_t SMon_Vrefint_RMS_5s;
-extern float SMon_McuTemp_RMS_5s;
-extern uint32_t SMon_CpuLoad_RMS_5s;
 
-Nvm_Hist_Block_t Nvm_HistogramBlock;
-Nvm_Hist_Block_t Nvm_HistogramBlock_Default;
 uint32_t Nvm_CurrentAddress;
 uint32_t Nvm_SectorSwitchActivated;
 uint32_t Nvm_CurrentSector;
@@ -35,24 +27,21 @@ Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 {
 		{0u, 0u, 0u, 0u}, // block 0 dummy not used
-		{1u, 76u, 0u, 0u},
-		{2u, 28u, 0u, 0u},
-		{3u, 380u, 0u, 0u},
+		{1u, 80u, 0u, 0u},
+		{2u, 400u, 0u, 0u},
 };
 
 Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
 {
 		{0u, 0u, 0u}, // block 0 dummy not used
-		{76u, 0u, 0u,},
-		{28u, 0u, 0u},
-		{380u, 0u, 0u},
+		{80u, 0u, 0u,},
+		{400u, 0u, 0u},
 };
 
 Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =
 {
 		{0u, 0u}, // block 0 dummy not used
 		{&Dem_DTC_Stat[0u], 0u},
-		{&Nvm_HistogramBlock.sSMon_ISenseL1_RMS_5s, 0u},
 		{&Dem_FF[0u].occurrenceCnt, 0u}
 };
 
@@ -60,11 +49,10 @@ Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS] =
 {
 		{0u, 0u}, // block 0 dummy not used
 		{&Dem_DTC_Stat[0u], 0u},
-		{&Nvm_HistogramBlock_Default.sSMon_ISenseL1_RMS_5s, 0u},
 		{&Dem_FF[0u].occurrenceCnt, 0u}
 };
 
-uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u};
+uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u};
 uint8_t Nvm_WriteAllFinished;
 uint8_t Nvm_ReadAllFinished;
 
@@ -87,8 +75,8 @@ void Nvm_SectorSwitch(void)
 	Nvm_Erase();
 
 	Nvm_CurrentAddress = DFLASH_STARTING_ADDRESS;
-	startPattern[0u] = 0xA5A5A5A5u;
-	startPattern[1u] = 0xA5A5A5A5u;
+	startPattern[0u] = 0xB6B6B6B6u;
+	startPattern[1u] = 0xB6B6B6B6u;
 
 	Nvm_FlashWriteData(Nvm_CurrentAddress, startPattern, 2u);
 
@@ -203,8 +191,8 @@ void Nvm_FindCurrentAddress()
 		/* Read start pattern (2 words) */
 		Nvm_FlashReadData(localAddress, startPattern, 2u);
 
-		if (0xA5A5A5A5u == startPattern[0u] &&
-				0xA5A5A5A5u == startPattern[1u])
+		if (0xB6B6B6B6u == startPattern[0u] &&
+				0xB6B6B6B6u == startPattern[1u])
 		{
 			localAddress += 8u;
 
@@ -253,8 +241,8 @@ void Nvm_FindCurrentAddress()
 			/* garbage -> erase + reinit */
 			Nvm_Erase();
 
-			startPattern[0u] = 0xA5A5A5A5u;
-			startPattern[1u] = 0xA5A5A5A5u;
+			startPattern[0u] = 0xB6B6B6B6u;
+			startPattern[1u] = 0xB6B6B6B6u;
 
 			Nvm_FlashWriteData(localAddress, startPattern, 2u);
 
@@ -265,8 +253,8 @@ void Nvm_FindCurrentAddress()
 		else
 		{
 			/* fresh page */
-			startPattern[0u] = 0xA5A5A5A5u;
-			startPattern[1u] = 0xA5A5A5A5u;
+			startPattern[0u] = 0xB6B6B6B6u;
+			startPattern[1u] = 0xB6B6B6B6u;
 
 			Nvm_FlashWriteData(localAddress, startPattern, 2u);
 
@@ -387,6 +375,8 @@ uint32_t Nvm_GetPage(uint32_t Address)
 
 uint32_t Nvm_Erase()
 {
+	HAL_ADC_Stop_DMA(&hadc1);
+
 	static FLASH_EraseInitTypeDef EraseInitStruct;
 
 	uint32_t PAGEError;
@@ -416,6 +406,8 @@ uint32_t Nvm_Erase()
 uint32_t Nvm_FlashWriteData(uint32_t addr, uint32_t *data, uint16_t wordCount)
 {
 	uint32_t err;
+
+	HAL_ADC_Stop_DMA(&hadc1);
 
 	HAL_FLASH_Unlock();
 

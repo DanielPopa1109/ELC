@@ -50,13 +50,6 @@ extern uint8_t SMon_L1ST;
 extern uint8_t SMon_CmdStat;
 extern uint8_t SMon_RetryCnt;
 extern uint8_t SMon_LockSupply;
-extern float SMon_ISenseL1_RMS_5s;
-extern float SMon_VfbT30_RMS_5s;
-extern float SMon_VfbL1_RMS_5s;
-extern float SMon_NTC_RMS_5s;
-extern float SMon_Vrefint_RMS_5s;
-extern float SMon_McuTemp_RMS_5s;
-extern float SMon_CpuLoad_RMS_5s;
 extern uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
@@ -64,8 +57,8 @@ extern uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 extern float OS_XCP_CpuLoad;
-extern uint32_t Dem_DTC_Stat[19u];
-extern const uint32_t Dem_PreDefined_DTC_Table[19u];
+extern uint32_t Dem_DTC_Stat[20u];
+extern const uint32_t Dem_PreDefined_DTC_Table[20u];
 extern volatile uint8_t CanH_VehicleStatus;
 extern uint8_t EcuM_WUPLine;
 
@@ -317,7 +310,7 @@ void Dcm_CDTCI()
 
 	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
 
-	for(uint8_t i = 0; i < 17u; i++)
+	for(uint8_t i = 0; i < 20u; i++)
 	{
 		Dem_DTC_Stat[i] = 0x50u;
 	}
@@ -325,7 +318,7 @@ void Dcm_CDTCI()
 	memset(&Dem_FF[0u].occurrenceCnt, 0u, sizeof(Dem_FF));
 
 	Nvm_WriteBlock(1u, &Dem_DTC_Stat[0u]);
-	Nvm_WriteBlock(3u, &Dem_FF[0u].occurrenceCnt);
+	Nvm_WriteBlock(2u, &Dem_FF[0u].occurrenceCnt);
 
 	Dcm_TxData[0u] = rx[0u];
 	Dcm_TxData[1u] = rx[1u] + 0x40u;
@@ -687,11 +680,13 @@ void Dcm_LoadControl()
 	Dcm_TxData[5u] = rx[5u];
 	Dcm_TxData[6u] = rx[6u];
 	Dcm_TxData[7u] = rx[7u];
+
 	Dcm_LoadStatus = rx[5u];
+
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
 
-	Dcm_LoadTimer = rx[5] * 1000u;
+	Dcm_LoadTimer = (rx[6] * 60000u) / 5u;
 
 	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
 
@@ -731,26 +726,6 @@ static inline void le32(uint8_t *p, uint32_t v)
 	p[1]= (uint8_t)(v>>8);
 	p[2]= (uint8_t)(v>>16);
 	p[3]= (uint8_t)(v>>24);
-}
-
-static uint16_t Dcm_BuildHist_RC(uint8_t *out)
-{
-	out[0] = 0x71;
-	out[1] = rx[2];      /* subfunction echo */
-	out[2] = rx[3];      /* routineId high */
-	out[3] = rx[4];      /* routineId low */
-
-	uint8_t *p = &out[4];
-
-	le32(p, SMon_ISenseL1_RMS_5s);     p+=4;
-	le32(p, SMon_VfbT30_RMS_5s);       p+=4;
-	le32(p, SMon_VfbL1_RMS_5s);        p+=4;
-	le32(p, SMon_NTC_RMS_5s);          p+=4;
-	le32(p, SMon_Vrefint_RMS_5s);      p+=4;
-	le32(p, SMon_McuTemp_RMS_5s);      p+=4;
-	le32(p, SMon_CpuLoad_RMS_5s);      p+=4;
-
-	return (uint16_t)(p - out);
 }
 
 void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms)
@@ -1040,21 +1015,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 	return true;
 }
 
-void Dcm_RC_ReadHistograms()
-{
-	uint8_t payload[4+72];
-
-	uint16_t len = Dcm_BuildHist_RC(payload);
-
-	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x55u, 1u);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
 void Dcm_ProgrammingSession()
 {
 	Dcm_TxData[0u] = 0x03;
@@ -1230,7 +1190,7 @@ void Dcm_main()
 
 	}
 
-	if(0u > Dcm_LoadTimer)
+	if(0u < Dcm_LoadTimer)
 	{
 		Dcm_LoadTimer--;
 	}
@@ -1484,19 +1444,6 @@ void Dcm_main()
 	if(0x43u == rx[4u] && 0x31u == rx[1u])
 	{
 		Dcm_ReadLoadStatus();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(0x41u == rx[4u] && 0x31u == rx[1u] && 3u == Dcm_ActiveSessionState)
-	{
-		Dcm_RC_ReadHistograms();
-	}
-	else if(0x41u == rx[4u] && 0x31u == rx[1u] && 3u != Dcm_ActiveSessionState)
-	{
-		Dcm_SendNrc();
 	}
 	else
 	{

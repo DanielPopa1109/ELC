@@ -67,7 +67,7 @@ const osThreadAttr_t QM_BSW_attributes = {
 osThreadId_t QM_APPLHandle;
 const osThreadAttr_t QM_APPL_attributes = {
   .name = "QM_APPL",
-  .stack_size = 512 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh4,
 };
 /* Definitions for QM_DIAG */
@@ -108,7 +108,7 @@ void configureTimerForRunTimeStats(void);
 unsigned long getRunTimeCounterValue(void);
 void vApplicationIdleHook(void);
 void vApplicationTickHook(void);
-void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
 void vApplicationMallocFailedHook(void);
 
 /* USER CODE BEGIN 1 */
@@ -131,6 +131,7 @@ unsigned long getRunTimeCounterValue(void)
 void vApplicationIdleHook( void )
 {
 	idlecnt++;
+
 	uxArraySize = uxTaskGetSystemState(xTaskStatusArray, 7, &ulTotalRunTime);
 }
 
@@ -140,6 +141,15 @@ void vApplicationIdleHook( void )
 void vApplicationTickHook( void )
 {
 	oscnt++;
+
+	if(EcuM_SWState < 3)
+	{
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
 }
 
 /* USER CODE END 3 */
@@ -314,15 +324,6 @@ void Alarm5ms_Callback(void *argument)
 	if(counter % 8 == 0 && counter != 0)
 	{
 		vTaskResume(CPULOAD_OSHandle);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(EcuM_SWState < 3)
-	{
-		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
 	}
 	else
 	{

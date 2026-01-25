@@ -21,7 +21,7 @@ extern float SMon_McuTempValue;
 
 Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
 
-const uint32_t Dem_PreDefined_DTC_Table[19u] =
+const uint32_t Dem_PreDefined_DTC_Table[20u] =
 {
 		0x50, // UV KL30
 		0x51, // OV KL30
@@ -44,7 +44,8 @@ const uint32_t Dem_PreDefined_DTC_Table[19u] =
 		0x62, // SA USED
 };
 
-uint32_t Dem_DTC_Stat[19u] = {
+uint32_t Dem_DTC_Stat[20u] = {
+		0x50,
 		0x50,
 		0x50,
 		0x50,
@@ -84,7 +85,7 @@ void Dem_CaptureFreezeFrame(uint8_t idx)
 	Dem_FF[idx].L1NTC = SMon_NTC_Temperature_L1;
 	Dem_FF[idx].L1ISENSE = SMon_ISenseL1_Float;
 
-	Nvm_WriteBlock(3u, &Dem_FF[idx]);   // separate FF block
+	Nvm_WriteBlock(2u, &Dem_FF[0].occurrenceCnt);   // separate FF block
 }
 
 uint8_t Dem_GetDtcStatus(uint32_t id)
@@ -92,7 +93,7 @@ uint8_t Dem_GetDtcStatus(uint32_t id)
 	uint8_t index = 0;
 	uint8_t aux_index = 0xFFu;
 
-	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+	for(index = 0; index < 20u; index++)
 	{
 		if(id == Dem_PreDefined_DTC_Table[index])
 		{
@@ -114,7 +115,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 	uint8_t aux_index = 0xFFu;
 	uint8_t prevStat = 0;
 
-	for(index = 0; index < sizeof(Dem_PreDefined_DTC_Table); index++)
+	for(index = 0; index < 20u; index++)
 	{
 		if(id == Dem_PreDefined_DTC_Table[index])
 		{
@@ -133,6 +134,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 
 		if(stat != Dem_DTC_Stat[aux_index] && stat == 0x2fu)
 		{
+			Dem_DTC_Stat[aux_index] = stat;
 			Nvm_WriteBlock(1u, &Dem_DTC_Stat[0u]);
 			Dem_CaptureFreezeFrame(aux_index);
 		}

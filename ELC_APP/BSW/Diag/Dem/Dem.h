@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define DEM_MAX_FF_DTC   19u
+#define DEM_MAX_FF_DTC   20u
 
 typedef struct __attribute__((packed))
 {

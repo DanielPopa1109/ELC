@@ -68,6 +68,8 @@ uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
 uint32_t CanH_E2eErrCnt;
 
+const uint32_t CanH_P_DelayTxParam = 999;
+
 extern uint32_t EcuM_NumberOfCANWakeUps __attribute((section(".ncr")));
 extern uint32_t EcuM_NumberOfDiagWakeUps __attribute((section(".ncr")));
 extern uint8_t SMon_NtcError;
@@ -129,7 +131,6 @@ static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 	return true;
 }
 
-
 static void Xcp_Send(uint8_t len)
 {
 	HAL_StatusTypeDef st;
@@ -145,7 +146,7 @@ static void Xcp_Send(uint8_t len)
 	{
 		st = HAL_CAN_AddTxMessage(&hcan, &Xcp_TxHeader, Xcp_TxData, &CanH_TxMailbox);
 		cnt++;
-	} while (st != HAL_OK && cnt < 200u);
+	} while (st != HAL_OK && cnt < CanH_P_DelayTxParam);
 
 	cnt = 0u;
 }
@@ -504,42 +505,9 @@ static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data)
 	return true;
 }
 
-void CanH_RecoverIfBusOff(void)
-{
-	uint32_t esr = CAN1->ESR;
-	static uint32_t errInfo2 = 0u;
-
-	errInfo2 = HAL_CAN_GetError(&hcan);
-
-	if (esr & CAN_ESR_BOFF)
-	{
-		HAL_CAN_Stop(&hcan);
-		HAL_CAN_DeInit(&hcan);
-		__HAL_RCC_CAN1_FORCE_RESET();
-		__HAL_RCC_CAN1_RELEASE_RESET();
-		MX_CAN_Init();
-		HAL_CAN_Start(&hcan);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(errInfo2)
-	{
-		HAL_CAN_ResetError(&hcan);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-}
-
 void CanH_MainFunction(void)
 {
 	static uint8_t prevSMon_L1ST = 0u;
-
-	CanH_RecoverIfBusOff();
 
 	if(0u == CanH_MainCounter)
 	{
@@ -576,7 +544,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -603,7 +571,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -623,7 +591,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -645,7 +613,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -672,7 +640,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -699,7 +667,7 @@ void CanH_MainFunction(void)
 		{
 			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 			cnt++;
-		} while (st != HAL_OK  && cnt < 200u);
+		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 		cnt = 0u;
 
@@ -753,7 +721,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -790,7 +758,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -820,7 +788,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -852,7 +820,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -889,7 +857,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -926,7 +894,7 @@ void CanH_MainFunction(void)
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
 				cnt++;
-			} while (st != HAL_OK  && cnt < 200u);
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
 
 			cnt = 0u;
 
@@ -962,7 +930,7 @@ void CanH_MainFunction(void)
 		/* Do nothing. */
 	}
 
-	if(2000u < CanH_MissingLoadRequest && FULL_COMMUNICATION == CanH_CommunicationState)
+	if(200u < CanH_MissingLoadRequest)
 	{
 		Dem_SetDtc(0x5Au, 0x2f);
 	}
@@ -978,7 +946,7 @@ void CanH_MainFunction(void)
 		}
 	}
 
-	if(200u < CanH_MissingVehicleData && FULL_COMMUNICATION == CanH_CommunicationState)
+	if(200u < CanH_MissingVehicleData)
 	{
 		Dem_SetDtc(0x5Du, 0x2f);
 	}
@@ -994,7 +962,7 @@ void CanH_MainFunction(void)
 		}
 	}
 
-	if(50u < CanH_E2eErrCnt  && FULL_COMMUNICATION == CanH_CommunicationState)
+	if(50u < CanH_E2eErrCnt)
 	{
 		Dem_SetDtc(0x5Bu, 0x2f);
 	}

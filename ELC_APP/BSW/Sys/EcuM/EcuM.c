@@ -156,8 +156,8 @@ void EcuM_main()
 
 			if(0u == EcuM_PostRunTimer)
 			{
-				EcuM_SWState = 3u;
-				EcuM_GoSleep();
+				//EcuM_SWState = 3u;
+				//EcuM_GoSleep();
 			}
 			else
 			{
@@ -257,22 +257,7 @@ void EcuM_CyclicActivity(void)
 {
 	if(1u == EcuM_SleeModeActive)
 	{
-		static uint32_t errInfo = 0u;
-
 		EcuM_TimeInSleep += 100u;
-
-		CanH_RecoverIfBusOff();
-
-		errInfo = HAL_CAN_GetError(&hcan);
-
-		if(errInfo)
-		{
-			HAL_CAN_ResetError(&hcan);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
 
 		HAL_IWDG_Refresh(&hiwdg);
 

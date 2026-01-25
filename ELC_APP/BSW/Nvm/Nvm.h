@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define NVM_NO_BLOCKS               4U //+1, first is not used
+#define NVM_NO_BLOCKS               3U //+1, first is not used
 #define NVM_SIZE_HEADER_BYTES       8U // Data-flash write done in 8 bytes at a time
 
 typedef struct
@@ -24,19 +24,6 @@ typedef struct
         uint32_t crc;
 }Nvm_Block_t;
 
-typedef struct
-{
-	float sSMon_ISenseL1_RMS_5s;
-	float sSMon_VfbT30_RMS_5s;
-	float sSMon_VfbL1_RMS_5s;
-	float sSMon_NTC_RMS_5s;
-	float sSMon_Vrefint_RMS_5s;
-	float sSMon_McuTemp_RMS_5s;
-	float sSMon_CpuLoad_RMS_5s;
-}Nvm_Hist_Block_t;
-
-extern Nvm_Hist_Block_t Nvm_HistogramBlock;
-extern Nvm_Hist_Block_t Nvm_HistogramBlock_Default;
 extern uint32_t Nvm_CurrentAddress;
 extern uint32_t Nvm_SectorSwitchActivated;
 extern uint32_t Nvm_CurrentSector;
