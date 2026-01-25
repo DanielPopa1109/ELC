@@ -156,8 +156,8 @@ void EcuM_main()
 
 			if(0u == EcuM_PostRunTimer)
 			{
-				//EcuM_SWState = 3u;
-				//EcuM_GoSleep();
+				EcuM_SWState = 3u;
+				EcuM_GoSleep();
 			}
 			else
 			{
@@ -211,7 +211,7 @@ void EcuM_GoSleep(void)
 
 	__disable_irq();
 
-	HAL_TIM_PWM_Stop_IT(&htim1, 0);
+	HAL_TIM_PWM_Stop_IT(&htim1, TIM_CHANNEL_1);
 	HAL_TIM_Base_Stop(&htim3);
 	HAL_CRC_DeInit(&hcrc);
 	HAL_TIM_PWM_DeInit(&htim1);

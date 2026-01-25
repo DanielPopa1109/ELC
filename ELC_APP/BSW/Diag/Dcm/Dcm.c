@@ -57,8 +57,8 @@ extern uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 extern float OS_XCP_CpuLoad;
-extern uint32_t Dem_DTC_Stat[20u];
-extern const uint32_t Dem_PreDefined_DTC_Table[20u];
+extern uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC];
+extern const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC];
 extern volatile uint8_t CanH_VehicleStatus;
 extern uint8_t EcuM_WUPLine;
 
@@ -310,7 +310,7 @@ void Dcm_CDTCI()
 
 	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
 
-	for(uint8_t i = 0; i < 20u; i++)
+	for(uint8_t i = 0; i < DEM_MAX_FF_DTC; i++)
 	{
 		Dem_DTC_Stat[i] = 0x50u;
 	}
@@ -396,7 +396,7 @@ void Dcm_RDTCI()
 	spayload[2] = statusMask;
 	slen = 3u;
 
-	for (uint8_t i = 0u; i < 17u; i++)
+	for (uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
 	{
 		uint32_t st = Dem_DTC_Stat[i];
 		uint32_t dtc = Dem_PreDefined_DTC_Table[i];

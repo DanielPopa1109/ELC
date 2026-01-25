@@ -16,7 +16,7 @@
 #define NVM_DTC_END_ADDRESS 0x0800FFFF
 #define DFLASH_STARTING_ADDRESS     	0x0800F800
 
-extern uint32_t Dem_DTC_Stat[19u];
+extern uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC];
 
 uint32_t Nvm_CurrentAddress;
 uint32_t Nvm_SectorSwitchActivated;
@@ -27,15 +27,15 @@ Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 {
 		{0u, 0u, 0u, 0u}, // block 0 dummy not used
-		{1u, 80u, 0u, 0u},
-		{2u, 400u, 0u, 0u},
+		{1u, sizeof(Dem_DTC_Stat), 0u, 0u},
+		{2u, sizeof(Dem_FF), 0u, 0u},
 };
 
 Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
 {
 		{0u, 0u, 0u}, // block 0 dummy not used
-		{80u, 0u, 0u,},
-		{400u, 0u, 0u},
+		{sizeof(Dem_DTC_Stat), 0u, 0u,},
+		{sizeof(Dem_FF), 0u, 0u},
 };
 
 Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =

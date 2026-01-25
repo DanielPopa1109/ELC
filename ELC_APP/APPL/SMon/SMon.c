@@ -86,9 +86,9 @@ const float SMon_P_Kelvin = 273.15f;
 const float SMon_P_VoltageDivider = 10.10f;
 const float SMon_P_AlphaFilter = 0.50f;
 const float SMon_P_AlphaFilterExtChIsense = 0.075f;
-const uint8_t SMon_P_L1Correction = 180.0f;
+const float SMon_P_L1Correction = 180.0f;
 const float SMon_P_TwoPointCalib_ConvFacISense = -37.81f; /* (SMon_P_ISense_L1_Cal_I_B_mA - SMon_P_ISense_L1_Cal_I_A_mA) / (SMon_P_ISense_L1_ParamB_mV   - SMon_P_ISense_L1_ParamA_mV); */
-const float SMon_P_TwoPointCalib_NoLoad_ISense = 383.7f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
+const float SMon_P_TwoPointCalib_NoLoad_ISense = 376.8f; /* SMon_P_ISense_L1_ParamA_mV - (SMon_P_ISense_L1_Cal_I_A_mA / SMon_P_ConvFacISense); */
 const float SMon_P_ExternalChargerThreshold = -1.0f;
 
 const float SMon_P_NTCTemperatureMax = 125.0f;
@@ -373,8 +373,10 @@ static void SMon_ProcessLoadCurrentState(void)
 {
 	SMon_T30P50 = (SMon_VfbT30 * 5u) / 10u;  // 50% of T30 = 6300
 
-	uint32_t thresh_on  = SMon_T30P50 + SMon_P_StatusVoltageL1Filter;  // 6300 + 250 = 6550
-	uint32_t thresh_off = SMon_T30P50 - SMon_P_StatusVoltageL1Filter;  // 6300 - 250 = 6050
+	uint32_t thresh_on = SMon_T30P50 + SMon_P_StatusVoltageL1Filter;
+	uint32_t thresh_off = (SMon_T30P50 > SMon_P_StatusVoltageL1Filter)
+	                      ? (SMon_T30P50 - SMon_P_StatusVoltageL1Filter)
+	                      : 0u;
 
 	if((SMon_L1ST == 0u) && (SMon_VfbL1 >= thresh_on))
 	{
@@ -540,7 +542,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 	}
 	else if(SMon_P_NTCTemperatureRelease > SMon_NTC_Temperature_L1)
 	{
-		if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp2))
+		if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp3))
 		{
 			SMon_NtcError = 0u;
 

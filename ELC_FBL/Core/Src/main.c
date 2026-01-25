@@ -911,9 +911,10 @@ static void IsoTp_OnCanRx(const CAN_RxHeaderTypeDef *rxHeader, const uint8_t *da
 	}
 }
 
-
 uint32 FBL_NvM_EraseFlash_APPL(void)
 {
+	__disable_irq();
+
 	static FLASH_EraseInitTypeDef EraseInitStruct;
 
 	uint32 PAGEError;
@@ -929,6 +930,7 @@ uint32 FBL_NvM_EraseFlash_APPL(void)
 
 	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK)
 	{
+		__enable_irq();
 		return HAL_FLASH_GetError ();
 	}
 	else
@@ -937,6 +939,8 @@ uint32 FBL_NvM_EraseFlash_APPL(void)
 	}
 
 	HAL_FLASH_Lock();
+
+	__enable_irq();
 
 	return 0;
 }
@@ -975,6 +979,7 @@ uint32 FBL_NvM_FlashWriteData(uint32 StartPageAddress, uint32 *Data, uint16 numb
 		}
 		else
 		{
+			__enable_irq();
 			return HAL_FLASH_GetError ();
 		}
 	}

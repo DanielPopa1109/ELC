@@ -26,15 +26,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-/* Application flash region to be checked */
-#define APP_START_ADDR   0x08004000UL
-#define APP_END_ADDR     0x0800F7FBUL   /* last byte included in CRC */
-#define APP_CRC_ADDR     0x0800F7FCUL   /* 4-byte stored CRC */
-/* STM32F103C8T6 SRAM: 20 KB at 0x2000_0000 – 0x2000_4FFF */
-#define SRAM_START_ADDR        0x20000000UL
-#define SRAM_SIZE_BYTES        (20U * 1024U)
-#define SRAM_END_ADDR          (SRAM_START_ADDR + SRAM_SIZE_BYTES)  /* 0x20005000 */
-#define SRAM_STACK_RESERVE     1024U   /* keep top 1 KB safe for stack, extra margin */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -75,7 +66,7 @@ extern const uint32_t SMon_P_NoLoad_ISense;
 extern const float SMon_P_Kelvin;
 extern const float SMon_P_VoltageDivider;
 extern const float SMon_P_AlphaFilter;
-extern const uint8_t SMon_P_L1Correction;
+extern const float SMon_P_L1Correction;
 extern const float SMon_P_TwoPointCalib_ConvFacISense;
 extern const float SMon_P_TwoPointCalib_NoLoad_ISense;
 extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamA ;
@@ -96,91 +87,11 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
-extern void SMon_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-__attribute__((noinline, optimize("O0"))) static uint8_t RAM_SimpleTest(void)
-{
-	volatile uint32_t *p;
-	volatile uint32_t *end;
-	volatile uint32_t sp_now = __get_MSP();
-	volatile uint32_t test_end_addr = SRAM_END_ADDR;
-
-	if (sp_now < test_end_addr)
-	{
-		test_end_addr = sp_now;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	p   = (uint32_t *)SRAM_START_ADDR;
-	end = (uint32_t *)test_end_addr;
-
-	for (; p < end; ++p)
-	{
-		uint32_t orig = *p;
-
-		*p = 0x00000000UL;
-
-		if (*p != 0x00000000UL)
-		{
-			*p = orig;
-
-			return 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		*p = 0xFFFFFFFFUL;
-
-		if (*p != 0xFFFFFFFFUL)
-		{
-			*p = orig;
-
-			return 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		*p = orig;
-	}
-
-	return 1;
-}
-
-
-static uint32_t APP_CalcCrc(void)
-{
-	uint32_t length_bytes = (APP_END_ADDR - APP_START_ADDR + 1UL);
-	uint32_t length_words = length_bytes / 4UL;
-
-	return HAL_CRC_Calculate(&hcrc, (uint32_t *)APP_START_ADDR, length_words);
-}
-
-static uint32_t APP_ReadStoredCrc(void)
-{
-	return *(volatile uint32_t *)APP_CRC_ADDR;
-}
-
-bool APP_FlashCrcOk(void)
-{
-	uint32_t calc_crc   = APP_CalcCrc();
-	uint32_t stored_crc = APP_ReadStoredCrc();
-
-	return (calc_crc == stored_crc);
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	static float v1 = 0.0f;
@@ -200,10 +111,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	static float filt_isense2 = 0.0f;
 	static float aux_mcutemp = 0.0f;
 	static float aux_ntctemp = 0.0f;
+	static float diff_adcmax_dmabuff = 0.0f;
 	static uint8_t firstMeas = 0u;
 
+	diff_adcmax_dmabuff = (float)SMon_P_ADC_MaxValue - (float)Ain_DmaBuffer[4u];
+
 	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
-	v4 = (float)SMon_P_NTC_PullUp_ResistorVale * ((float)Ain_DmaBuffer[4u] / ((float)SMon_P_ADC_MaxValue - (float)Ain_DmaBuffer[4u]));  // ntc
+	v4 = ((float)SMon_P_NTC_PullUp_ResistorVale * (float)Ain_DmaBuffer[4u]) / diff_adcmax_dmabuff;  // ntc
 	v5 = ((float)Ain_DmaBuffer[5u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
 	v6 = ((float)Ain_DmaBuffer[6u] / SMon_P_ADC_MaxValue) * SMon_P_Varef;
 
@@ -221,9 +135,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	filt_vfb1_mV = filt_vfb1_mV + SMon_P_AlphaFilter * (vfb1_mV - filt_vfb1_mV);
 	filt_vfb2_mV = filt_vfb2_mV + SMon_P_AlphaFilter * (vfb2_mV - filt_vfb2_mV);
 
-	if(SMon_PeakCurrent < (v1 - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense)
+	if(SMon_PeakCurrent < aux_isense)
 	{
-		SMon_PeakCurrent = (v1 - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
+		SMon_PeakCurrent = aux_isense;
 	}
 	else
 	{
@@ -272,8 +186,6 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 	}
 }
 
-uint8_t Debug_CallbackCalled = 0u;
-
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 {
 	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus || 1u == EcuM_WUPLine))
@@ -305,17 +217,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	volatile uint8_t g_ram_ok;
-
-	__disable_irq();
-	__asm volatile ("nop");
-
-	g_ram_ok = RAM_SimpleTest();
-
-	if (g_ram_ok == 0u)
-	{
-		EcuM_PerformReset(75, 75);
-	}
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -326,6 +227,7 @@ int main(void)
   /* USER CODE BEGIN Init */
 
 	PWR_PVDTypeDef sConfigPVD;
+
 	sConfigPVD.Mode = PWR_PVD_MODE_IT_FALLING;
 	sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
 
@@ -396,18 +298,7 @@ int main(void)
 		}
 	}
 
-	if (!APP_FlashCrcOk())
-	{
-		EcuM_PerformReset(76, 76);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
 	Nvm_ReadAll();
-
-	SMon_Init();
 
 	__enable_irq();
   /* USER CODE END 2 */

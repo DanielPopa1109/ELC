@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="Dem_SetDtc"/>
+		<item key="selection" value="CDTC"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="cdtc"/>
+			<item value="SMon_ProcessLoadCurrentState"/>
+			<item value="localtimestamp3"/>
+			<item value="SMon_P_L1Correction"/>
 			<item value="Dem_SetDtc"/>
 			<item value="Nvm_HeaderArr_Default"/>
 			<item value="loadcontrol"/>
@@ -19,10 +23,6 @@
 			<item value="get status"/>
 			<item value="set_mta"/>
 			<item value="CanH_RecoverIfBusOff"/>
-			<item value="busoff"/>
-			<item value="readhist"/>
-			<item value="FBL_CalcCrc32Flash"/>
-			<item value="FBL_StoreApplicationCrc"/>
 		</list>
 		<list key="replacehistory">
 		</list>

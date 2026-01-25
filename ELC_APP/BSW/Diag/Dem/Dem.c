@@ -21,7 +21,7 @@ extern float SMon_McuTempValue;
 
 Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
 
-const uint32_t Dem_PreDefined_DTC_Table[20u] =
+const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 {
 		0x50, // UV KL30
 		0x51, // OV KL30
@@ -44,7 +44,7 @@ const uint32_t Dem_PreDefined_DTC_Table[20u] =
 		0x62, // SA USED
 };
 
-uint32_t Dem_DTC_Stat[20u] = {
+uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
 		0x50,
 		0x50,
 		0x50,
@@ -93,7 +93,7 @@ uint8_t Dem_GetDtcStatus(uint32_t id)
 	uint8_t index = 0;
 	uint8_t aux_index = 0xFFu;
 
-	for(index = 0; index < 20u; index++)
+	for(index = 0; index < DEM_MAX_FF_DTC; index++)
 	{
 		if(id == Dem_PreDefined_DTC_Table[index])
 		{
@@ -106,6 +106,15 @@ uint8_t Dem_GetDtcStatus(uint32_t id)
 		}
 	}
 
+	if(aux_index >= DEM_MAX_FF_DTC)
+	{
+		return 0;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
 	return Dem_DTC_Stat[aux_index];
 }
 
@@ -115,7 +124,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 	uint8_t aux_index = 0xFFu;
 	uint8_t prevStat = 0;
 
-	for(index = 0; index < 20u; index++)
+	for(index = 0; index < DEM_MAX_FF_DTC; index++)
 	{
 		if(id == Dem_PreDefined_DTC_Table[index])
 		{
