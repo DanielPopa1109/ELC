@@ -68,7 +68,7 @@ uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
 uint32_t CanH_E2eErrCnt;
 
-const uint32_t CanH_P_DelayTxParam = 999;
+const uint32_t CanH_P_DelayTxParam = 300u;
 
 extern uint32_t EcuM_NumberOfCANWakeUps __attribute((section(".ncr")));
 extern uint32_t EcuM_NumberOfDiagWakeUps __attribute((section(".ncr")));
@@ -97,9 +97,9 @@ extern uint8_t SMon_RetryCnt;
 extern uint8_t SMon_LockSupply;
 extern uint32_t SMon_I2TCounter;
 extern uint8_t EcuM_SWState;
-extern uint16_t SMon_VarefValue;
 extern float SMon_McuTempValue;
 extern float SMon_NTC_Temperature_L1;
+extern uint8_t EcuM_WakeupPending;
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
@@ -658,7 +658,7 @@ void CanH_MainFunction(void)
 		CanH_TxData[3] = EcuM_WUPLine;
 		CanH_TxData[4] = SMon_S2BErrorStatus;
 		CanH_TxData[5] = SMon_ExternalChargerDetected;
-		CanH_TxData[6] = SMon_VarefValue / 10u;
+		CanH_TxData[6] = 0;
 		CanH_TxData[7] = SMon_NtcError;
 		CanH_TxHeader.DLC = 8;
 		CanH_TxHeader.StdId = 0x6f1;
@@ -882,7 +882,7 @@ void CanH_MainFunction(void)
 			CanH_TxData[3] = EcuM_WUPLine;
 			CanH_TxData[4] = SMon_S2BErrorStatus;
 			CanH_TxData[5] = SMon_ExternalChargerDetected;
-			CanH_TxData[6] = SMon_VarefValue / 10u;
+			CanH_TxData[6] = 0;
 			CanH_TxData[7] = SMon_NtcError;
 			CanH_TxHeader.DLC = 8;
 			CanH_TxHeader.StdId = 0x6f1;
@@ -921,7 +921,7 @@ void CanH_MainFunction(void)
 	CanH_MissingLoadRequest++;
 	CanH_MissingVehicleData++;
 
-	if(600u <= CanH_NoCommCounter)
+	if(200u <= CanH_NoCommCounter)
 	{
 		CanH_CommunicationState = NO_COMMUNICATION;
 	}
@@ -1013,7 +1013,8 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 					0x00u == CanH_RxData[2u])
 			{
 				EcuM_NumberOfDiagWakeUps++;
-				EcuM_PerformReset(0,0);
+				EcuM_WakeupPending = 1u;
+				HAL_PWR_DisableSleepOnExit();
 			}
 			else
 			{
@@ -1104,23 +1105,30 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		/* Do nothing. */
 	}
 
-	if (Xcp_CanRx(&CanH_RxHeader, CanH_RxData))
+	if(FULL_COMMUNICATION == CanH_CommunicationState)
 	{
-		/* XCP frame consumed; just clean up */
-		CanH_RxHeader.DLC = 0u;
-		CanH_RxHeader.ExtId = 0u;
-		CanH_RxHeader.FilterMatchIndex = 0u;
-		CanH_RxHeader.IDE = 0u;
-		CanH_RxHeader.RTR = 0u;
-		CanH_RxHeader.StdId = 0u;
-		CanH_RxHeader.Timestamp = 0u;
-
-		for (uint8_t i = 0u; i < 8u; i++)
+		if (Xcp_CanRx(&CanH_RxHeader, CanH_RxData))
 		{
-			CanH_RxData[i] = 0u;
-		}
+			/* XCP frame consumed; just clean up */
+			CanH_RxHeader.DLC = 0u;
+			CanH_RxHeader.ExtId = 0u;
+			CanH_RxHeader.FilterMatchIndex = 0u;
+			CanH_RxHeader.IDE = 0u;
+			CanH_RxHeader.RTR = 0u;
+			CanH_RxHeader.StdId = 0u;
+			CanH_RxHeader.Timestamp = 0u;
 
-		return;
+			for (uint8_t i = 0u; i < 8u; i++)
+			{
+				CanH_RxData[i] = 0u;
+			}
+
+			return;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
 	}
 	else
 	{
@@ -1140,7 +1148,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			if(1u == EcuM_SleeModeActive)
 			{
 				EcuM_NumberOfCANWakeUps++;
-				EcuM_PerformReset(0,0);
+				EcuM_WakeupPending = 1u;
+				HAL_PWR_DisableSleepOnExit();
 			}
 			else
 			{
@@ -1236,5 +1245,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	for(uint8_t i = 0; i < 8; i++)
 	{
 		CanH_RxData[i] = 0;
+	}
+
+	if(1u == EcuM_SleeModeActive && 0u == EcuM_WakeupPending)
+	{
+		HAL_PWR_EnableSleepOnExit();
+	}
+	else
+	{
+		/* Do nothing. */
 	}
 }

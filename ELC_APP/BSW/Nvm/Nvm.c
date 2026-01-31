@@ -375,8 +375,6 @@ uint32_t Nvm_GetPage(uint32_t Address)
 
 uint32_t Nvm_Erase()
 {
-	HAL_ADC_Stop_DMA(&hadc1);
-
 	static FLASH_EraseInitTypeDef EraseInitStruct;
 
 	uint32_t PAGEError;
@@ -406,8 +404,6 @@ uint32_t Nvm_Erase()
 uint32_t Nvm_FlashWriteData(uint32_t addr, uint32_t *data, uint16_t wordCount)
 {
 	uint32_t err;
-
-	HAL_ADC_Stop_DMA(&hadc1);
 
 	HAL_FLASH_Unlock();
 

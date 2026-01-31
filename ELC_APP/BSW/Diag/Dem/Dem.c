@@ -25,7 +25,7 @@ const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 {
 		0x50, // UV KL30
 		0x51, // OV KL30
-		0x52, // SHORT TO BATT L1
+		0x52, // SHORT TO BATT L1 P1
 		0x53, // OVERCURRENT L1
 		0x54, // L1 LOCKED
 		0x55, // CLS FAILURE L1
@@ -42,6 +42,7 @@ const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 		0x60, // SHORT TO BATT L1 P3
 		0x61, // XCP USED
 		0x62, // SA USED
+		0x63, // SHORT TO BATT L1 ON
 };
 
 uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {

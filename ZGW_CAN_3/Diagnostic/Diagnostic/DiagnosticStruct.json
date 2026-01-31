@@ -2,13 +2,6 @@
   "Items":  
   [
     {
-      "Name":"CDTCI RDTCI",
-      "Type":      1,
-      "GUID":"s414933289011140319352854437",
-      "SEL":"Checked",
-      "REG":"False"    
-    },
-    {
       "Name":"Flashing APP",
       "Type":      1,
       "GUID":"s44329250905223968398714248",

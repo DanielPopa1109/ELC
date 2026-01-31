@@ -4,6 +4,7 @@
 #include "main.h"
 #include "can.h"
 #include "crc.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -26,6 +27,7 @@
 #define APPL_END_ADDRESS     0x0800F7FFu    /* same as erase end */
 #define APPL_CRC_ADDRESS     (APPL_END_ADDRESS - 3u) /* last 4 bytes */
 #define RESET_COUNTER_ADDR					0x20004Fd4
+#define COMMAND_STATE_ADDR 0x20004fe6
 #define FBL_APP_START_ADDR     APPL_START_ADDRESS   /* 0x08004000 */
 #define FBL_APP_END_ADDR       0x0800F7FFu          /* Last byte of application area */
 
@@ -59,7 +61,7 @@ volatile uint32 FBL_BlockStartAddr = 0u;
 uint32 FBL_BlockLength    = 0u;
 uint8_t FBL_PendingBytes[4];
 uint8_t FBL_PendingLen = 0u;
-uint8_t FBL_Dcm_SWV[4u] = {22u, 22u, 0xFFu, 0xFFu};
+uint8_t FBL_Dcm_SWV[4u] = {25u, 25u, 0xFFu, 0xFFu};
 uint8 FBL_RxFrame[8] = {0};
 FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
 CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -67,6 +69,7 @@ CAN_TxHeaderTypeDef FBL_TxHeader = {0, 0, 0, 0, 0, 0};
 uint32 FBL_TxMailbox = 0;
 uint32* FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
 uint32* FBL_ResetCounterFBL = (uint32*)(RESET_COUNTER_ADDR);
+uint32* FBL_P_CommandState = (uint32*)(COMMAND_STATE_ADDR);
 uint32 FBL_ProgrammingData = 0;
 uint32 FBL_ProgrammingIndex = 0;
 uint32 FBL_ProgrammingAddress = 0;
@@ -185,10 +188,24 @@ int main(void)
 	MX_GPIO_Init();
 	MX_CAN_Init();
 	MX_CRC_Init();
+	MX_TIM1_Init();
 
 	/* Initialize interrupts */
 	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
+
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+	htim1.Instance->CCR1 = 514;
+
+	if( 1u == *FBL_P_CommandState)
+	{
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 1u);
+	}
+	else
+	{
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u);
+	}
 
 	if(((RCC->CSR & RCC_CSR_PORRSTF) != 0))
 	{
@@ -201,9 +218,6 @@ int main(void)
 		/* Do nothing. */
 	}
 
-	FBL_ProgrammingAddress = 0;
-	FBL_ProgrammingIndex = 0;
-
 	if(*FBL_ResetCounterFBL >= 50)
 	{
 		FBL_DSC_Status = PROGRAMMING;
@@ -211,6 +225,7 @@ int main(void)
 	else
 	{
 		FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
+
 		if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
 		{
 			FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
@@ -358,7 +373,6 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 	uint8_t sid = 0u;
 	uint32_t word = 0u;
 	uint16_t indexxx = 0u;
-	static uint8_t cntForCrc = 0u;
 
 	sid = uds[0];
 
@@ -469,17 +483,6 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 
 				FBL_SendUdsSingleFrame(nrc, sizeof(nrc));
 			}
-
-			if(1u == cntForCrc)
-			{
-				//FBL_StoreApplicationCrc();
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			cntForCrc++;
 		}
 
 		if ((sid == 0x22u) && (len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x80u))
@@ -915,7 +918,7 @@ uint32 FBL_NvM_EraseFlash_APPL(void)
 {
 	__disable_irq();
 
-	static FLASH_EraseInitTypeDef EraseInitStruct;
+	FLASH_EraseInitTypeDef EraseInitStruct;
 
 	uint32 PAGEError;
 	uint32 StartPage = 0x08004000;
@@ -1007,8 +1010,8 @@ void FBL_JumpToAppl(void)
 {
 	typedef void (*pFunction)(void);
 
-	static uint32 app_address = APPL_START_ADDRESS;
-	static pFunction app_entry;
+	uint32 app_address = APPL_START_ADDRESS;
+	pFunction app_entry;
 	uint32 msp_value = *((uint32*)app_address);
 
 	__disable_irq();

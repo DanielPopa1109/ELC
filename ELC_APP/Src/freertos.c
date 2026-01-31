@@ -53,28 +53,28 @@ volatile unsigned long ulHighFrequencyTimerTicks;
 extern uint32_t _estack;            // from linker
 extern uint32_t _Min_Stack_Size;    // from linker (absolute symbol)
 extern uint8_t EcuM_SWState;
-extern uint16_t Ain_DmaBuffer[7u];
+extern uint16_t Ain_DmaBuffer[5u];
 
 /* USER CODE END Variables */
 /* Definitions for QM_BSW */
 osThreadId_t QM_BSWHandle;
 const osThreadAttr_t QM_BSW_attributes = {
   .name = "QM_BSW",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh5,
 };
 /* Definitions for QM_APPL */
 osThreadId_t QM_APPLHandle;
 const osThreadAttr_t QM_APPL_attributes = {
   .name = "QM_APPL",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh4,
 };
 /* Definitions for QM_DIAG */
 osThreadId_t QM_DIAGHandle;
 const osThreadAttr_t QM_DIAG_attributes = {
   .name = "QM_DIAG",
-  .stack_size = 880 * 4,
+  .stack_size = 960 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for CPULOAD_OS */
@@ -141,15 +141,6 @@ void vApplicationIdleHook( void )
 void vApplicationTickHook( void )
 {
 	oscnt++;
-
-	if(EcuM_SWState < 3)
-	{
-		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 7u);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
 }
 
 /* USER CODE END 3 */
@@ -324,6 +315,15 @@ void Alarm5ms_Callback(void *argument)
 	if(counter % 8 == 0 && counter != 0)
 	{
 		vTaskResume(CPULOAD_OSHandle);
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(EcuM_SWState < 3)
+	{
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
 	}
 	else
 	{

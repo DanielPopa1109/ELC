@@ -1,0 +1,459 @@
+#include "EcuM.h"
+#include "stm32f1xx.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include <string.h>
+#include "CanH.h"
+#include "adc.h"
+#include "Nvm.h"
+#include "Dem.h"
+#include "crc.h"
+#include "iwdg.h"
+#include "tim.h"
+#include "dma.h"
+#include "gpio.h"
+#include "can.h"
+#include "main.h"
+#include "cmsis_os2.h"
+
+extern uint8_t SMon_ShortToPlusTest; // Discharge Test Status
+extern uint8_t SMon_ShortToPlusTest_On;
+extern CAN_HandleTypeDef hcan;
+extern CanH_ComStat_t CanH_CommunicationState;
+extern uint8_t SMon_CmdStat;
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
+extern uint8_t Dcm_SWV[4u];
+extern uint16_t Ain_DmaBuffer[7u];
+extern uint8_t SMon_SWState;
+extern osTimerId_t Alarm5msHandle;
+
+uint8_t EcuM_WakeupPending = 0u;
+uint8_t EcuM_SWState = 1u;
+uint8_t EcuM_WUPLine = 0xFFu;
+uint8_t EcuM_SleeModeActive = 0u;
+uint32_t EcuM_RunTimer = 200u;
+uint32_t EcuM_PostRunTimer = 200u;
+uint32_t EcuM_MainCounter = 0u;
+
+uint8_t EcuM_CommandState __attribute((section(".ncr")));
+uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
+uint8_t EcuM_ResetReason __attribute((section(".ncr")));
+uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
+uint32_t EcuM_TimeActive __attribute((section(".ncr")));
+uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
+uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
+uint32_t EcuM_NumberOfWUPLine __attribute((section(".ncr")));
+uint32_t EcuM_NumberOfCANWakeUps __attribute((section(".ncr")));
+uint32_t EcuM_NumberOfDiagWakeUps __attribute((section(".ncr")));
+uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
+uint32_t EcuM_TotalResetCounter __attribute((section(".ncr")));
+
+void EcuM_GoSleep(void);
+void EcuM_main();
+void EcuM_PerformReset(uint8_t reason, uint8_t info);
+void EcuM_CyclicActivity(void);
+
+void EcuM_main()
+{
+	static uint8_t stableState = 0u;
+	static uint8_t lastSample = 0u;
+	static uint8_t stableCount = 0u;
+	static uint8_t sample = 0u;
+
+	HAL_IWDG_Refresh(&hiwdg);
+
+	SMon_SWState = EcuM_SWState;
+	EcuM_TimeActive += 5u;
+	EcuM_TimeWithoutReset += 5u;
+	sample = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+	if (sample == lastSample)
+	{
+		if (stableCount < 7u)
+		{
+			stableCount++;
+		}
+		else
+		{
+			stableState = sample;
+		}
+	}
+	else
+	{
+		stableCount = 0u;
+	}
+
+	lastSample = sample;
+	EcuM_WUPLine = stableState;
+
+	if((RCC->CSR & RCC_CSR_IWDGRSTF) != 0)
+	{
+		EcuM_ResetReason = 6u;
+		EcuM_ResetInfo = 6u;
+		RCC->CSR |= RCC_CSR_IWDGRSTF;
+		RCC->CSR |= RCC_CSR_RMVF;
+		EcuM_ResetCounter++;
+		EcuM_TotalResetCounter++;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	for(uint8_t i = 0; i < 4u; i++)
+	{
+		EcuM_SWV[i] = Dcm_SWV[i];
+	}
+
+	if(0u == EcuM_MainCounter)
+	{
+		if(EcuM_ResetReason)
+		{
+			Dem_SetDtc(0x57, 0x2f);
+		}
+		else
+		{
+			if(0x2f == Dem_GetDtcStatus(0x57u))
+			{
+				Dem_SetDtc(0x57, 0x2e);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(1u == EcuM_WUPLine || FULL_COMMUNICATION == CanH_CommunicationState)
+	{
+		EcuM_SWState = 1u;
+		EcuM_RunTimer = 200u;
+		EcuM_PostRunTimer = 200u;
+	}
+	else
+	{
+		if(0u < EcuM_RunTimer)
+		{
+			EcuM_RunTimer--;
+
+			if(0u == EcuM_RunTimer)
+			{
+				EcuM_SWState = 2u;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(0u == EcuM_RunTimer)
+	{
+		if( ( 4u != SMon_ShortToPlusTest || 2u != SMon_ShortToPlusTest_On)  && 0u == EcuM_RunTimer)
+		{
+			EcuM_SWState = 2u;
+			EcuM_PostRunTimer = 200u;
+		}
+		else if( ( 4u == SMon_ShortToPlusTest || 2u == SMon_ShortToPlusTest_On) && 0u == EcuM_RunTimer)
+		{
+			if(0u < EcuM_PostRunTimer)
+			{
+				EcuM_PostRunTimer--;
+
+				if(0u == EcuM_PostRunTimer)
+				{
+					EcuM_SWState = 3u;
+					EcuM_GoSleep();
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	EcuM_MainCounter++;
+}
+
+void EcuM_GoSleep(void)
+{
+	__disable_irq();
+
+	Nvm_WriteAll();
+
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+	GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_13;
+
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+	GPIO_InitStruct.Pin = GPIO_PIN_0;
+
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_3;
+
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	__enable_irq();
+
+	HAL_ADC_Stop_DMA(&hadc1);
+
+	HAL_ADC_DeInit(&hadc1);
+
+	__disable_irq();
+
+	HAL_TIM_Base_Stop(&htim3);
+
+	HAL_CRC_DeInit(&hcrc);
+
+	HAL_TIM_Base_DeInit(&htim3);
+
+	HAL_CAN_RequestSleep(&hcan);
+
+	__HAL_RCC_GPIOA_CLK_DISABLE();
+
+	__HAL_RCC_GPIOB_CLK_DISABLE();
+
+	__HAL_RCC_GPIOC_CLK_DISABLE();
+
+	__HAL_RCC_DMA1_CLK_DISABLE();
+
+	__HAL_RCC_ADC1_CLK_DISABLE();
+
+	__HAL_RCC_AFIO_CLK_DISABLE();
+
+	HAL_TIM_Base_Start_IT(&htim2);
+
+	vTaskSuspendAll();
+
+	HAL_SuspendTick();
+
+	SysTick->CTRL &= ~(SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk);
+
+	for(uint8_t i = 0u; i < 43u; i++)
+	{
+		HAL_NVIC_ClearPendingIRQ(i);
+	}
+
+	EcuM_SleeModeActive = 1;
+
+	EcuM_ResetInfo = 0;
+
+	EcuM_ResetReason = 0;
+
+	EcuM_ResetCounter = 0u;
+
+	HAL_PWR_DisablePVD();
+
+	HAL_DBGMCU_DisableDBGSleepMode();
+
+	osTimerStop(Alarm5msHandle);
+
+	__enable_irq();
+
+	HAL_PWR_EnterSLEEPMode(0u, PWR_SLEEPENTRY_WFI);
+
+	__disable_irq();
+
+	if (1u == EcuM_WakeupPending)
+	{
+		HAL_IWDG_Refresh(&hiwdg);
+
+		/* Resume SysTick */
+		SysTick->VAL  = 0u;
+		SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
+				SysTick_CTRL_TICKINT_Msk  |
+				SysTick_CTRL_ENABLE_Msk;
+
+		/* Resume FreeRTOS */
+		(void)xTaskResumeAll();
+		HAL_ResumeTick();
+
+		__HAL_RCC_GPIOA_CLK_ENABLE();
+		__HAL_RCC_GPIOB_CLK_ENABLE();
+		__HAL_RCC_GPIOC_CLK_ENABLE();
+		__HAL_RCC_GPIOD_CLK_ENABLE();
+		__HAL_RCC_DMA1_CLK_ENABLE();
+		__HAL_RCC_ADC1_CLK_ENABLE();
+		__HAL_RCC_AFIO_CLK_ENABLE();
+		__HAL_RCC_TIM3_CLK_ENABLE();
+
+		GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+		/*Configure GPIO pins : PC13 PC14 PC15 */
+		GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+		HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+		/*Configure GPIO pin : PtPin */
+		GPIO_InitStruct.Pin = WUP_LINE_Pin;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		HAL_GPIO_Init(WUP_LINE_GPIO_Port, &GPIO_InitStruct);
+
+		/*Configure GPIO pins : PA6 PA7 PA9 PA10
+		                           PA15 */
+		GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_10
+				|GPIO_PIN_15;
+		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+		/*Configure GPIO pins : PB0 PB2 PB11 PB12
+		                           PB13 PB14 PB15 PB3
+		                           PB4 PB5 PB6 PB7
+		                           PB8 PB9 */
+		GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_11|GPIO_PIN_12
+				|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+				|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+				|GPIO_PIN_8|GPIO_PIN_9;
+		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+		/*Configure GPIO pins : PBPin PBPin */
+		GPIO_InitStruct.Pin = ENL1CLS_Pin|ENL1_Pin;
+		GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+		GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS circuit
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 1u); // switch on L1 circuit
+
+		MX_DMA_Init();
+		MX_ADC1_Init();
+		MX_CAN_Init();
+		MX_CRC_Init();
+		MX_TIM3_Init();
+		MX_TIM2_Init();
+
+		PWR_PVDTypeDef sConfigPVD;
+
+		sConfigPVD.Mode = PWR_PVD_MODE_IT_FALLING;
+		sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
+
+		HAL_PWR_ConfigPVD(&sConfigPVD);
+
+		HAL_PWR_EnablePVD();
+
+		HAL_ADCEx_Calibration_Start(&hadc1);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t *)Ain_DmaBuffer, 7u);
+
+		HAL_TIM_Base_Stop_IT(&htim2);
+		HAL_TIM_Base_Start_IT(&htim3);
+
+		HAL_CAN_WakeUp(&hcan);
+		HAL_CAN_Start(&hcan);
+
+		uint32_t notif =
+				CAN_IT_RX_FIFO0_MSG_PENDING |
+				CAN_IT_RX_FIFO0_FULL |
+				CAN_IT_RX_FIFO1_MSG_PENDING |
+				CAN_IT_RX_FIFO1_FULL |
+				CAN_IT_BUSOFF |
+				CAN_IT_ERROR_WARNING |
+				CAN_IT_ERROR_PASSIVE |
+				CAN_IT_LAST_ERROR_CODE |
+				CAN_IT_ERROR;
+
+		HAL_CAN_ActivateNotification(&hcan, notif);
+
+		/* Restore EcuM state */
+		EcuM_SleeModeActive = 0u;
+		EcuM_WakeupPending = 0u;
+		EcuM_SWState       = 1u;
+		EcuM_RunTimer      = 200u;
+		EcuM_PostRunTimer  = 200u;
+
+		CanH_CommunicationState = PARTIAL_COMMUNICATION;
+
+		Nvm_ReadAll();
+
+		osTimerStart(Alarm5msHandle, 5);
+
+		__enable_irq();
+	}
+	else
+	{
+		EcuM_PerformReset(0u, 0u);
+	}
+}
+
+void EcuM_CyclicActivity(void)
+{
+	if(1u == EcuM_SleeModeActive)
+	{
+		EcuM_TimeInSleep += 100u;
+
+		HAL_IWDG_Refresh(&hiwdg);
+
+		EcuM_WUPLine = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+		if(1u == EcuM_WUPLine)
+		{
+			EcuM_NumberOfWUPLine++;
+			EcuM_WakeupPending = 1u;
+			HAL_PWR_DisableSleepOnExit();
+		}
+		else
+		{
+			HAL_PWR_EnableSleepOnExit();
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+}
+
+void EcuM_PerformReset(uint8_t reason, uint8_t info)
+{
+	EcuM_TimeWithoutReset = 0u;
+
+	EcuM_ResetInfo = info;
+
+	EcuM_ResetReason = reason;
+
+	if(reason)
+	{
+		EcuM_ResetCounter++;
+		EcuM_TotalResetCounter++;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	NVIC_SystemReset();
+}

@@ -1,0 +1,14 @@
+{
+  "Items":  
+  [
+    {
+      "Name":"QC On Off",
+      "Type":      1,
+      "GUID":"s35085317088384373594398162",
+      "SEL":"Checked",
+      "REG":"False",
+      "CYCLIC":"1",
+      "CURNODE":"True"    
+    }  
+  ]
+}

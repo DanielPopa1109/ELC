@@ -41,8 +41,6 @@ void Error_Handler(void);
 #define ANT30VFB_GPIO_Port GPIOA
 #define AN_ISENSE_L1_Pin GPIO_PIN_2
 #define AN_ISENSE_L1_GPIO_Port GPIOA
-#define NA_Pin GPIO_PIN_3
-#define NA_GPIO_Port GPIOA
 #define ANL1VFB_Pin GPIO_PIN_4
 #define ANL1VFB_GPIO_Port GPIOA
 #define AN_NTC_IN_Pin GPIO_PIN_5

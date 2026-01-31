@@ -33,7 +33,7 @@ volatile uint8_t g_sec_unlocked = 0;
 uint8_t rx[8u];
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
-uint8_t Dcm_SWV[4u] = {22u, 22u, 0xFFu, 0xFFu};
+uint8_t Dcm_SWV[4u] = {25u, 25u, 0xFFu, 0xFFu};
 uint8_t Dcm_LoadStatus = 0xFFu;
 uint8_t Dcm_CC = 0u;
 uint8_t Dcm_CDTCS = 0u;
@@ -53,7 +53,7 @@ extern uint8_t SMon_LockSupply;
 extern uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeInSleep __attribute((section(".ncr")));
 extern uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
-extern uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
+extern uint32_t EcuM_TotalResetCounter __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 extern float OS_XCP_CpuLoad;
@@ -520,10 +520,10 @@ void Dcm_RDBI_ResetCounter()
 	Dcm_TxData[1u] = rx[1u] + 0x40u;
 	Dcm_TxData[2u] = rx[2u];
 	Dcm_TxData[3u] = rx[3u];
-	Dcm_TxData[4u] = (uint8_t)(EcuM_ResetCounter);
-	Dcm_TxData[5u] = (uint8_t)(EcuM_ResetCounter >> 8u);
-	Dcm_TxData[6u] = (uint8_t)(EcuM_ResetCounter >> 16u);
-	Dcm_TxData[7u] = (uint8_t)(EcuM_ResetCounter >> 24u);
+	Dcm_TxData[4u] = (uint8_t)(EcuM_TotalResetCounter);
+	Dcm_TxData[5u] = (uint8_t)(EcuM_TotalResetCounter >> 8u);
+	Dcm_TxData[6u] = (uint8_t)(EcuM_TotalResetCounter >> 16u);
+	Dcm_TxData[7u] = (uint8_t)(EcuM_TotalResetCounter >> 24u);
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
 
@@ -1393,11 +1393,11 @@ void Dcm_main()
 		}
 	}
 
-	if(0x02 == rx[2u] && (0u == SMon_CalculatedCommand) && 3u == Dcm_ActiveSessionState && (1u == g_sec_unlocked) && 6u == CanH_VehicleStatus)
+	if(0x02 == rx[2u] && 3u == Dcm_ActiveSessionState && (1u == g_sec_unlocked) && 6u == CanH_VehicleStatus)
 	{
 		Dcm_ProgrammingSession();
 	}
-	else if(0x02 == rx[2u] && ((1u == SMon_CalculatedCommand) || 3u != Dcm_ActiveSessionState || 0u == g_sec_unlocked || 6u != CanH_VehicleStatus))
+	else if(0x02 == rx[2u] && (3u != Dcm_ActiveSessionState || 0u == g_sec_unlocked || 6u != CanH_VehicleStatus))
 	{
 		Dcm_SendNrc();
 	}
@@ -1406,11 +1406,11 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0x11u == rx[1u] && 0x01u == rx[2u] && (0u == SMon_CalculatedCommand))
+	if(0x11u == rx[1u] && 0x01u == rx[2u] )
 	{
 		Dcm_HardReset();
 	}
-	else if(0x11u == rx[1u] && 0x01u == rx[2u] && (1u == SMon_CalculatedCommand))
+	else if(0x11u == rx[1u] && 0x01u == rx[2u])
 	{
 		Dcm_SendNrc();
 	}
