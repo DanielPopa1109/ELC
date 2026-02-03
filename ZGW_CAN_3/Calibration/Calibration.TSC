@@ -21,7 +21,7 @@ ECU0=ELC
 
 [ECU_ELC]
 Driver=XCP
-Database=A2L.a2l
+Database=A2L_20260131203216_20260202123535.a2l
 Transport Layer=CAN
 Logic Channel=1
 Enabled=True
@@ -128,6 +128,7 @@ PROGRAM_CLEAR=1
 PROGRAM=1
 PROGRAM_RESET=1
 Var Byte Order=Intel
+Disable read back=False
 
 [Memory_ELC]
 Cache enable=False
@@ -160,7 +161,7 @@ DisconnectBeforeExit=1
 SegCount=0
 
 [ELC_A2LInformation]
-A2LFileName=ELC_A2L.a2l
+A2LFileName=ELC_A2L_20260131203216_20260202123535.a2l
 A2LAlisMapName=
 
 [MeasGroup]

@@ -1012,7 +1012,15 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 					0x3eu == CanH_RxData[1u] &&
 					0x00u == CanH_RxData[2u])
 			{
-				EcuM_NumberOfDiagWakeUps++;
+				if(255u > EcuM_NumberOfDiagWakeUps)
+				{
+					EcuM_NumberOfDiagWakeUps++;
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+
 				EcuM_WakeupPending = 1u;
 				HAL_PWR_DisableSleepOnExit();
 			}
@@ -1147,7 +1155,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 			if(1u == EcuM_SleeModeActive)
 			{
-				EcuM_NumberOfCANWakeUps++;
+				if(255u > EcuM_NumberOfCANWakeUps)
+				{
+					EcuM_NumberOfCANWakeUps++;
+				}
+				else
+				{
+					/* Do nothing. */
+				}
+
 				EcuM_WakeupPending = 1u;
 				HAL_PWR_DisableSleepOnExit();
 			}

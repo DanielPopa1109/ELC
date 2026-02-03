@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define NVM_NO_BLOCKS               3U //+1, first is not used
+#define NVM_NO_BLOCKS               4U //+1, first is not used
 #define NVM_SIZE_HEADER_BYTES       8U // Data-flash write done in 8 bytes at a time
 
 typedef struct

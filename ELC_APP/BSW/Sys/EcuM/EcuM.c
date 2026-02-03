@@ -28,6 +28,25 @@ extern uint8_t Dcm_SWV[4u];
 extern uint16_t Ain_DmaBuffer[5u];
 extern uint8_t SMon_SWState;
 extern osTimerId_t Alarm5msHandle;
+extern uint8_t SMon_Stats10s_Active;
+extern uint8_t SMon_StatsSW_Active;
+extern uint32_t SMon_SW_SampleCnt;
+extern uint32_t SMon_10s_SampleCnt;
+extern uint32_t SMon_Stats10s_Timer;
+extern volatile uint8_t SMon_CheckForVoltageFlag;
+extern uint8_t SMon_CmdStat;
+extern float SMon_10s_L1_Avg ;
+extern float SMon_10s_L1_Sum ;
+extern float SMon_10s_T30_Avg ;
+extern float SMon_10s_T30_Sum ;
+extern float SMon_10s_L1I_Avg ;
+extern float SMon_10s_L1I_Sum ;
+extern float SMon_SW_T30_Avg ;
+extern float SMon_SW_T30_Sum ;
+extern float SMon_SW_L1_Avg ;
+extern float SMon_SW_L1_Sum ;
+extern float SMon_SW_L1I_Avg ;
+extern float SMon_SW_L1I_Sum ;
 
 uint8_t EcuM_WakeupPending = 0u;
 uint8_t EcuM_SWState = 1u;
@@ -198,6 +217,8 @@ void EcuM_main()
 	EcuM_MainCounter++;
 }
 
+extern void SystemClock_Config(void);
+
 void EcuM_GoSleep(void)
 {
 	__disable_irq();
@@ -241,8 +262,6 @@ void EcuM_GoSleep(void)
 	HAL_TIM_Base_DeInit(&htim3);
 
 	HAL_CAN_RequestSleep(&hcan);
-
-	__HAL_RCC_GPIOA_CLK_DISABLE();
 
 	__HAL_RCC_GPIOB_CLK_DISABLE();
 
@@ -290,7 +309,6 @@ void EcuM_GoSleep(void)
 	if (1u == EcuM_WakeupPending)
 	{
 		HAL_IWDG_Refresh(&hiwdg);
-
 		/* Resume SysTick */
 		SysTick->VAL  = 0u;
 		SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
@@ -392,10 +410,27 @@ void EcuM_GoSleep(void)
 		/* Restore EcuM state */
 		EcuM_SleeModeActive = 0u;
 		EcuM_WakeupPending = 0u;
-		EcuM_SWState       = 1u;
-		EcuM_RunTimer      = 200u;
-		EcuM_PostRunTimer  = 200u;
-
+		EcuM_SWState = 1u;
+		EcuM_RunTimer = 200u;
+		EcuM_PostRunTimer = 200u;
+		SMon_Stats10s_Active = 0u;
+		SMon_Stats10s_Timer = 0u;
+		SMon_SW_SampleCnt = 0u;
+		SMon_10s_SampleCnt = 0u;
+		SMon_CheckForVoltageFlag = 0u;
+		SMon_CmdStat = 0xff;
+		SMon_10s_L1_Avg = 0.0f;
+		SMon_10s_L1_Sum = 0.0f;
+		SMon_10s_T30_Avg = 0.0f;
+		SMon_10s_T30_Sum = 0.0f;
+		SMon_10s_L1I_Avg = 0.0f;
+		SMon_10s_L1I_Sum = 0.0f;
+		SMon_SW_T30_Avg =0.0f;
+		SMon_SW_T30_Sum = 0.0f;
+		SMon_SW_L1_Avg = 0.0f;
+		SMon_SW_L1_Sum = 0.0f;
+		SMon_SW_L1I_Avg = 0.0f;
+		SMon_SW_L1I_Sum = 0.0f;
 		CanH_CommunicationState = PARTIAL_COMMUNICATION;
 
 		Nvm_ReadAll();
@@ -422,7 +457,15 @@ void EcuM_CyclicActivity(void)
 
 		if(1u == EcuM_WUPLine)
 		{
-			EcuM_NumberOfWUPLine++;
+			if(255u > EcuM_NumberOfWUPLine)
+			{
+				EcuM_NumberOfWUPLine++;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+
 			EcuM_WakeupPending = 1u;
 			HAL_PWR_DisableSleepOnExit();
 		}

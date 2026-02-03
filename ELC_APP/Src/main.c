@@ -40,7 +40,6 @@ uint16_t Ain_DmaBuffer[5u];
 extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
 extern uint8_t SMon_CmdStat; // Command Status
 extern uint8_t SMon_ValidMeasFlag; // ADC valid measurement
-extern uint8_t SMon_FastResponseTrigger;
 extern uint8_t SMon_RequestPhysicalStatus;
 extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
 extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
@@ -51,15 +50,13 @@ extern const uint32_t SMon_P_PeakCurrent;
 extern float SMon_NTC_Temperature_L1;
 extern const uint16_t SMon_P_Varef;
 extern const uint16_t SMon_P_ADC_MaxValue;
-extern const uint16_t SMon_P_NTC_PullUp_ResistorVale;
+extern const uint32_t SMon_P_NTC_PullUp_ResistorVale;
 extern const float SMon_P_RoomTempKelvin;
 extern const uint16_t SMon_P_BetaConst;
 extern float SMon_McuTempValue;
 extern const float SMon_P_VoltsAt25;
 extern const float SMon_P_AvgSlope;
 extern const float SMon_P_RoomTemperature;
-extern const uint16_t SMon_P_Vrefint;
-extern const float SMon_P_ConvFacISense;
 extern uint8_t Dcm_LoadStatus;
 extern const uint32_t SMon_P_NoLoad_ISense;
 extern const float SMon_P_Kelvin;
@@ -78,6 +75,7 @@ extern const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;  // Beta_cal in 
 extern float SMon_ISenseL1_ExtChISense;
 extern const float SMon_P_AlphaFilterExtChIsense;
 extern uint8_t EcuM_WUPLine;
+extern volatile uint8_t SMon_CheckForVoltageFlag;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,23 +106,21 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	static float filt_isense2 = 0.0f;
 	static float aux_mcutemp = 0.0f;
 	static float aux_ntctemp = 0.0f;
-	static float diff_adcmax_dmabuff = 0.0f;
-	static float adcclamped = 0.0f;
-	//static uint8_t firstMeas = 0u;
 
-	if ((float)Ain_DmaBuffer[4u] >= (float)SMon_P_ADC_MaxValue)
+	if(Ain_DmaBuffer[2u] < 1090u && 1u == SMon_CheckForVoltageFlag)
 	{
-		adcclamped = (float)SMon_P_ADC_MaxValue - 1.0f; // clamp to avoid div0
+		SMon_CheckForVoltageFlag = 0u;
+		vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[2u] + SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+		SMon_VfbL1 = vfb1_mV;
+		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 1u);
 	}
 	else
 	{
-		adcclamped = (float)Ain_DmaBuffer[3];
+		/* Do nothing */
 	}
 
-	diff_adcmax_dmabuff = (float)SMon_P_ADC_MaxValue - (float)adcclamped;
-
 	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
-	v4 = ((float)SMon_P_NTC_PullUp_ResistorVale * (float)Ain_DmaBuffer[3u]) / diff_adcmax_dmabuff;  // ntc
+	v4 = SMon_P_NTC_PullUp_ResistorVale * (((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * 3.3f) / (5.0f - (((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * 3.3f));
 	v5 = ((float)Ain_DmaBuffer[4u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
 
 	if (v4 > 0.0f)
@@ -178,32 +174,11 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		SMon_NTC_Temperature_L1 = 0xFFFFu;
 		SMon_McuTempValue = 0xFFFFu;
 		SMon_ValidMeasFlag = 0u;
+		EcuM_PerformReset(125, 125);
 	}
 	else
 	{
 		/* Do nothing. */
-	}
-}
-
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
-{
-	if((1u == SMon_CmdStat || 1u == Dcm_LoadStatus || 1u == EcuM_WUPLine))
-	{
-		SMon_FastResponseTrigger = 1u;
-		SMon_RequestPhysicalStatus = 0u;
-
-		htim1.Instance->CCR1 = 0u; // switch off CPC
-
-		HAL_GPIO_WritePin(ENL1CLS_GPIO_Port, ENL1CLS_Pin, 0u); // switch off CLS
-		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 0u); // switch off L1
-
-		SMon_PeakCurrent = ((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense;
-		SMon_ISenseL1_Float = (((((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef) - SMon_P_NoLoad_ISense) * SMon_P_ConvFacISense) / 1000u;
-		SMon_ISenseL1 = Ain_DmaBuffer[1u] * SMon_P_ConvFacISense;
-	}
-	else
-	{
-		/* Do nothing */
 	}
 }
 /* USER CODE END 0 */

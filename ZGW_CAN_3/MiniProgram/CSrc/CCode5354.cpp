@@ -64,6 +64,7 @@ com.transmit_can_async(&f0);
 // On shortcut "QC_Test_Activate" with shortcut = Ctrl+A
 void on_shortcut_QC_Test_Activate(const s32 AShortcut) { try { // On shortcut = Ctrl+A
                       startCondition = 1;
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); }}
 // CODE BLOCK END On_Shortcut QC_Test_Activate
 
@@ -71,6 +72,7 @@ void on_shortcut_QC_Test_Activate(const s32 AShortcut) { try { // On shortcut = 
 // On shortcut "QC_Test_Deactivate" with shortcut = Ctrl+B
 void on_shortcut_QC_Test_Deactivate(const s32 AShortcut) { try { // On shortcut = Ctrl+B
                        startCondition = 0;
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); }}
 // CODE BLOCK END On_Shortcut QC_Test_Deactivate
 
@@ -117,13 +119,14 @@ else
     cnt2 = 0;
     loadstatus = 0;
 }
+
 } catch (...) { log_nok("CRASH detected"); app.terminate_application(); }}
 // CODE BLOCK END Step_Function 
 
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU1MzU0XQ__,100,342,2545659729352293659,0
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU1MzU0XQ__,100,172,2545659729352293659,0
 ScriptName=CCode5354
 DisplayName=CCode5354
 DBDeps=ZGW_CAN_3

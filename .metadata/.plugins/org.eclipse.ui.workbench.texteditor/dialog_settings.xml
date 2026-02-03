@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="CanH_E2eErrCnt"/>
+		<item key="selection" value="SMon_P_RoomTempKelvin"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="CanH_E2eErrCnt"/>
-			<item value="e2e"/>
-			<item value="pSMon_L1_UVStatus"/>
-			<item value="SMon_ProcessLoadCurrentState"/>
-			<item value="ecu_ov"/>
-			<item value="pSMon_CmdStat"/>
-			<item value="pSMon_RequestPhysicalStatus"/>
-			<item value="SMon_RequestPhysicalStatus"/>
-			<item value="SMon_ECU_OV"/>
-			<item value="uv"/>
-			<item value="Dcm_RDBI_ResetCounter"/>
+			<item value="SMon_P_RoomTempKelvin"/>
+			<item value="SMon_P_NTC_PullUp_ResistorVale"/>
+			<item value="extstart"/>
+			<item value="SMon_ShortToPlusTest_OnExt"/>
+			<item value="SMon_ProcessShortToPlusTest_OnExt"/>
 			<item value="SMon_ShortToPlusTest_On"/>
-			<item value="SMon_ProcessShortToPlusTest"/>
-			<item value="SMon_ShortToPlusTest"/>
 			<item value="SMon_ProcessShortToPlusTest_On"/>
+			<item value="SMon_S2BErrorStatus"/>
+			<item value="loadstat"/>
+			<item value="load"/>
+			<item value="loads"/>
+			<item value="loadstatus"/>
+			<item value="Dcm_ReadLoadStatus"/>
+			<item value="SMon_CheckForVoltageFlag"/>
+			<item value="Dcm_RDBI_WakeupLine_Wakeups"/>
 		</list>
 		<list key="replacehistory">
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="807"/>
-		<item key="DIALOG_Y_ORIGIN" value="264"/>
+		<item key="DIALOG_X_ORIGIN" value="8"/>
+		<item key="DIALOG_Y_ORIGIN" value="256"/>
 		<item key="DIALOG_WIDTH" value="322"/>
 		<item key="DIALOG_HEIGHT" value="391"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
