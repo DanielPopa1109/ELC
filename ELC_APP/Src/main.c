@@ -39,14 +39,12 @@ uint16_t Ain_DmaBuffer[5u];
 
 extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
 extern uint8_t SMon_CmdStat; // Command Status
-extern uint8_t SMon_ValidMeasFlag; // ADC valid measurement
 extern uint8_t SMon_RequestPhysicalStatus;
 extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
 extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
 extern uint32_t SMon_ISenseL1; // I Sense L1
 extern float SMon_ISenseL1_Float;
 extern float SMon_PeakCurrent;
-extern const uint32_t SMon_P_PeakCurrent;
 extern float SMon_NTC_Temperature_L1;
 extern const uint16_t SMon_P_Varef;
 extern const uint16_t SMon_P_ADC_MaxValue;
@@ -58,7 +56,6 @@ extern const float SMon_P_VoltsAt25;
 extern const float SMon_P_AvgSlope;
 extern const float SMon_P_RoomTemperature;
 extern uint8_t Dcm_LoadStatus;
-extern const uint32_t SMon_P_NoLoad_ISense;
 extern const float SMon_P_Kelvin;
 extern const float SMon_P_VoltageDivider;
 extern const float SMon_P_AlphaFilter;
@@ -94,9 +91,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	static float v4 = 0.0f;
 	static float v5 = 0.0f;
 	static float aux_isense = 0.0f;
-	static float filt_isense = 0.0f;
-	//static float filt_vfb1_mV = 0.0f;
-	//static float filt_vfb2_mV = 0.0f;
 	static float vfb1_mV = 0.0f;
 	static float vfb2_mV = 0.0f;
 	static float ln_ratio;
@@ -139,9 +133,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	aux_isense = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) * SMon_P_TwoPointCalib_ConvFacISense;
 	aux_isense2 = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) * SMon_P_TwoPointCalib_ConvFacISense;
 	filt_isense2 = filt_isense2 + SMon_P_AlphaFilterExtChIsense * (aux_isense2 - filt_isense2);
-	filt_isense = filt_isense + SMon_P_AlphaFilter * (aux_isense - filt_isense);
-	//filt_vfb1_mV = filt_vfb1_mV + SMon_P_AlphaFilter * (vfb1_mV - filt_vfb1_mV);
-	//filt_vfb2_mV = filt_vfb2_mV + SMon_P_AlphaFilter * (vfb2_mV - filt_vfb2_mV);
 
 	if(SMon_PeakCurrent < aux_isense)
 	{
@@ -153,15 +144,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	}
 
 	SMon_ISenseL1_ExtChISense = filt_isense2 / 1000u;
-	SMon_ISenseL1_Float = filt_isense / 1000u;
-	SMon_ISenseL1 = filt_isense;
-	SMon_VfbL1 = vfb1_mV;//filt_vfb1_mV;
-	SMon_VfbT30 = vfb2_mV;//filt_vfb2_mV;
+	SMon_ISenseL1_Float = aux_isense / 1000u;
+	SMon_ISenseL1 = aux_isense;
+	SMon_VfbL1 = vfb1_mV;
+	SMon_VfbT30 = vfb2_mV;
 	aux_mcutemp = ((SMon_P_VoltsAt25 - v5) / SMon_P_AvgSlope) + SMon_P_RoomTemperature;
 	aux_ntctemp = T_kelvin - SMon_P_Kelvin;
 	SMon_NTC_Temperature_L1 = SMon_NTC_Temperature_L1 + SMon_P_AlphaFilterExtChIsense * (aux_ntctemp - SMon_NTC_Temperature_L1);
 	SMon_McuTempValue = SMon_McuTempValue + SMon_P_AlphaFilterExtChIsense * (aux_mcutemp - SMon_McuTempValue);
-	SMon_ValidMeasFlag = 1u;
 }
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
@@ -173,7 +163,6 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		SMon_VfbT30 = 0xFFFFu;
 		SMon_NTC_Temperature_L1 = 0xFFFFu;
 		SMon_McuTempValue = 0xFFFFu;
-		SMon_ValidMeasFlag = 0u;
 		EcuM_PerformReset(125, 125);
 	}
 	else

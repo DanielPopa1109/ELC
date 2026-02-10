@@ -509,181 +509,6 @@ void CanH_MainFunction(void)
 {
 	static uint8_t prevSMon_L1ST = 0u;
 
-	if(0u == CanH_MainCounter)
-	{
-		prevSMon_L1ST = SMon_L1ST;
-
-		if(15u > CanH_AliveCounter_LoadStatus)
-		{
-			CanH_AliveCounter_LoadStatus++;
-		}
-		else
-		{
-			CanH_AliveCounter_LoadStatus = 0u;
-		}
-
-		CanH_TxData[1u] = CanH_AliveCounter_LoadStatus;
-		CanH_TxData[2u] = 0x15u;
-		CanH_TxData[3u] = SMon_L1ST;
-		CanH_TxData[4u] = 0;
-		CanH_TxData[5u] = 0;
-		CanH_TxData[6u] = 0;
-		CanH_TxData[7u] = 0;
-
-		uint32_t tempVar = ((uint32_t)CanH_AliveCounter_LoadStatus << 16u) | ((uint32_t)0x15u << 8u) | ((uint32_t)SMon_L1ST);
-
-		CanH_TxData[0u] = (uint8_t)HAL_CRC_Calculate(&hcrc, &tempVar, 1u);
-
-		CanH_TxHeader.DLC = 4;
-		CanH_TxHeader.StdId = 0x51;
-
-		HAL_StatusTypeDef st;
-		uint8_t cnt = 0u;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-
-		CanH_TxData[0] = 0;
-		CanH_TxData[1] = 0;
-		CanH_TxData[2] = 0;
-		CanH_TxData[3] = 0;
-		CanH_TxData[4] = (uint8_t)(SMon_VfbT30);
-		CanH_TxData[5] = (uint8_t)(SMon_VfbT30 >> 8u);
-		CanH_TxData[6] = (uint8_t)(SMon_VfbL1);
-		CanH_TxData[7] = (uint8_t)(SMon_VfbL1 >> 8u);
-		CanH_TxHeader.DLC = 8;
-		CanH_TxHeader.StdId = 0x6ef;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-
-		memcpy(&CanH_TxData[0u], &SMon_ISenseL1_Float, sizeof(float));
-		CanH_TxHeader.DLC = 4;
-		CanH_TxHeader.StdId = 0x6ed;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-
-		memcpy(&CanH_TxData[0u], &SMon_NTC_Temperature_L1, sizeof(float));
-		memcpy(&CanH_TxData[4u], &SMon_McuTempValue, sizeof(float));
-
-		CanH_TxHeader.DLC = 8;
-		CanH_TxHeader.StdId = 0x6ee;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-
-		CanH_TxData[0] = SMon_ECU_UV;
-		CanH_TxData[1] = SMon_ECU_OV;
-		CanH_TxData[2] = (uint8_t)(SMon_I2TCounter);
-		CanH_TxData[3] = (uint8_t)(SMon_I2TCounter >> 8u);
-		CanH_TxData[4] = (uint8_t)(SMon_I2TCounter >> 16u);
-		CanH_TxData[5] = (uint8_t)(SMon_I2TCounter >> 24u);
-		CanH_TxData[6] = SMon_CLS_Failure;
-		CanH_TxData[7] = SMon_L1_UVStatus;
-		CanH_TxHeader.DLC = 8;
-		CanH_TxHeader.StdId = 0x6f0;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-
-		CanH_TxData[0] = SMon_I2TError;
-		CanH_TxData[1] = SMon_LockSupply;
-		CanH_TxData[2] = SMon_RetryCnt;
-		CanH_TxData[3] = EcuM_WUPLine;
-		CanH_TxData[4] = SMon_S2BErrorStatus;
-		CanH_TxData[5] = SMon_ExternalChargerDetected;
-		CanH_TxData[6] = 0;
-		CanH_TxData[7] = SMon_NtcError;
-		CanH_TxHeader.DLC = 8;
-		CanH_TxHeader.StdId = 0x6f1;
-
-		do
-		{
-			st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-			cnt++;
-		} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-		cnt = 0u;
-
-		for(uint8_t i = 0; i < 8; i++)
-		{
-			CanH_TxData[i] = 0;
-		}
-
-		CanH_TxHeader.DLC = 0;
-		CanH_TxHeader.StdId = 0;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
 	if(FULL_COMMUNICATION == CanH_CommunicationState && 0u == Dcm_CC)
 	{
 		if(CanH_MainCounter % 200 == 0 || prevSMon_L1ST != SMon_L1ST)
@@ -699,20 +524,17 @@ void CanH_MainFunction(void)
 				CanH_AliveCounter_LoadStatus = 0u;
 			}
 
-			CanH_TxData[1u] = CanH_AliveCounter_LoadStatus;
-			CanH_TxData[2u] = 0x15u;
-			CanH_TxData[3u] = SMon_L1ST;
-			CanH_TxData[4u] = 0;
-			CanH_TxData[5u] = 0;
-			CanH_TxData[6u] = 0;
-			CanH_TxData[7u] = 0;
+			CanH_TxData[1u] |= (CanH_AliveCounter_LoadStatus & 0x1Fu);
+			CanH_TxData[1u] |= (0x15u & 0x07u) << 5u;
+			CanH_TxData[2u] |= (0x15u >> 3u) & 0x03u;
+			CanH_TxData[2u] |= (SMon_L1ST & 0x01u) << 2u;
 
-			uint32_t tempVar = ((uint32_t)CanH_AliveCounter_LoadStatus << 16u) | ((uint32_t)0x15u << 8u) | ((uint32_t)SMon_L1ST);
+			uint32_t tempVar = ((uint32_t)CanH_TxData[1u] << 8u) | ((uint32_t)CanH_TxData[2u]);
 
 			CanH_TxData[0u] = (uint8_t)HAL_CRC_Calculate(&hcrc, &tempVar, 1u);
 
-			CanH_TxHeader.DLC = 4;
-			CanH_TxHeader.StdId = 0x51;
+			CanH_TxHeader.DLC = 3;
+			CanH_TxHeader.StdId = 0x51u;
 
 			HAL_StatusTypeDef st;
 			uint8_t cnt = 0u;
@@ -740,46 +562,15 @@ void CanH_MainFunction(void)
 
 		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
-			CanH_TxData[0] = 0;
-			CanH_TxData[1] = 0;
-			CanH_TxData[2] = 0;
-			CanH_TxData[3] = 0;
-			CanH_TxData[4] = (uint8_t)(SMon_VfbT30);
-			CanH_TxData[5] = (uint8_t)(SMon_VfbT30 >> 8u);
-			CanH_TxData[6] = (uint8_t)(SMon_VfbL1);
-			CanH_TxData[7] = (uint8_t)(SMon_VfbL1 >> 8u);
+			CanH_TxData[0] = (uint8_t)(SMon_VfbT30);
+			CanH_TxData[1] = (uint8_t)(SMon_VfbT30 >> 8u);
+			CanH_TxData[2] = (uint8_t)(SMon_VfbL1);
+			CanH_TxData[3] = (uint8_t)(SMon_VfbL1 >> 8u);
+
+			memcpy(&CanH_TxData[4u], &SMon_ISenseL1_Float, sizeof(float));
+
 			CanH_TxHeader.DLC = 8;
 			CanH_TxHeader.StdId = 0x6ef;
-
-			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
-
-			do
-			{
-				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
-		{
-			memcpy(&CanH_TxData[0u], &SMon_ISenseL1_Float, sizeof(float));
-			CanH_TxHeader.DLC = 4;
-			CanH_TxHeader.StdId = 0x6ed;
 
 			HAL_StatusTypeDef st;
 			uint8_t cnt = 0u;
@@ -839,53 +630,12 @@ void CanH_MainFunction(void)
 
 		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
 		{
-			CanH_TxData[0] = SMon_ECU_UV;
-			CanH_TxData[1] = SMon_ECU_OV;
-			CanH_TxData[2] = (uint8_t)(SMon_I2TCounter);
-			CanH_TxData[3] = (uint8_t)(SMon_I2TCounter >> 8u);
-			CanH_TxData[4] = (uint8_t)(SMon_I2TCounter >> 16u);
-			CanH_TxData[5] = (uint8_t)(SMon_I2TCounter >> 24u);
-			CanH_TxData[6] = SMon_CLS_Failure;
-			CanH_TxData[7] = SMon_L1_UVStatus;
-			CanH_TxHeader.DLC = 8;
+			CanH_TxData[0] = (uint8_t)(SMon_I2TCounter);
+			CanH_TxData[1] = (uint8_t)(SMon_I2TCounter >> 8u);
+			CanH_TxData[2] = (uint8_t)(SMon_I2TCounter >> 16u);
+			CanH_TxData[3] = (uint8_t)(SMon_I2TCounter >> 24u);
+			CanH_TxHeader.DLC = 4;
 			CanH_TxHeader.StdId = 0x6f0;
-
-			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
-
-			do
-			{
-				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
-		{
-			CanH_TxData[0] = SMon_I2TError;
-			CanH_TxData[1] = SMon_LockSupply;
-			CanH_TxData[2] = SMon_RetryCnt;
-			CanH_TxData[3] = EcuM_WUPLine;
-			CanH_TxData[4] = SMon_S2BErrorStatus;
-			CanH_TxData[5] = SMon_ExternalChargerDetected;
-			CanH_TxData[6] = 0;
-			CanH_TxData[7] = SMon_NtcError;
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f1;
 
 			HAL_StatusTypeDef st;
 			uint8_t cnt = 0u;
@@ -1100,13 +850,20 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	if(0x202u == CanH_RxHeader.StdId)
 	{
-		CSBSDAT_Year = CanH_RxData[0];
-		CSBSDAT_Month = CanH_RxData[1];
-		CSBSDAT_Day = CanH_RxData[2];
-		CSBSDAT_Hour = CanH_RxData[3];
-		CSBSDAT_Minute = CanH_RxData[4];
-		CSBSDAT_Second = CanH_RxData[5];
-		CSBSDAT_Millisecond = CanH_RxData[6];
+		uint32_t t =
+				((uint32_t)CanH_RxData[0]) |
+				((uint32_t)CanH_RxData[1] << 8) |
+				((uint32_t)CanH_RxData[2] << 16) |
+				((uint32_t)CanH_RxData[3] << 24);
+
+		CSBSDAT_Year   =  t        & 0x3F;
+		CSBSDAT_Month  = (t >> 6)  & 0x0F;
+		CSBSDAT_Day    = (t >> 10) & 0x1F;
+		CSBSDAT_Hour   = (t >> 15) & 0x1F;
+		CSBSDAT_Minute = (t >> 20) & 0x3F;
+		CSBSDAT_Second = (t >> 26) & 0x3F;
+
+		CSBSDAT_Millisecond = CanH_RxData[4];
 	}
 	else
 	{
@@ -1192,7 +949,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if(0x97u == CanH_RxHeader.StdId)
 	{
 		CanH_MissingVehicleData = 0u;
-		CanH_VehicleStatus = CanH_RxData[5u];
+
+		uint8_t b0 = CanH_RxData[0];
+
+		CanH_VehicleStatus = (b0 >> 5)  & 0x0F;
 
 		if(6u < CanH_RxData[5u])
 		{
@@ -1215,27 +975,39 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		CanH_MissingLoadRequest = 0u;
 
-		calc_crc = crc8_ts(&CanH_RxData[1u], 4u);
+		uint8_t aliveCounter =  CanH_RxData[1] & 0x1F;
+
+		uint8_t dataId =
+				((CanH_RxData[1] >> 5) & 0x07) |
+				((CanH_RxData[2] & 0x03) << 3);
+
+		uint8_t loadRequest =
+				(CanH_RxData[2] >> 2) & 0x01;
+
+		calc_crc = crc8_ts(&CanH_RxData[1], 2);
+
 		CanH_AliveCounter_LoadRequest++;
 
-		if(calc_crc == CanH_RxData[0u] && 0x16u == CanH_RxData[2u] && 2u > abs(CanH_AliveCounter_LoadRequest - CanH_RxData[1u]))
+		if(calc_crc == CanH_RxData[0] &&
+				dataId == 0x16u &&
+				2u > abs(CanH_AliveCounter_LoadRequest - aliveCounter))
 		{
-			SMon_CmdStat = CanH_RxData[3u];
+			SMon_CmdStat = loadRequest;
 			CanH_E2eErrCnt = 0;
 		}
 		else
 		{
-			CanH_AliveCounter_LoadRequest = CanH_RxData[1u];
+			CanH_AliveCounter_LoadRequest = aliveCounter;
 			CanH_E2eErrCnt++;
 		}
 
-		if(1u < CanH_RxData[3u])
+		if(1u < loadRequest)
 		{
 			Dem_SetDtc(0x5Cu, 0x2fu);
 		}
 		else
 		{
-			if(0x2fu == Dem_GetDtcStatus(0x5cu))
+			if(0x2fu == Dem_GetDtcStatus(0x5Cu))
 			{
 				Dem_SetDtc(0x5Cu, 0x2eu);
 			}

@@ -172,7 +172,7 @@ Values2=Standing                 = 3
 Values3=Driving                    = 4
 Values4=Vehicle Error           = 5
 Values5=Vehicle Diagnosis    = 6
-Values6=Signal invalid           = 255
+Values6=Signal invalid           = 15
 LabelWidth=80
 KillFocusByReturn=1
 AutoLookupList=0

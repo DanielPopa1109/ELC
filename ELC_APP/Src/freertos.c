@@ -60,14 +60,14 @@ extern uint16_t Ain_DmaBuffer[5u];
 osThreadId_t QM_BSWHandle;
 const osThreadAttr_t QM_BSW_attributes = {
   .name = "QM_BSW",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh5,
 };
 /* Definitions for QM_APPL */
 osThreadId_t QM_APPLHandle;
 const osThreadAttr_t QM_APPL_attributes = {
   .name = "QM_APPL",
-  .stack_size = 512 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh4,
 };
 /* Definitions for QM_DIAG */

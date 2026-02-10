@@ -22,7 +22,27 @@ static int cnt;
 static int cnt2;
 
 cnt++;
-TCAN f0 = {0,0x1,7,0,0x202,705108399,{(u8)year_two_digits, (u8)(timeinfo->tm_mon + 1), (u8)timeinfo->tm_mday, (u8)timeinfo->tm_hour,  (u8)timeinfo->tm_min, (u8)timeinfo->tm_sec, (u8)cnt2, 0x0}};
+
+u32 t =
+    (year_two_digits & 0x3F) |
+    ((timeinfo->tm_mon + 1 & 0x0F) << 6) |
+    ((timeinfo->tm_mday & 0x1F) << 10) |
+    ((timeinfo->tm_hour & 0x1F) << 15) |
+    ((timeinfo->tm_min & 0x3F) << 20) |
+    ((timeinfo->tm_sec & 0x3F) << 26);
+
+TCAN f0 = {0, 0x1, 7, 0, 0x202, 705108399,
+           {
+               (u8)(t & 0xFF),
+               (u8)((t >> 8) & 0xFF),
+               (u8)((t >> 16) & 0xFF),
+               (u8)((t >> 24) & 0xFF),
+               (u8)cnt2,
+               0x0,
+               0x0,
+               0x0
+           }};
+
 if(cnt != 0 && (cnt % 800 == 0))
 {
    com.transmit_can_async(&f0);
@@ -35,11 +55,11 @@ else cnt2++;
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,175,4505007066452424418,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,182,4505007066452424418,0
 ScriptName=CCode2360
 DisplayName=CCode2360
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-01-18 17:26:54
+LastBuildTime=2026-02-06 12:31:44
 */
 // CODE BLOCK END Configuration
 

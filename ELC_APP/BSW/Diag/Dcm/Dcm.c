@@ -33,7 +33,7 @@ volatile uint8_t g_sec_unlocked = 0;
 uint8_t rx[8u];
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
-uint8_t Dcm_SWV[4u] = {26u, 26u, 0xFFu, 0xFFu};
+uint8_t Dcm_SWV[4u] = {27u, 27u, 0xFFu, 0xFFu};
 uint8_t Dcm_LoadStatus = 0xFFu;
 uint8_t Dcm_CC = 0u;
 uint8_t Dcm_CDTCS = 0u;

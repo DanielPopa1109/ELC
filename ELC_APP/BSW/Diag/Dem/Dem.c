@@ -157,17 +157,18 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 
 		if(0x2f == stat && 0x2f != prevStat && FULL_COMMUNICATION == CanH_CommunicationState)
 		{
-			static uint8_t arrtx[5];
+			static uint8_t arrtx[4];
 			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 			uint32_t TxMailbox = 0u;
 
-			arrtx[0] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index]);
-			arrtx[1] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 8u);
-			arrtx[2] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 16u);
-			arrtx[3] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u);
-			arrtx[4] = stat;
+			arrtx[0u] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index]);
+			arrtx[1u] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 8u);
+			arrtx[2u] = ((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 16u) & 0x3Fu);
+			arrtx[2u] = (((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u) & 0x03u) << 6u);
+			arrtx[3u] = (((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u) >> 2u) & 0x03u );
+			arrtx[3u] = ((stat & 0x3fu) << 2u);
 
-			TxHeader.DLC = 5;
+			TxHeader.DLC = 4;
 			TxHeader.StdId = 0x7FEu;
 
 			HAL_StatusTypeDef st;
@@ -177,8 +178,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 				st = HAL_CAN_AddTxMessage(&hcan, &TxHeader, arrtx, &TxMailbox);
 			} while (st != HAL_OK);   // wait until a mailbox frees up
 
-			for(uint8_t i = 0; i < 5; i++) arrtx[i] = 0;
-
+			for(uint8_t i = 0; i < 4; i++) arrtx[i] = 0;
 			TxHeader.DLC = 0;
 			TxHeader.StdId = 0;
 		}
