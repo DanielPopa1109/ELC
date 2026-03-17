@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_P_I2TRating"/>
+		<item key="selection" value="SMon_CalculateMinMaxAvg"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="SMon_CalculateMinMaxAvg"/>
+			<item value="SMon_SW_L1I_Avg"/>
+			<item value="SMon_SW_L1I_Sum"/>
+			<item value="SMon_SW_SampleCnt"/>
+			<item value="SMon_Stats_Init"/>
+			<item value="Dcm_RDTCI_19_04_AllSnapshots"/>
+			<item value="Dcm_RDTCI"/>
+			<item value="vehicle"/>
 			<item value="SMon_P_I2TRating"/>
 			<item value="SMon_I2TError"/>
 			<item value="SMon_P_RoomTempKelvin"/>
@@ -15,14 +23,6 @@
 			<item value="extstart"/>
 			<item value="SMon_ShortToPlusTest_OnExt"/>
 			<item value="SMon_ProcessShortToPlusTest_OnExt"/>
-			<item value="SMon_ShortToPlusTest_On"/>
-			<item value="SMon_ProcessShortToPlusTest_On"/>
-			<item value="SMon_S2BErrorStatus"/>
-			<item value="loadstat"/>
-			<item value="load"/>
-			<item value="loads"/>
-			<item value="loadstatus"/>
-			<item value="Dcm_ReadLoadStatus"/>
 		</list>
 		<list key="replacehistory">
 		</list>

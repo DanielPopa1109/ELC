@@ -18,6 +18,7 @@ extern uint16_t SMon_VfbT30;
 extern float SMon_NTC_Temperature_L1;
 extern float SMon_ISenseL1_Float;
 extern float SMon_McuTempValue;
+extern volatile uint8_t CanH_VehicleStatus;
 
 Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
 
@@ -85,6 +86,7 @@ void Dem_CaptureFreezeFrame(uint8_t idx)
 	Dem_FF[idx].T30VFB = SMon_VfbT30;
 	Dem_FF[idx].L1NTC = SMon_NTC_Temperature_L1;
 	Dem_FF[idx].L1ISENSE = SMon_ISenseL1_Float;
+	Dem_FF[idx].vehStatus = CanH_VehicleStatus;
 
 	Nvm_WriteBlock(2u, &Dem_FF[0].occurrenceCnt);   // separate FF block
 }

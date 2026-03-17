@@ -794,7 +794,7 @@ void Dcm_CDTCI()
 
 void Dcm_RDTCI_19_04_AllSnapshots(void)
 {
-	uint8_t payload[768u];   /* enough for all FFs */
+	uint8_t payload[900u];   /* enough for all FFs */
 	uint16_t len = 0u;
 
 	/* Positive response */

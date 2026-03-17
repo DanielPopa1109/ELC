@@ -74,7 +74,7 @@ const osThreadAttr_t QM_APPL_attributes = {
 osThreadId_t QM_DIAGHandle;
 const osThreadAttr_t QM_DIAG_attributes = {
   .name = "QM_DIAG",
-  .stack_size = 960 * 4,
+  .stack_size = 1200 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for CPULOAD_OS */

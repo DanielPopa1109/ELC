@@ -31,7 +31,7 @@ u32 t =
     ((timeinfo->tm_min & 0x3F) << 20) |
     ((timeinfo->tm_sec & 0x3F) << 26);
 
-TCAN f0 = {0, 0x1, 7, 0, 0x202, 705108399,
+TCAN f0 = {0, 0x1, 5, 0, 0x202, 705108399,
            {
                (u8)(t & 0xFF),
                (u8)((t >> 8) & 0xFF),
@@ -55,11 +55,11 @@ else cnt2++;
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,182,4505007066452424418,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMzYwXQ__,100,207,4505007066452424418,0
 ScriptName=CCode2360
 DisplayName=CCode2360
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-02-06 12:31:44
+LastBuildTime=2026-02-25 00:03:17
 */
 // CODE BLOCK END Configuration
 

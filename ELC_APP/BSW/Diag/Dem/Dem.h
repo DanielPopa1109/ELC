@@ -11,10 +11,13 @@ typedef struct __attribute__((packed))
     uint8_t  hour;
     uint8_t  minute;
     uint8_t  second;
+    uint8_t vehStatus;
     uint16_t L1VFB;
     uint16_t T30VFB;
     float L1NTC;
     float L1ISENSE;
+    uint16_t padding2;
+    uint8_t padding1;
 } Dem_FreezeFrame_t;
 
 extern Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
