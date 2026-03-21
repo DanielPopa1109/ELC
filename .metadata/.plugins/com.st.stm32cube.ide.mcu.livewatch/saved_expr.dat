@@ -19,3 +19,10 @@ SMon_SW_L1I_Avg
 SMon_VfbL1
 SMon_MainCnt
 oscnt
+OS_XCP_U8_CPU_Load
+SMon_ISenseL1_ExtChISense
+Nvm_CurrentAddress
+Nvm_SectorSwitchActivated
+Nvm_CurrentSector
+Ain_DmaBuffer
+SMon_PeakCurrent

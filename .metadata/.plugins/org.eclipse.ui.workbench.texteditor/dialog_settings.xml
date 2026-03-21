@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_CalculateMinMaxAvg"/>
+		<item key="selection" value="g_run_ram_updater"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="g_run_ram_updater"/>
+			<item value="OS_XCP_U8_CPU_Load"/>
+			<item value="SMon_P_ISenseNominal"/>
 			<item value="SMon_CalculateMinMaxAvg"/>
 			<item value="SMon_SW_L1I_Avg"/>
 			<item value="SMon_SW_L1I_Sum"/>
@@ -20,9 +23,6 @@
 			<item value="SMon_I2TError"/>
 			<item value="SMon_P_RoomTempKelvin"/>
 			<item value="SMon_P_NTC_PullUp_ResistorVale"/>
-			<item value="extstart"/>
-			<item value="SMon_ShortToPlusTest_OnExt"/>
-			<item value="SMon_ProcessShortToPlusTest_OnExt"/>
 		</list>
 		<list key="replacehistory">
 		</list>

@@ -101,8 +101,8 @@ const float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.28363f;
 const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u; // R0_cal in ohms
 const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u;  // Beta_cal in K
 
-const float SMon_P_ISenseNominal = 10.400f; // Nominal Current Parameter
-const float SMon_P_I2TRating = 900u; // I2T Rating Parameter
+const float SMon_P_ISenseNominal = 20.000f; // Nominal Current Parameter
+const float SMon_P_I2TRating = 2000.0f; // I2T Rating Parameter
 
 const float SMon_P_RoomTempKelvin = 297.15f;
 const float SMon_P_VoltsAt25 = 1430.0f;
