@@ -33,7 +33,7 @@ volatile uint8_t g_sec_unlocked = 0;
 uint8_t rx[8u];
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
-uint8_t Dcm_SWV[4u] = {27u, 27u, 0xFFu, 0xFFu};
+uint8_t Dcm_SWV[4u] = {30u, 30u, 30u, 0xFFu};
 uint8_t Dcm_LoadStatus = 0xFFu;
 uint8_t Dcm_CC = 0u;
 uint8_t Dcm_CDTCS = 0u;
@@ -44,7 +44,20 @@ uint32_t Dcm_TxMailbox = 0;
 CAN_TxHeaderTypeDef Dcm_DiagTxHeader;
 CAN_RxHeaderTypeDef Dcm_DiagRxHeader = {0, 0, 0, 0, 0, 0, 0};
 uint32_t Dcm_LoadTimer = 0u;
+uint8_t Dcm_OBD_VIN[17] = "WBA5A7C50ED123456";
+uint8_t Dcm_OBD_CALID[10u] = "0x74bdffa2";
+uint8_t Dcm_OBD_CALID_LEN = 10u;
+uint8_t Dcm_OBD_ECU_NAME[3u] = "ELC";
+uint8_t Dcm_OBD_ECU_NAME_LEN = 3u;
 
+extern uint8_t SMon_NtcError;
+extern uint8_t SMon_ExternalChargerDetected;
+extern uint8_t SMon_S2BErrorStatus;
+extern uint8_t SMon_I2TError;
+extern uint8_t SMon_L1_UVStatus;
+extern uint8_t SMon_CLS_Failure;
+extern uint8_t SMon_ECU_UV;
+extern uint8_t SMon_ECU_OV;
 extern uint8_t SMon_CalculatedCommand;
 extern uint8_t SMon_L1ST;
 extern uint8_t SMon_CmdStat;
@@ -59,12 +72,12 @@ extern uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 extern float OS_XCP_CpuLoad;
 extern uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC];
 extern const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC];
+extern const uint32_t Dem_PreDefined_OBD_DTC_Table[DEM_MAX_OBD_FF_DTC];
 extern volatile uint8_t CanH_VehicleStatus;
 extern uint8_t EcuM_WUPLine;
 extern uint32_t EcuM_NumberOfWUPLine __attribute((section(".ncr")));
 extern uint32_t EcuM_NumberOfCANWakeUps __attribute((section(".ncr")));
 extern uint32_t EcuM_NumberOfDiagWakeUps __attribute((section(".ncr")));
-
 extern float SMon_10s_T30_Min;
 extern float SMon_10s_T30_Max ;
 extern float SMon_10s_T30_Avg ;
@@ -83,6 +96,22 @@ extern float SMon_10s_L1I_Avg ;
 extern float SMon_SW_L1I_Min;
 extern float SMon_SW_L1I_Max ;
 extern float SMon_SW_L1I_Avg ;
+extern uint8_t CanH_OBD_AmbientTemperature ;
+extern uint8_t CanH_OBD_EngineCoolantTemperature ;
+extern uint8_t CanH_OBD_IntakeAirTemperature ;
+extern uint8_t CanH_OBD_EngineSpeed ;
+extern uint8_t CanH_OBD_EngineLoad ;
+extern uint8_t CanH_OBD_VehicleSpeed;
+extern uint8_t CanH_OBD_ObdReadiness;
+extern float SMon_DataMinMaxAvg[18u];
+extern const uint32_t CanH_P_DelayTxParam;
+extern uint32_t Dem_DTC_Stat_OBD[DEM_MAX_OBD_FF_DTC];
+extern uint32_t Dem_DTC_Stat_OBD_Permanent[DEM_MAX_OBD_FF_DTC];
+extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
+extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
+extern uint32_t SMon_ISenseL1; // I Sense L1
+extern float SMon_NTC_Temperature_L1;
+extern uint8_t Nvm_ParamFlashBlock[256u];
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
@@ -135,11 +164,495 @@ void Dcm_RDBI_L1AvgSW(void);
 void Dcm_RDBI_L1_Current_MinSW(void);
 void Dcm_RDBI_L1_Current_MaxSW(void);
 void Dcm_RDBI_L1_Current_AvgSW(void);
+void Dcm_HandleOBD(void);
+void Dcm_OBD_Mode01(void);
+void Dcm_OBD_Mode03(void);
+void Dcm_OBD_Mode04(void);
+void Dcm_OBD_Mode07(void);
+void Dcm_OBD_Mode0A(void);
+void Dcm_OBD_Mode09(void);
+void Dcm_OBD_Mode02(void);
+void Dcm_OBD_Mode06(void);
+void Dcm_OBD_Mode08(void);
+void Dcm_RC_ReadMinMaxAvg(void);
 
 uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level);
 void SecCalcKeyFromSeed(const uint8_t *seedBytes, uint8_t *keyBytes, uint8_t seedLen, uint8_t level);
 static HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId,uint8_t *data,uint8_t len);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+
+void Dcm_RC_ReadMinMaxAvg(void)
+{
+	uint8_t payload[4u + (18u * 4u)];
+	uint16_t len = 0u;
+
+	/* Positive response: 0x71 */
+	payload[len++] = 0x71u;
+	payload[len++] = rx[2u];   /* subfunction echo */
+	payload[len++] = rx[3u];   /* routine ID */
+	payload[len++] = rx[4u];   // Routine ID low
+
+	/* Pack 18 floats */
+	for(uint8_t i = 0u; i < 18u; i++)
+	{
+		memcpy(&payload[len], &SMon_DataMinMaxAvg[i], sizeof(float));
+		len += sizeof(float);
+	}
+
+	(void)Dcm_IsoTp_Send(
+			Dcm_DiagRxHeader.StdId,
+			payload,
+			len,
+			0x00u,
+			0u
+	);
+
+	memset(rx, 0, 8);
+}
+
+void Dcm_OBD_Mode02(void)
+{
+	uint8_t pid = rx[2u];
+
+	/* --- CUSTOM: request all FFs --- */
+	if(pid == 0xFEu && rx[3u] == 0xFEu)
+	{
+		uint8_t payload[256];
+		uint16_t len = 0u;
+
+		payload[len++] = 0x42u; /* positive response */
+		payload[len++] = 0xFEu;
+
+		for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+		{
+			if(Dem_DTC_Stat_OBD[i] != 0x50u)
+			{
+				Dem_ObdFreezeFrame_t *ff = &Dem_OBD_FF[i];
+
+				payload[len++] = i; /* index */
+
+				payload[len++] = ff->OBD_EngineLoad;
+				payload[len++] = ff->OBD_EngineCoolantTemperature;
+				payload[len++] = ff->OBD_IntakeAirTemperature;
+
+				/* RPM (proper encoding) */
+				uint16_t rpm = ff->OBD_EngineSpeed * 4u;
+				payload[len++] = (uint8_t)(rpm >> 8);
+				payload[len++] = (uint8_t)(rpm);
+
+				payload[len++] = ff->OBD_VehicleSpeed;
+				payload[len++] = ff->OBD_AmbientTemperature;
+				payload[len++] = ff->OBD_ObdReadiness;
+			}
+		}
+
+		(void)Dcm_IsoTp_Send(
+				Dcm_DiagRxHeader.StdId,
+				payload,
+				len,
+				0x00u,
+				0u
+		);
+
+		memset(rx, 0, 8);
+		return;
+	}
+
+	/* --- STANDARD SINGLE FF --- */
+
+	uint8_t payload[16];
+	uint8_t len = 0u;
+
+	payload[len++] = 0x42u;
+	payload[len++] = pid;
+
+	uint8_t idx = rx[3u];
+
+	if(idx >= DEM_MAX_OBD_FF_DTC)
+	{
+		Dcm_SendNrc();
+		return;
+	}
+
+	Dem_ObdFreezeFrame_t *ff = &Dem_OBD_FF[idx];
+
+	switch(pid)
+	{
+	case 0x04:
+		payload[len++] = ff->OBD_EngineLoad;
+		break;
+
+	case 0x05:
+		payload[len++] = ff->OBD_EngineCoolantTemperature;
+		break;
+
+	case 0x0F:
+		payload[len++] = ff->OBD_IntakeAirTemperature;
+		break;
+
+	case 0x0C:
+	{
+		uint16_t rpm = ff->OBD_EngineSpeed * 4u;
+		payload[len++] = (uint8_t)(rpm >> 8);
+		payload[len++] = (uint8_t)(rpm);
+		break;
+	}
+
+	case 0x0D:
+		payload[len++] = ff->OBD_VehicleSpeed;
+		break;
+
+	case 0x46:
+		payload[len++] = ff->OBD_AmbientTemperature;
+		break;
+
+	case 0x01:
+		payload[len++] = ff->OBD_ObdReadiness;
+		payload[len++] = 0x00u;
+		payload[len++] = 0x00u;
+		payload[len++] = 0x00u;
+		break;
+
+	default:
+		Dcm_SendNrc();
+		return;
+	}
+
+	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00u, 0u);
+
+	memset(rx, 0, 8);
+}
+
+void Dcm_OBD_Mode08(void)
+{
+	/* mimic Dcm_LoadControl style */
+
+	Dcm_TxData[0u] = rx[0u];
+	Dcm_TxData[1u] = 0x48u; /* 0x40 + 0x08 */
+	Dcm_TxData[2u] = rx[2u];
+	Dcm_TxData[3u] = rx[3u];
+	Dcm_TxData[4u] = rx[4u];
+	Dcm_TxData[5u] = rx[5u];
+	Dcm_TxData[6u] = rx[6u];
+	Dcm_TxData[7u] = rx[7u];
+
+	/* Example: reuse same control logic as load */
+	Dcm_LoadStatus = rx[4u];
+
+	/* Optional: reuse timer concept */
+	Dcm_LoadTimer = (rx[5u] * 60000u) / 5u;
+
+	Dcm_DiagTxHeader.DLC   = Dcm_DiagRxHeader.DLC;
+	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
+
+	(void)Dcm_CanSendSF(
+			Dcm_DiagTxHeader.StdId,
+			Dcm_TxData,
+			Dcm_DiagTxHeader.DLC
+	);
+
+	for(uint8_t i = 0u; i < 8u; i++)
+	{
+		Dcm_TxData[i] = 0u;
+		rx[i] = 0u;
+	}
+}
+
+void Dcm_OBD_Mode06(void)
+{
+	uint8_t payload[64];
+	uint8_t len = 0u;
+
+	/* Positive response */
+	payload[len++] = 0x46u;
+
+	/* Example MID = 0x01 (custom monitor group) */
+	uint8_t mid = 0x01u;
+
+	/* ---- Test 1: NTC Error ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x01u; /* TID */
+	payload[len++] = SMon_NtcError;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 2: External Charger ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x02u;
+	payload[len++] = SMon_ExternalChargerDetected;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 3: S2B Error ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x03u;
+	payload[len++] = SMon_S2BErrorStatus;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 4: I2T Error ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x04u;
+	payload[len++] = SMon_I2TError;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 5: L1 UV ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x05u;
+	payload[len++] = SMon_L1_UVStatus;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 6: CLS Failure ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x06u;
+	payload[len++] = SMon_CLS_Failure;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 7: ECU UV ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x07u;
+	payload[len++] = SMon_ECU_UV;
+	payload[len++] = 0x00u;
+
+	/* ---- Test 8: ECU OV ---- */
+	payload[len++] = mid;
+	payload[len++] = 0x08u;
+	payload[len++] = SMon_ECU_OV;
+	payload[len++] = 0x00u;
+
+	(void)Dcm_IsoTp_Send(
+			Dcm_DiagRxHeader.StdId,
+			payload,
+			len,
+			0x00u,
+			0u
+	);
+
+	if(!Dcm_IsoTp_TxActive)
+	{
+		memset(rx, 0, 8);
+	}
+	else
+	{
+		// do nothing.
+	}
+}
+
+void Dcm_OBD_Mode01(void)
+{
+	uint8_t payload[16];
+	uint8_t len = 0u;
+	uint8_t pid = rx[2u];
+
+	/* ---- Length check ---- */
+	if(rx[0u] < 0x02u)
+	{
+		Dcm_SendNrc(); /* incorrect length */
+		return;
+	}
+
+	payload[len++] = 0x41u;
+	payload[len++] = pid;
+
+	switch(pid)
+	{
+	case 0x00u: /* Supported PID bitmap */
+		payload[len++] = 0x80u; /* PID A7 supported */
+		payload[len++] = 0x00u;
+		payload[len++] = 0x00u;
+		payload[len++] = 0x00u;
+		break;
+
+	case 0xA7u:
+		payload[len++] = (uint8_t)((SMon_VfbT30 * 255u) / 32000u);
+		payload[len++] = (uint8_t)((SMon_VfbL1 * 255u) / 32000u);
+		payload[len++] = (uint8_t)((SMon_ISenseL1 * 255u) / 50000u);
+		payload[len++] = (uint8_t)((SMon_NTC_Temperature_L1 * 255.0f) / 145.0f);
+		break;
+
+	default:
+		Dcm_SendNrc();
+		return;
+	}
+
+	(void)Dcm_IsoTp_Send(
+			Dcm_DiagRxHeader.StdId,
+			payload,
+			len,
+			0x00u,
+			0u
+	);
+
+	if(!Dcm_IsoTp_TxActive)
+	{
+		memset(rx, 0, 8);
+	}
+}
+
+void Dcm_OBD_Mode03(void)
+{
+	uint8_t payload[64];
+	uint8_t len = 1;
+
+	payload[0] = 0x43;
+
+	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
+	{
+		if(Dem_DTC_Stat_OBD[i] != 0x50u)
+		{
+			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
+
+			payload[len++] = (uint8_t)(dtc >> 8);
+			payload[len++] = (uint8_t)(dtc);
+		}
+	}
+
+	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
+}
+
+void Dcm_OBD_Mode04(void)
+{
+	for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+	{
+		if(Dem_DTC_Stat_OBD_Permanent[i] == 0u)
+		{
+			Dem_DTC_Stat_OBD[i] = 0x50u;
+			memset(&Dem_OBD_FF[i], 0u, sizeof(Dem_ObdFreezeFrame_t));
+		}
+		else
+		{
+			// do nothing.
+		}
+	}
+
+	Nvm_WriteBlock(4u, &Dem_OBD_FF[0u].OBD_AmbientTemperature);
+	Nvm_WriteBlock(5u, &Dem_DTC_Stat_OBD[0]);
+
+	Dcm_TxData[0] = 0x01;
+	Dcm_TxData[1] = 0x44;
+
+	Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 1, Dcm_TxData, 8);
+}
+
+void Dcm_OBD_Mode07(void)
+{
+	uint8_t payload[64];
+	uint8_t len = 1;
+
+	payload[0] = 0x47;
+
+	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
+	{
+		if(Dem_DTC_Stat_OBD[i] != 0x50u) /* example pending */
+		{
+			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
+
+			payload[len++] = (uint8_t)(dtc >> 8);
+			payload[len++] = (uint8_t)(dtc);
+		}
+	}
+
+	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
+}
+
+void Dcm_OBD_Mode0A(void)
+{
+	uint8_t payload[64];
+	uint8_t len = 1;
+
+	payload[0] = 0x4A;
+
+	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
+	{
+		if(Dem_DTC_Stat_OBD[i] == 0xAFu && 1u == Dem_DTC_Stat_OBD_Permanent[i]) /* permanent */
+		{
+			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
+
+			payload[len++] = (uint8_t)(dtc >> 8);
+			payload[len++] = (uint8_t)(dtc);
+		}
+		else
+		{
+			// do nothing.
+		}
+	}
+
+	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
+}
+
+void Dcm_OBD_Mode09(void)
+{
+	uint8_t pid = rx[2u];
+	uint8_t payload[64];
+	uint8_t len = 0u;
+
+	switch(pid)
+	{
+	case 0x02u: /* VIN */
+		payload[len++] = 0x49u;
+		payload[len++] = 0x02u;
+		payload[len++] = 0x01u;
+
+		memcpy(&payload[len], Dcm_OBD_VIN, 17u);
+		len += 17u;
+		break;
+
+	case 0x04u: /* CAL ID */
+		payload[len++] = 0x49u;
+		payload[len++] = 0x04u;
+		payload[len++] = 0x01u;
+
+		memcpy(&payload[len], Dcm_OBD_CALID, Dcm_OBD_CALID_LEN);
+		len += Dcm_OBD_CALID_LEN;
+		break;
+
+	case 0x0Au: /* ECU NAME */
+		payload[len++] = 0x49u;
+		payload[len++] = 0x0Au;
+		payload[len++] = 0x01u;
+
+		memcpy(&payload[len], Dcm_OBD_ECU_NAME, Dcm_OBD_ECU_NAME_LEN);
+		len += Dcm_OBD_ECU_NAME_LEN;
+		break;
+
+	default:
+		Dcm_SendNrc();
+		return;
+	}
+
+	(void)Dcm_IsoTp_Send(
+			Dcm_DiagRxHeader.StdId,
+			payload,
+			len,
+			0x00u,
+			0u
+	);
+
+	if(!Dcm_IsoTp_TxActive)
+	{
+		memset(rx, 0, 8);
+	}
+	else
+	{
+		// do nothing.
+	}
+}
+
+void Dcm_HandleOBD(void)
+{
+	switch(rx[1u])
+	{
+	case 0x01u: Dcm_OBD_Mode01(); break;
+	case 0x02u: Dcm_OBD_Mode02(); break;
+	case 0x03u: Dcm_OBD_Mode03(); break;
+	case 0x04u: Dcm_OBD_Mode04(); break;
+	case 0x06u: Dcm_OBD_Mode06(); break;
+	case 0x07u: Dcm_OBD_Mode07(); break;
+	case 0x08u: Dcm_OBD_Mode08(); break;
+	case 0x09u: Dcm_OBD_Mode09(); break;
+	case 0x0Au: Dcm_OBD_Mode0A(); break;
+	default:    Dcm_SendNrc();    break;
+	}
+
+	memset(&rx[0u], 0u, sizeof(rx));
+}
 
 void Dcm_RDBI_T30Min10s(void)
 {
@@ -657,13 +1170,15 @@ static HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId, uint8_t *data, uint8_t le
 	th.DLC   = len;
 
 	HAL_StatusTypeDef st;
+	uint32_t cnt = 0u;
 
 	do
 	{
-
 		st = HAL_CAN_AddTxMessage(&hcan, &th, data, &mbx);
+		cnt++;
+	} while (st != HAL_OK && cnt < CanH_P_DelayTxParam);
 
-	} while (st != HAL_OK);
+	cnt = 0u;
 
 	return st;
 }
@@ -1267,11 +1782,15 @@ static HAL_StatusTypeDef can_tx8(uint32_t stdId, const uint8_t *data, uint8_t le
 	}
 
 	HAL_StatusTypeDef st;
+	uint32_t cnt = 0u;
 
 	do
 	{
 		st = HAL_CAN_AddTxMessage(&hcan, &th, (uint8_t*)p, &mbx);
-	} while (st != HAL_OK);
+		cnt++;
+	} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+	cnt = 0u;
 
 	return st;
 }
@@ -1570,7 +2089,7 @@ void Dcm_ReadSWV()
 	Dcm_TxData[3u] = rx[3u];
 	Dcm_TxData[4u] = Dcm_SWV[0u];
 	Dcm_TxData[5u] = Dcm_SWV[1u];
-	Dcm_TxData[6u] = Dcm_SWV[2u];
+	Dcm_TxData[6u] = Nvm_ParamFlashBlock[254u];
 	Dcm_TxData[7u] = Dcm_SWV[3u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
@@ -1660,7 +2179,6 @@ void Dcm_main()
 	}
 
 	__enable_irq();
-
 	if(0u == Dcm_MainCounter)
 	{
 		Dcm_ActiveSessionState = 0u;
@@ -1674,6 +2192,17 @@ void Dcm_main()
 	if(0u == Dcm_SessionCounter)
 	{
 		Dcm_ActiveSessionState = 0u;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	/* OBD services (functional or physical) */
+	if ( (rx[1u] <= 0x0Au) && (rx[1u] != 0x00u))
+	{
+		Dcm_HandleOBD();
+		return;
 	}
 	else
 	{
@@ -2005,6 +2534,15 @@ void Dcm_main()
 	if(0x40u == rx[4u] && 0x31u == rx[1u])
 	{
 		Dcm_RC_HealSupply();
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	if(0x31u == rx[1u] && 0x43u == rx[4u])   /* choose routine ID = 0x50 */
+	{
+		Dcm_RC_ReadMinMaxAvg();
 	}
 	else
 	{

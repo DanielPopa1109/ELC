@@ -67,6 +67,13 @@ uint32_t CanH_NoCommCounter = 0u;
 uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
 uint32_t CanH_E2eErrCnt;
+uint8_t CanH_OBD_AmbientTemperature = 0.0f;
+uint8_t CanH_OBD_EngineCoolantTemperature = 0.0f;
+uint8_t CanH_OBD_IntakeAirTemperature = 0.0f;
+uint8_t CanH_OBD_EngineSpeed = 0u;
+uint8_t CanH_OBD_EngineLoad = 0u;
+uint8_t CanH_OBD_VehicleSpeed = 0u;
+uint8_t CanH_OBD_ObdReadiness = 15u;
 
 const uint32_t CanH_P_DelayTxParam = 300u;
 
@@ -100,6 +107,7 @@ extern uint8_t EcuM_SWState;
 extern float SMon_McuTempValue;
 extern float SMon_NTC_Temperature_L1;
 extern uint8_t EcuM_WakeupPending;
+extern uint8_t Dem_ELC_OBD_ObdReadiness;
 
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
@@ -134,7 +142,7 @@ static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 static void Xcp_Send(uint8_t len)
 {
 	HAL_StatusTypeDef st;
-	uint8_t cnt = 0u;
+	uint32_t cnt = 0u;
 
 	Xcp_TxHeader.StdId = XCP_CAN_TX_ID;
 	Xcp_TxHeader.ExtId = 0u;
@@ -511,7 +519,7 @@ void CanH_MainFunction(void)
 
 	if(FULL_COMMUNICATION == CanH_CommunicationState && 0u == Dcm_CC)
 	{
-		if(CanH_MainCounter % 200 == 0 || prevSMon_L1ST != SMon_L1ST)
+		if( (0u != CanH_MainCounter && CanH_MainCounter % 200 == 0) || prevSMon_L1ST != SMon_L1ST )
 		{
 			prevSMon_L1ST = SMon_L1ST;
 
@@ -537,7 +545,7 @@ void CanH_MainFunction(void)
 			CanH_TxHeader.StdId = 0x51u;
 
 			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
+			uint32_t cnt = 0u;
 
 			do
 			{
@@ -573,7 +581,7 @@ void CanH_MainFunction(void)
 			CanH_TxHeader.StdId = 0x6ef;
 
 			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
+			uint32_t cnt = 0u;
 
 			do
 			{
@@ -605,7 +613,7 @@ void CanH_MainFunction(void)
 			CanH_TxHeader.StdId = 0x6ee;
 
 			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
+			uint32_t cnt = 0u;
 
 			do
 			{
@@ -638,7 +646,41 @@ void CanH_MainFunction(void)
 			CanH_TxHeader.StdId = 0x6f0;
 
 			HAL_StatusTypeDef st;
-			uint8_t cnt = 0u;
+			uint32_t cnt = 0u;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			for(uint8_t i = 0; i < 8; i++)
+			{
+				CanH_TxData[i] = 0;
+			}
+
+			CanH_TxHeader.DLC = 0;
+			CanH_TxHeader.StdId = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 20u == 0u && CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
+		{
+			CanH_TxData[0] = (SMon_VfbT30 * 255u) / 32000u;
+			CanH_TxData[1] = (SMon_VfbL1 * 255u) / 32000u;
+			CanH_TxData[2] = (SMon_ISenseL1 * 255u) / 50000u;
+			CanH_TxData[3] = (SMon_NTC_Temperature_L1 * 255.0f) / 145u;
+			CanH_TxData[4] = Dem_ELC_OBD_ObdReadiness;
+			CanH_TxHeader.DLC = 5;
+			CanH_TxHeader.StdId = 0x6c0u;
+
+			HAL_StatusTypeDef st;
+			uint32_t cnt = 0u;
 
 			do
 			{
@@ -847,6 +889,26 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	volatile uint8_t calc_crc;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
+
+	if(0x6d0u == CanH_RxHeader.StdId)
+	{
+		CanH_OBD_AmbientTemperature       = CanH_RxData[0u] - 40.0f;
+		CanH_OBD_EngineCoolantTemperature = CanH_RxData[1u] - 40.0f;
+		CanH_OBD_IntakeAirTemperature     = CanH_RxData[2u] - 40.0f;
+		CanH_OBD_EngineSpeed = CanH_RxData[3u];
+		CanH_OBD_EngineLoad = CanH_RxData[4u];
+		CanH_OBD_VehicleSpeed = CanH_RxData[5u];
+		CanH_OBD_ObdReadiness = CanH_RxData[6u];
+
+		if(15u <= CanH_RxData[6u])
+		{
+			CanH_OBD_ObdReadiness = 15u;
+		}
+	}
+	else
+	{
+		// do nothing.
+	}
 
 	if(0x202u == CanH_RxHeader.StdId)
 	{

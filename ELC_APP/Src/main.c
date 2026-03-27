@@ -81,6 +81,7 @@ void MX_FREERTOS_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
+extern void Nvm_InitParamFlash(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -230,21 +231,6 @@ int main(void)
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
 
-	if((RCC->CSR & RCC_CSR_PORRSTF) != 0)
-	{
-		for(uint32_t* addr = ((uint32_t*)0x20004fc0); addr <= ((uint32_t*)0x20004fff); addr++)
-		{
-			*addr = 0;
-		}
-
-		RCC->CSR |= RCC_CSR_PORRSTF;
-		RCC->CSR |= RCC_CSR_RMVF;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
 	for(uint8_t i = 0u; i < 4u; i++)
 	{
 		if(EcuM_SWV[i] != Dcm_SWV[i])
@@ -263,6 +249,7 @@ int main(void)
 	}
 
 	Nvm_ReadAll();
+	Nvm_InitParamFlash();
 
 	__enable_irq();
   /* USER CODE END 2 */

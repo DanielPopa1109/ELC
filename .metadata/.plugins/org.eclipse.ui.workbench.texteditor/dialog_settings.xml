@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="g_run_ram_updater"/>
+		<item key="selection" value="Dcm_SWV"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="g_run_ram_updater"/>
-			<item value="OS_XCP_U8_CPU_Load"/>
-			<item value="SMon_P_ISenseNominal"/>
-			<item value="SMon_CalculateMinMaxAvg"/>
-			<item value="SMon_SW_L1I_Avg"/>
-			<item value="SMon_SW_L1I_Sum"/>
-			<item value="SMon_SW_SampleCnt"/>
-			<item value="SMon_Stats_Init"/>
-			<item value="Dcm_RDTCI_19_04_AllSnapshots"/>
-			<item value="Dcm_RDTCI"/>
-			<item value="vehicle"/>
-			<item value="SMon_P_I2TRating"/>
-			<item value="SMon_I2TError"/>
-			<item value="SMon_P_RoomTempKelvin"/>
-			<item value="SMon_P_NTC_PullUp_ResistorVale"/>
+			<item value="Dcm_SWV"/>
+			<item value="mode01"/>
+			<item value="mode02"/>
+			<item value="Dcm_OBD_CALID"/>
+			<item value="mode09"/>
+			<item value="mode06"/>
+			<item value="vin"/>
+			<item value="mode04"/>
+			<item value="while (indexx"/>
+			<item value="while (idexx"/>
+			<item value="while(index"/>
+			<item value="while(indexx"/>
+			<item value="sid == 0x34"/>
+			<item value="rd_f32"/>
+			<item value="word"/>
 		</list>
 		<list key="replacehistory">
+			<item value="rd_f32_swap"/>
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">

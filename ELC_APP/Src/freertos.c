@@ -15,6 +15,7 @@
 #include "CanH.h"
 #include "adc.h"
 #include "tim.h"
+#include "Dem.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -219,6 +220,7 @@ void QM_BSW_TASK(void *argument)
 	for(;;)
 	{
 		EcuM_main();
+		Dem_main();
 		CanH_MainFunction();
 		vTaskSuspend(NULL);
 	}

@@ -35,10 +35,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ENL1CLS_Pin GPIO_PIN_1
-#define ENL1CLS_GPIO_Port GPIOB
-#define ENL1_Pin GPIO_PIN_10
-#define ENL1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 /* USER CODE END Private defines */

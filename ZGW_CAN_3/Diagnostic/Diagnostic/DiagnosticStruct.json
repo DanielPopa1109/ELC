@@ -2,14 +2,7 @@
   "Items":  
   [
     {
-      "Name":"Flashing APP",
-      "Type":      1,
-      "GUID":"s44329250905223968398714248",
-      "SEL":"Checked",
-      "REG":"False"    
-    },
-    {
-      "Name":"Flashing FBL APP",
+      "Name":"Flashing FBL APP PARAMFLASH",
       "Type":      1,
       "GUID":"s130422815322973415002662052",
       "SEL":"Checked",

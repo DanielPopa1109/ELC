@@ -36,6 +36,22 @@ BS_:
 BU_: ELC ZGW
 
 
+BO_ 1728 ELC_OBD_Data: 8 ELC
+ SG_ ELC_OBD_OutputVoltage : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ ELC_OBD_ObdReadiness : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ ELC_OBD_LoadTemperature : 24|8@1+ (1,0) [-40|145] ""  ZGW
+ SG_ ELC_OBD_InputVoltage : 0|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ ELC_OBD_CurrentConsumption : 16|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 1744 ZGW_CAN_3_OBD_Data: 8 ZGW
+ SG_ OBD_VehicleSpeed : 40|8@1+ (1,0) [0|255] ""  ELC
+ SG_ OBD_ObdReadiness : 48|8@1+ (1,0) [0|255] ""  ELC
+ SG_ OBD_IntakeAirTemperature : 16|8@1- (1,0) [-40|125] ""  ELC
+ SG_ OBD_EngineSpeed : 24|8@1+ (1,0) [0|255] ""  ELC
+ SG_ OBD_EngineLoad : 32|8@1+ (1,0) [0|255] ""  ELC
+ SG_ OBD_EngineCoolantTemperature : 8|8@1- (1,0) [-40|125] ""  ELC
+ SG_ OBD_AmbientTemperature : 0|8@1- (1,0) [-40|125] ""  ELC
+
 BO_ 151 VehicleData: 3 ZGW
  SG_ VehicleStatus : 5|4@1+ (1,0) [0|15] ""  ELC
  SG_ Speed : 16|8@1+ (1,0) [0|255] ""  ELC
@@ -97,7 +113,7 @@ BO_ 1794 Diag702: 8 ZGW
  SG_ Diag702_Req_1 : 8|8@1+ (1,0) [0|255] ""  ELC
  SG_ Diag702_Req_0 : 0|8@1+ (1,0) [0|255] ""  ELC
 
-BO_ 514 CANStandardBus_SystemDateAndTime: 5 ZGW
+BO_ 514 SDAT: 5 ZGW
  SG_ CSB_SDAT_Year : 0|6@1+ (1,0) [0|63] ""  ELC
  SG_ CSB_SDAT_Second : 26|6@1+ (1,0) [0|59] ""  ELC
  SG_ CSB_SDAT_Month : 6|4@1+ (1,0) [0|12] ""  ELC

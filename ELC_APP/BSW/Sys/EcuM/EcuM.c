@@ -47,6 +47,9 @@ extern float SMon_SW_L1_Avg ;
 extern float SMon_SW_L1_Sum ;
 extern float SMon_SW_L1I_Avg ;
 extern float SMon_SW_L1I_Sum ;
+extern uint8_t CanH_OBD_ObdReadiness;
+extern uint8_t Dem_InternalObdStatus;
+extern uint8_t Dem_ELC_OBD_ObdReadiness;
 
 uint8_t EcuM_WakeupPending = 0u;
 uint8_t EcuM_SWState = 1u;
@@ -56,7 +59,6 @@ uint32_t EcuM_RunTimer = 200u;
 uint32_t EcuM_PostRunTimer = 200u;
 uint32_t EcuM_MainCounter = 0u;
 
-uint8_t EcuM_CommandState __attribute((section(".ncr")));
 uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
 uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
@@ -73,6 +75,9 @@ void EcuM_GoSleep(void);
 void EcuM_main();
 void EcuM_PerformReset(uint8_t reason, uint8_t info);
 void EcuM_CyclicActivity(void);
+
+extern void Nvm_InitParamFlash(void);
+extern void configureTimerForRunTimeStats(void);
 
 void EcuM_main()
 {
@@ -432,10 +437,60 @@ void EcuM_GoSleep(void)
 		SMon_SW_L1I_Avg = 0.0f;
 		SMon_SW_L1I_Sum = 0.0f;
 		CanH_CommunicationState = PARTIAL_COMMUNICATION;
+		CanH_OBD_ObdReadiness = 15u;
+		Dem_InternalObdStatus = 0u;
+		Dem_ELC_OBD_ObdReadiness = 0u;
 
 		Nvm_ReadAll();
-
+		Nvm_InitParamFlash();
 		osTimerStart(Alarm5msHandle, 5);
+		configureTimerForRunTimeStats();
+
+		/* USB_HP_CAN1_TX_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 7, 0);
+		HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+		/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 8, 0);
+		HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+		/* CAN1_RX1_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 7, 0);
+		HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+		/* CAN1_SCE_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 11, 0);
+		HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+		/* RCC_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(RCC_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(RCC_IRQn);
+		/* FLASH_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(FLASH_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(FLASH_IRQn);
+		/* PVD_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(PVD_IRQn, 7, 0);
+		HAL_NVIC_EnableIRQ(PVD_IRQn);
+		/* DMA1_Channel1_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 10, 0);
+		HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+		/* TIM1_CC_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM1_CC_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(TIM1_CC_IRQn);
+		/* TIM1_TRG_COM_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM1_TRG_COM_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(TIM1_TRG_COM_IRQn);
+		/* TIM1_UP_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM1_UP_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
+		/* TIM1_BRK_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM1_BRK_IRQn, 15, 0);
+		HAL_NVIC_EnableIRQ(TIM1_BRK_IRQn);
+		/* ADC1_2_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(ADC1_2_IRQn, 9, 0);
+		HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+		/* TIM2_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
+		HAL_NVIC_EnableIRQ(TIM2_IRQn);
+		/* TIM3_IRQn interrupt configuration */
+		HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
+		HAL_NVIC_EnableIRQ(TIM3_IRQn);
 
 		__enable_irq();
 	}

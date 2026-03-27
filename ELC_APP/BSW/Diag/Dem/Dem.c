@@ -19,8 +19,31 @@ extern float SMon_NTC_Temperature_L1;
 extern float SMon_ISenseL1_Float;
 extern float SMon_McuTempValue;
 extern volatile uint8_t CanH_VehicleStatus;
+extern uint8_t CanH_OBD_AmbientTemperature ;
+extern uint8_t CanH_OBD_EngineCoolantTemperature ;
+extern uint8_t CanH_OBD_IntakeAirTemperature ;
+extern uint8_t CanH_OBD_EngineSpeed ;
+extern uint8_t CanH_OBD_EngineLoad ;
+extern uint8_t CanH_OBD_VehicleSpeed;
+extern uint8_t CanH_OBD_ObdReadiness;
+
+extern const uint32_t CanH_P_DelayTxParam;
 
 Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
+Dem_ObdFreezeFrame_t Dem_OBD_FF[DEM_MAX_OBD_FF_DTC];
+
+const uint32_t Dem_PreDefined_OBD_DTC_Table[DEM_MAX_OBD_FF_DTC] =
+{
+		0x0150u, // UV KL30
+		0x0151u, // OV KL30
+		0x0152u, // SHORT TO BATT L1 P1
+		0x0153u, // OVERCURRENT L1
+		0x0154u, // L1 LOCKED
+		0x0155u, // CLS FAILURE L1
+		0x0156u, // UV L1
+		0x0158u, // NTC ERROR
+		0x0164u, // OBD READINESS SIGNAL INVALID
+};
 
 const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 {
@@ -46,32 +69,213 @@ const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 		0x63, // SHORT TO BATT L1 ON
 };
 
-uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50,
-		0x50
+uint32_t Dem_DTC_Stat_OBD[DEM_MAX_OBD_FF_DTC] = {
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u
 };
+
+uint32_t Dem_DTC_Stat_OBD_Permanent[DEM_MAX_OBD_FF_DTC] = {
+		0,
+		1u,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0
+};
+
+uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u,
+		0x50u
+};
+
+uint8_t Dem_InternalObdStatus = 0u;
+uint8_t Dem_ELC_OBD_ObdReadiness = 0u;
+uint32_t Dem_MainCounter = 0u;
 
 void Dem_SetDtc(uint32_t id, uint8_t stat);
 void Dem_CaptureFreezeFrame(uint8_t idx);
 uint8_t Dem_GetDtcStatus(uint32_t id);
+uint8_t Dem_GetDtcStatus_Obd(uint32_t id);
+void Dem_SetDtc_Obd(uint32_t id, uint8_t stat);
+void Dem_CaptureFreezeFrame_Obd(uint8_t idx);
+void Dem_main(void);
+
+void Dem_main(void)
+{
+	static uint32_t localCnt = 0u;
+
+	switch(CanH_OBD_ObdReadiness)
+	{
+
+	case 0u:
+
+		Dem_ELC_OBD_ObdReadiness = 0u;
+		localCnt = 0u;
+
+		for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+		{
+			if(0xAFu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i]))
+			{
+				Dem_SetDtc_Obd(Dem_PreDefined_OBD_DTC_Table[i], 0x2E);
+			}
+			else
+			{
+				// do nothing.
+			}
+		}
+
+		for(uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
+		{
+			if(0x2Fu == Dem_GetDtcStatus(Dem_PreDefined_DTC_Table[i]))
+			{
+				Dem_SetDtc(Dem_PreDefined_OBD_DTC_Table[i], 0x2E);
+			}
+			else
+			{
+				// do nothing.
+			}
+		}
+
+		Dem_InternalObdStatus = 0u;
+
+		break;
+
+	case 1u:
+
+		localCnt = 0u;
+
+		for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+		{
+			if(0xAFu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i])
+					|| 0xAEu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i]))
+			{
+				Dem_ELC_OBD_ObdReadiness = 12u;
+				break;
+			}
+			else
+			{
+				Dem_ELC_OBD_ObdReadiness = 1u;
+			}
+		}
+
+		Dem_InternalObdStatus = 1u;
+
+		break;
+
+	case 2u:
+
+		localCnt = 0u;
+
+		if(1u == Dem_InternalObdStatus)
+		{
+			if(0xAFu == Dem_GetDtcStatus_Obd(0x0164u))
+			{
+				Dem_SetDtc_Obd(0x0164u, 0xAE);
+			}
+			else
+			{
+				// do nothing.
+			}
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+		{
+			if(0xAFu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i])
+					|| 0xAEu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i]))
+			{
+				Dem_ELC_OBD_ObdReadiness = 12u;
+				break;
+			}
+			else
+			{
+				Dem_ELC_OBD_ObdReadiness = 2u;
+			}
+		}
+
+		Dem_InternalObdStatus = 2u;
+
+		break;
+
+	case 3u:
+
+		localCnt = 0u;
+		Dem_ELC_OBD_ObdReadiness = 3u;
+		Dem_InternalObdStatus = 3u;
+
+		break;
+
+	case 4u:
+
+		localCnt = 0u;
+		Dem_ELC_OBD_ObdReadiness = 4u;
+		Dem_InternalObdStatus = 4u;
+
+		break;
+
+	case 15u:
+
+		if(0u == localCnt && 200u < Dem_MainCounter)
+		{
+			localCnt = Dem_MainCounter;
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		if(200u > Dem_MainCounter - localCnt)
+		{
+			Dem_SetDtc_Obd(0x0164u, 0xAFu);
+			localCnt = 0u;
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		Dem_InternalObdStatus = 15u;
+		Dem_ELC_OBD_ObdReadiness = 12u;
+
+		break;
+
+	default:
+
+		break;
+
+	}
+
+	Dem_MainCounter++;
+}
 
 void Dem_CaptureFreezeFrame(uint8_t idx)
 {
@@ -91,9 +295,22 @@ void Dem_CaptureFreezeFrame(uint8_t idx)
 	Nvm_WriteBlock(2u, &Dem_FF[0].occurrenceCnt);   // separate FF block
 }
 
+void Dem_CaptureFreezeFrame_Obd(uint8_t idx)
+{
+	Dem_OBD_FF[idx].OBD_AmbientTemperature = CanH_OBD_AmbientTemperature;
+	Dem_OBD_FF[idx].OBD_EngineCoolantTemperature = CanH_OBD_EngineCoolantTemperature;
+	Dem_OBD_FF[idx].OBD_IntakeAirTemperature = CanH_OBD_IntakeAirTemperature;
+	Dem_OBD_FF[idx].OBD_EngineSpeed = CanH_OBD_EngineSpeed;
+	Dem_OBD_FF[idx].OBD_EngineLoad = CanH_OBD_EngineLoad;
+	Dem_OBD_FF[idx].OBD_VehicleSpeed = CanH_OBD_VehicleSpeed;
+	Dem_OBD_FF[idx].OBD_ObdReadiness = CanH_OBD_ObdReadiness;
+
+	Nvm_WriteBlock(4u, &Dem_OBD_FF[0u].OBD_AmbientTemperature);   // separate FF block
+}
+
 uint8_t Dem_GetDtcStatus(uint32_t id)
 {
-	uint8_t index = 0;
+	uint8_t index = 0u;
 	uint8_t aux_index = 0xFFu;
 
 	for(index = 0; index < DEM_MAX_FF_DTC; index++)
@@ -119,6 +336,110 @@ uint8_t Dem_GetDtcStatus(uint32_t id)
 	}
 
 	return Dem_DTC_Stat[aux_index];
+}
+
+uint8_t Dem_GetDtcStatus_Obd(uint32_t id)
+{
+	uint8_t index = 0u;
+	uint8_t aux_index = 0xFFu;
+
+	for(index = 0; index < DEM_MAX_OBD_FF_DTC; index++)
+	{
+		if(id == Dem_PreDefined_OBD_DTC_Table[index])
+		{
+			aux_index = index;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(aux_index >= DEM_MAX_OBD_FF_DTC)
+	{
+		return 0;
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	return Dem_DTC_Stat_OBD[aux_index];
+}
+
+void Dem_SetDtc_Obd(uint32_t id, uint8_t stat)
+{
+	uint8_t index = 0;
+	uint8_t aux_index = 0xFFu;
+	uint8_t prevStat = 0;
+
+	for(index = 0; index < DEM_MAX_OBD_FF_DTC; index++)
+	{
+		if(id == Dem_PreDefined_OBD_DTC_Table[index])
+		{
+			aux_index = index;
+			break;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+	}
+
+	if(0xff != aux_index && 0u == Dcm_CDTCS)
+	{
+		prevStat = Dem_DTC_Stat_OBD[aux_index];
+
+		if(stat != Dem_DTC_Stat_OBD[aux_index] && stat == 0xAfu)
+		{
+			Dem_DTC_Stat_OBD[aux_index] = stat;
+			Nvm_WriteBlock(5u, &Dem_DTC_Stat_OBD[0u]);
+			Dem_CaptureFreezeFrame_Obd(aux_index);
+		}
+		else
+		{
+			/* Do nothing. */
+		}
+
+		Dem_DTC_Stat_OBD[aux_index] = stat;
+
+		if(0xAf == stat && 0xAf != prevStat && FULL_COMMUNICATION == CanH_CommunicationState)
+		{
+			static uint8_t arrtx[4];
+			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
+			uint32_t TxMailbox = 0u;
+
+			arrtx[0u] = (uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index]);
+			arrtx[1u] = (uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 8u);
+			arrtx[2u] = ((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 16u) & 0x3Fu);
+			arrtx[2u] = (((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 24u) & 0x03u) << 6u);
+			arrtx[3u] = (((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 24u) >> 2u) & 0x03u );
+			arrtx[3u] = ((stat & 0x3fu) << 2u);
+
+			TxHeader.DLC = 4;
+			TxHeader.StdId = 0x7FEu;
+
+			HAL_StatusTypeDef st;
+			uint32_t cnt = 0u;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &TxHeader, arrtx, &TxMailbox);
+				cnt++;
+			} while (st != HAL_OK && cnt < CanH_P_DelayTxParam);   // wait until a mailbox frees up
+
+			for(uint8_t i = 0; i < 4; i++) arrtx[i] = 0;
+			TxHeader.DLC = 0;
+			TxHeader.StdId = 0;
+
+			cnt = 0u;
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
 }
 
 void Dem_SetDtc(uint32_t id, uint8_t stat)
@@ -174,15 +495,19 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 			TxHeader.StdId = 0x7FEu;
 
 			HAL_StatusTypeDef st;
+			uint32_t cnt = 0u;
 
 			do
 			{
 				st = HAL_CAN_AddTxMessage(&hcan, &TxHeader, arrtx, &TxMailbox);
-			} while (st != HAL_OK);   // wait until a mailbox frees up
+				cnt++;
+			} while (st != HAL_OK && cnt < CanH_P_DelayTxParam);   // wait until a mailbox frees up
 
 			for(uint8_t i = 0; i < 4; i++) arrtx[i] = 0;
 			TxHeader.DLC = 0;
 			TxHeader.StdId = 0;
+
+			cnt = 0u;
 		}
 	}
 	else
