@@ -1,59 +1,24 @@
 #include "CanH.h"
-#include "can.h"
-#include <stdbool.h>
-#include "crc.h"
-#include <string.h>
-#include <stdlib.h>
 #include "Dem.h"
+#include "SMon.h"
+#include "EcuM.h"
+#include "Dcm.h"
 
-#define XCP_CAN_RX_ID      0x7c0u  /* Master -> ECU CTO */
-#define XCP_CAN_TX_ID      0x7c1u  /* ECU   -> Master CTO */
-#define XCP_PID_RES            0xFFu   /* Positive response */
-#define XCP_PID_ERR            0xFEu   /* Error response */
-#define XCP_CMD_CONNECT             0xFFu
-#define XCP_CMD_DISCONNECT          0xFEu
-#define XCP_CMD_GET_STATUS          0xFDu
-#define XCP_CMD_GET_COMM_MODE_INFO  0xFBu
-#define XCP_CMD_GET_ID              0xFAu
-#define XCP_CMD_SHORT_UPLOAD        0xF4u
-#define XCP_ERR_OK             0x00u
-#define XCP_ERR_CMD_UNKNOWN    0x20u
-#define XCP_ERR_OUT_OF_RANGE   0x22u
-#define XCP_CMD_UPLOAD   0xF5u
-#define XCP_CMD_SET_MTA  0xF6u
-#define XCP_CMD_GET_SEED   0xF8u
-#define XCP_CMD_UNLOCK     0xF7u
-#define XCP_ERR_ACCESS_LOCKED  0x25u
-
-static struct
-{
-	uint8_t locked;
-	uint8_t seed[4];
-} Xcp_Security = { .locked = 1u };
-
-
-typedef struct
-{
-	uint8_t  connected;
-	uint8_t  sessionStatus;
-	uint8_t  mtaExt;
-	uint32_t mta;
-} Xcp_State_t;
-
-static Xcp_State_t Xcp_State = {0u, 0u, 0u, 0u};
-static uint8_t Xcp_TxData[8u];
-static CAN_TxHeaderTypeDef Xcp_TxHeader;
+Xcp_Security_t Xcp_Security;
+Xcp_State_t Xcp_State = {0u, 0u, 0u, 0u};
+uint8_t Xcp_TxData[8u];
+CAN_TxHeaderTypeDef Xcp_TxHeader;
 CanH_ComStat_t CanH_CommunicationState = PARTIAL_COMMUNICATION;
 uint8_t CanH_NM3PN1_Value = 0u;
 uint8_t CanH_RxData[8u] = {0u};
 uint8_t CanH_TxData[8u] = {0u};
-uint8_t CSBSDAT_Year;
-uint8_t CSBSDAT_Month;
-uint8_t CSBSDAT_Day;
-uint8_t CSBSDAT_Hour;
-uint8_t CSBSDAT_Minute;
-uint8_t CSBSDAT_Second;
-uint8_t CSBSDAT_Millisecond;
+uint8_t CSBSDAT_Year = 0u;
+uint8_t CSBSDAT_Month = 0u;
+uint8_t CSBSDAT_Day = 0u;
+uint8_t CSBSDAT_Hour = 0u;
+uint8_t CSBSDAT_Minute = 0u;
+uint8_t CSBSDAT_Second = 0u;
+uint8_t CSBSDAT_Millisecond = 0u;
 uint8_t CanH_RequestBusSleep = 0u;
 volatile uint8_t CanH_VehicleStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadStatus = 0u;
@@ -66,57 +31,17 @@ uint32_t CanH_TxMailbox = 0u;
 uint32_t CanH_NoCommCounter = 0u;
 uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
-uint32_t CanH_E2eErrCnt;
-uint8_t CanH_OBD_AmbientTemperature = 0.0f;
-uint8_t CanH_OBD_EngineCoolantTemperature = 0.0f;
-uint8_t CanH_OBD_IntakeAirTemperature = 0.0f;
-uint8_t CanH_OBD_EngineSpeed = 0u;
-uint8_t CanH_OBD_EngineLoad = 0u;
-uint8_t CanH_OBD_VehicleSpeed = 0u;
+uint32_t CanH_E2eErrCnt = 0u;
+static uint32_t CanH_LoadReq_LastRxTs = 0u;
 uint8_t CanH_OBD_ObdReadiness = 15u;
+const uint32_t CanH_P_DelayTxParam = 1200u;
 
-const uint32_t CanH_P_DelayTxParam = 300u;
-
-extern uint32_t EcuM_NumberOfCANWakeUps __attribute((section(".ncr")));
-extern uint32_t EcuM_NumberOfDiagWakeUps __attribute((section(".ncr")));
-extern uint8_t SMon_NtcError;
-extern uint8_t SMon_ExternalChargerDetected;
-extern float SMon_ISenseL1_Float;
-extern CAN_RxHeaderTypeDef Dcm_DiagRxHeader;
-extern CAN_HandleTypeDef hcan;
-extern uint8_t Dcm_RxData[8u];
-extern volatile uint8_t Dcm_RequestPending;
-extern uint8_t Dcm_CC;
-extern uint8_t EcuM_SleeModeActive;
-extern uint8_t SMon_S2BErrorStatus;
-extern uint8_t SMon_I2TError;
-extern uint8_t SMon_L1_UVStatus;
-extern uint8_t SMon_CLS_Failure;
-extern uint8_t SMon_ECU_UV;
-extern uint8_t SMon_ECU_OV;
-extern uint8_t SMon_CmdStat;
-extern uint8_t EcuM_WUPLine; // SYS_WKUP
-extern uint32_t SMon_ISenseL1; // I Sense L1
-extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
-extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
-extern uint8_t SMon_L1ST;
-extern uint8_t SMon_RetryCnt;
-extern uint8_t SMon_LockSupply;
-extern uint32_t SMon_I2TCounter;
-extern uint8_t EcuM_SWState;
-extern float SMon_McuTempValue;
-extern float SMon_NTC_Temperature_L1;
-extern uint8_t EcuM_WakeupPending;
-extern uint8_t Dem_ELC_OBD_ObdReadiness;
-
-bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
-extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
 void CanH_MainFunction(void);
+bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 void HAL_CAN_RxFifo0MsgFullCallback(CAN_HandleTypeDef *hcan);
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
 void HAL_CAN_RxFifo1MsgFullCallback(CAN_HandleTypeDef *hcan);
-/* Forward */
 static void Xcp_HandleCommand(const uint8_t *data, uint8_t len);
 static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 
@@ -127,15 +52,29 @@ static uint32_t Xcp_CalcKey(uint32_t seed)
 	return x + 0x13572468u;
 }
 
-
 static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 {
-	/* Example for STM32F103C8 RAM 0x20000000..0x20004FFF */
 	const uint32_t RAM_START = 0x20000000u;
 	const uint32_t RAM_ENDp1 = 0x20005000u;
 
-	if (addr < RAM_START) return false;
-	if ((addr + len) > RAM_ENDp1) return false;
+	if (addr < RAM_START)
+	{
+		return false;
+	}
+	else
+	{
+		// do nothing.
+	}
+
+	if (len > (RAM_ENDp1 - addr))
+	{
+		return false;
+	}
+	else
+	{
+		// do nothing.
+	}
+
 	return true;
 }
 
@@ -175,20 +114,27 @@ static void Xcp_SendError(uint8_t err)
 
 static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 {
+	const uint8_t pid = data[0];
+
 	if (len == 0u)
 	{
 		return;
 	}
-
-	const uint8_t pid = data[0];
+	else
+	{
+		// do nothing.
+	}
 
 	switch (pid)
 	{
+
 	case XCP_CMD_UNLOCK:
 	{
+
 		if (len < 5u)
 		{
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
 			break;
 		}
 
@@ -216,12 +162,13 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		{
 			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
 		}
+
 		break;
 	}
 
 	case XCP_CMD_GET_SEED:
 	{
-		/* Simple 32-bit seed */
+
 		uint32_t s = HAL_GetTick() ^ 0xA5A55A5Au;
 
 		Xcp_Security.seed[0] = (uint8_t)(s >> 24);
@@ -239,12 +186,13 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_TxData[7] = 0u;
 
 		Xcp_Send(8u);
+
 		break;
 	}
 
 	case XCP_CMD_CONNECT:
 	{
-		/* We ignore requested communication mode in data[1] */
+
 		Xcp_State.connected     = 1u;
 		Xcp_State.sessionStatus = 1u;
 
@@ -257,6 +205,7 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		 * byte6: protocol layer version (1)
 		 * byte7: transport layer version (1)
 		 */
+
 		Xcp_TxData[0] = XCP_PID_RES;
 		Xcp_TxData[1] = 0x01u; /* CAL/PAG only, no DAQ/STIM/PGM */
 		Xcp_TxData[2] = 0x80u; /* Intel byte order */
@@ -269,11 +218,13 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_Send(8u);
 
 		Dem_SetDtc(0x61u, 0x2fu);
+
 		break;
 	}
 
 	case XCP_CMD_DISCONNECT:
 	{
+
 		Xcp_State.connected     = 0u;
 		Xcp_State.sessionStatus = 0u;
 
@@ -301,6 +252,7 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 
 	case XCP_CMD_GET_STATUS:
 	{
+
 		/* GET_STATUS response:
 		 * byte0: RES PID
 		 * byte1: session status
@@ -318,10 +270,12 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_TxData[6] = 0x00u; /* sessionConfigID MSB */
 		Xcp_TxData[7] = 0x00u;
 		Xcp_Send(8u);
+
 		break;
 	}
 	case XCP_CMD_SET_MTA:
 	{
+
 		/* Layout commonly used on CAN:
 		 * byte0: 0xF6
 		 * byte1: reserved
@@ -329,7 +283,17 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		 * byte3-6: address (LE)
 		 * byte7: don't care
 		 */
-		if (len < 7u) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
+
+		if (len < 7u)
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
 
 		Xcp_State.mtaExt = data[2];
 		Xcp_State.mta =  (uint32_t)data[3]
@@ -337,39 +301,117 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 										| ((uint32_t)data[5] << 16)
 										| ((uint32_t)data[6] << 24);
 
-		if (Xcp_State.mtaExt != 0u) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
-		if (!Xcp_AddrAllowed(Xcp_State.mta, 1u)) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
+		if (Xcp_State.mtaExt != 0u)
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		if (!Xcp_AddrAllowed(Xcp_State.mta, 1u))
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
 
 		Xcp_TxData[0] = XCP_PID_RES;
-		for (uint8_t i = 1u; i < 8u; i++) Xcp_TxData[i] = 0u;
+
+		for (uint8_t i = 1u; i < 8u; i++)
+		{
+			Xcp_TxData[i] = 0u;
+		}
+
 		Xcp_Send(8u);
+
 		break;
 	}
 
 	case XCP_CMD_UPLOAD:
 	{
+
+		uint8_t n = data[1];
 		/* byte0: 0xF5, byte1: n */
-		if (len < 2u) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
+		if (len < 2u)
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
 
 		if (Xcp_Security.locked)
 		{
 			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
+
 			break;
 		}
+		else
+		{
+			// do nothing.
+		}
 
-		uint8_t n = data[1];
-		if ((n == 0u) || (n > 7u)) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
-		if (Xcp_State.mtaExt != 0u) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
-		if (!Xcp_AddrAllowed(Xcp_State.mta, (uint32_t)n)) { Xcp_SendError(XCP_ERR_OUT_OF_RANGE); break; }
+		if ((n == 0u) || (n > 7u))
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		if (Xcp_State.mtaExt != 0u)
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
+
+		if (!Xcp_AddrAllowed(Xcp_State.mta, (uint32_t)n))
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
 
 		volatile uint8_t *p = (volatile uint8_t *)Xcp_State.mta;
 
 		Xcp_TxData[0] = XCP_PID_RES;
-		for (uint8_t i = 0u; i < n; i++) Xcp_TxData[1u + i] = p[i];
-		for (uint8_t i = (uint8_t)(1u + n); i < 8u; i++) Xcp_TxData[i] = 0u;
+
+		for (uint8_t i = 0u; i < n; i++)
+		{
+			Xcp_TxData[1u + i] = p[i];
+		}
+
+		for (uint8_t i = (uint8_t)(1u + n); i < 8u; i++)
+		{
+			Xcp_TxData[i] = 0u;
+		}
 
 		Xcp_State.mta += (uint32_t)n; /* auto-increment */
 		Xcp_Send((uint8_t)(1u + n));
+
 		break;
 	}
 
@@ -384,26 +426,52 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		 * byte4-7: address (little endian, Intel order)
 		 */
 
+		uint8_t n = data[1];
+
 		if (len < 8u)
 		{
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
 			break;
 		}
+		else
+		{
+			// do nothing.
+		}
 
-		uint8_t n = data[1];
+		if (Xcp_Security.locked)
+		{
+			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
 
 		if ((n == 0u) || (n > 7u))
 		{
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
 			break;
+		}
+		else
+		{
+			// do nothing.
 		}
 
 		uint8_t addrExt = data[3];
+
 		if (addrExt != 0u)
 		{
-			/* we only support "segment 0" */
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
 			break;
+		}
+		else
+		{
+			// do nothing.
 		}
 
 		uint32_t addr =  (uint32_t)data[4]
@@ -411,27 +479,33 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 										| ((uint32_t)data[6] << 16)
 										| ((uint32_t)data[7] << 24);
 
-		/* WARNING:
-		 *   No address range checks – you MUST restrict the address space
-		 *   in your A2L (e.g. only RAM calibration areas).
-		 */
+		if (!Xcp_AddrAllowed(addr, (uint32_t)n))
+		{
+			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
+
+			break;
+		}
+		else
+		{
+			// do nothing.
+		}
+
 		volatile uint8_t *p = (volatile uint8_t *)addr;
 
 		Xcp_TxData[0] = XCP_PID_RES;
 
 		for (uint8_t i = 0u; i < n; i++)
 		{
-			/* response layout: byte0 = RES PID, then N data bytes */
-			Xcp_TxData[(uint8_t)(1u + i)] = p[i];
+			Xcp_TxData[1u + i] = p[i];
 		}
 
-		/* Pad remainder with 0 */
 		for (uint8_t i = (uint8_t)(1u + n); i < 8u; i++)
 		{
 			Xcp_TxData[i] = 0u;
 		}
 
 		Xcp_Send((uint8_t)(1u + n));
+
 		break;
 	}
 
@@ -457,6 +531,7 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_TxData[7] = 0x10u;  /* driver version 1.0 */
 
 		Xcp_Send(8u);
+
 		break;
 	}
 
@@ -471,7 +546,10 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
 			break;
 		}
-
+		else
+		{
+			// do nothing.
+		}
 		/* uint8_t reqType = data[1]; */ /* currently unused */
 
 		/* Positive response:
@@ -490,15 +568,19 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_TxData[7] = 0x00u;
 
 		Xcp_Send(8u);
+
 		break;
 	}
 
 
 	default:
 	{
+
 		Xcp_SendError(XCP_ERR_CMD_UNKNOWN);
+
 		break;
 	}
+
 	}
 }
 
@@ -508,8 +590,13 @@ static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data)
 	{
 		return false;
 	}
+	else
+	{
+		// do nothing.
+	}
 
 	Xcp_HandleCommand(data, rh->DLC);
+
 	return true;
 }
 
@@ -566,6 +653,118 @@ void CanH_MainFunction(void)
 		else
 		{
 			/* Do nothing. */
+		}
+
+		if(CanH_MainCounter % 40u == 0u && (CanH_NM3PN1_Value & ((1u << 6u))))
+		{
+			memcpy(&CanH_TxData[0u], &SMon_Battery.Charge_Ah_Acc, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.Discharge_Ah_Acc, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f1;
+
+			HAL_StatusTypeDef st;
+			uint32_t cnt = 0u;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_Coulomb_pct, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.SoC_OCV_pct, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f2;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_Hybrid_pct, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.SoH_pct, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f3;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memcpy(&CanH_TxData[0u], &SMon_Battery.AvailableCapacity_Ah, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.InternalResistance_Ohm, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f4;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memcpy(&CanH_TxData[0u], &SMon_Battery.AvgChargeCurrent_A, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.AvgDischargeCurrent_A, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f5;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memcpy(&CanH_TxData[0u], &SMon_Battery.RuntimeRemaining_h, sizeof(float));
+			memcpy(&CanH_TxData[4u], &SMon_Battery.TimeToFull_h, sizeof(float));
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f6;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			CanH_TxData[0] = SMon_Battery.BatteryRested;
+			CanH_TxData[1] = SMon_Battery.Charging;
+			CanH_TxData[2] = SMon_Battery.Discharging;
+			CanH_TxData[3] = SMon_Battery.WeakBattery;
+			CanH_TxData[4] = SMon_Battery.DeepDischarge;
+			CanH_TxData[5] = SMon_Battery.CrankingEvent;
+			CanH_TxData[6] = SMon_Battery.ValidOcvCalibration;
+			CanH_TxData[7] = SMon_Battery.Confidence_pct;
+
+			CanH_TxHeader.DLC = 8;
+			CanH_TxHeader.StdId = 0x6f7;
+
+			do
+			{
+				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
+				cnt++;
+			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
+
+			cnt = 0u;
+
+			memset(CanH_TxData, 0u, sizeof(CanH_TxData));
 		}
 
 		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
@@ -669,12 +868,25 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 20u == 0u && CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
+		if(CanH_MainCounter % 20u == 0u && CanH_MainCounter != 0)
 		{
 			CanH_TxData[0] = (SMon_VfbT30 * 255u) / 32000u;
 			CanH_TxData[1] = (SMon_VfbL1 * 255u) / 32000u;
 			CanH_TxData[2] = (SMon_ISenseL1 * 255u) / 50000u;
-			CanH_TxData[3] = (SMon_NTC_Temperature_L1 * 255.0f) / 145u;
+
+			int32_t tmp = (uint32_t)((SMon_NTC_Temperature_L1 * 255.0f) / 145.0f);
+
+			if (tmp > 255u)
+			{
+				tmp = 255u;
+			}
+			else
+			{
+				// do nothing.
+			}
+
+			CanH_TxData[3] = (uint8_t)tmp;
+
 			CanH_TxData[4] = Dem_ELC_OBD_ObdReadiness;
 			CanH_TxHeader.DLC = 5;
 			CanH_TxHeader.StdId = 0x6c0u;
@@ -713,7 +925,7 @@ void CanH_MainFunction(void)
 	CanH_MissingLoadRequest++;
 	CanH_MissingVehicleData++;
 
-	if(200u <= CanH_NoCommCounter)
+	if(600u <= CanH_NoCommCounter)
 	{
 		CanH_CommunicationState = NO_COMMUNICATION;
 	}
@@ -798,34 +1010,6 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			/* Do nothing. */
 		}
 
-		if(1u == EcuM_SleeModeActive)
-		{
-			if(0x02u == CanH_RxData[0u] &&
-					0x3eu == CanH_RxData[1u] &&
-					0x00u == CanH_RxData[2u])
-			{
-				if(255u > EcuM_NumberOfDiagWakeUps)
-				{
-					EcuM_NumberOfDiagWakeUps++;
-				}
-				else
-				{
-					/* Do nothing. */
-				}
-
-				EcuM_WakeupPending = 1u;
-				HAL_PWR_DisableSleepOnExit();
-			}
-			else
-			{
-				HAL_PWR_EnableSleepOnExit();
-			}
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
 		bool is_fc = Dcm_IsoTp_RxHook(&Dcm_DiagRxHeader, CanH_RxData);
 
 		if (!is_fc)
@@ -886,19 +1070,11 @@ static uint8_t crc8_ts(const uint8_t *data, uint32_t len)
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	volatile uint8_t calc_crc;
-
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
 
 	if(0x6d0u == CanH_RxHeader.StdId)
 	{
-		CanH_OBD_AmbientTemperature       = CanH_RxData[0u] - 40.0f;
-		CanH_OBD_EngineCoolantTemperature = CanH_RxData[1u] - 40.0f;
-		CanH_OBD_IntakeAirTemperature     = CanH_RxData[2u] - 40.0f;
-		CanH_OBD_EngineSpeed = CanH_RxData[3u];
-		CanH_OBD_EngineLoad = CanH_RxData[4u];
-		CanH_OBD_VehicleSpeed = CanH_RxData[5u];
-		CanH_OBD_ObdReadiness = CanH_RxData[6u];
+		CanH_OBD_ObdReadiness = CanH_RxData[0u];
 
 		if(15u <= CanH_RxData[6u])
 		{
@@ -971,36 +1147,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			CanH_RequestBusSleep = 0u;
 			CanH_CommunicationState = FULL_COMMUNICATION;
 			CanH_NoCommCounter = 0u;
-
-			if(1u == EcuM_SleeModeActive)
-			{
-				if(255u > EcuM_NumberOfCANWakeUps)
-				{
-					EcuM_NumberOfCANWakeUps++;
-				}
-				else
-				{
-					/* Do nothing. */
-				}
-
-				EcuM_WakeupPending = 1u;
-				HAL_PWR_DisableSleepOnExit();
-			}
-			else
-			{
-				/* Do nothing. */
-			}
 		}
 		else
 		{
-			if(1u == EcuM_SleeModeActive)
-			{
-				HAL_PWR_EnableSleepOnExit();
-			}
-			else
-			{
-				/* Do nothing. */
-			}
+			/* Do nothing. */
 		}
 	}
 	else
@@ -1012,11 +1162,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		CanH_MissingVehicleData = 0u;
 
-		uint8_t b0 = CanH_RxData[0];
+		CanH_VehicleStatus = CanH_RxData[0];
 
-		CanH_VehicleStatus = (b0 >> 5)  & 0x0F;
-
-		if(6u < CanH_RxData[5u])
+		if(6u < CanH_VehicleStatus)
 		{
 			Dem_SetDtc(0x5Eu, 0x2fu);
 		}
@@ -1038,29 +1186,41 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		CanH_MissingLoadRequest = 0u;
 
 		uint8_t aliveCounter =  CanH_RxData[1] & 0x1F;
-
 		uint8_t dataId =
 				((CanH_RxData[1] >> 5) & 0x07) |
 				((CanH_RxData[2] & 0x03) << 3);
-
 		uint8_t loadRequest =
 				(CanH_RxData[2] >> 2) & 0x01;
 
-		calc_crc = crc8_ts(&CanH_RxData[1], 2);
+		uint8_t calc_crc = crc8_ts(&CanH_RxData[1], 2);
 
-		CanH_AliveCounter_LoadRequest++;
+		/* monotonic counter check */
+		uint8_t expected = (uint8_t)((CanH_AliveCounter_LoadRequest + 1u) & 0x1Fu);
 
-		if(calc_crc == CanH_RxData[0] &&
-				dataId == 0x16u &&
-				2u > abs(CanH_AliveCounter_LoadRequest - aliveCounter))
+		bool counter_ok =
+				(aliveCounter == expected) ||
+				/* allow single loss */
+				(aliveCounter == ((expected + 1u) & 0x1Fu));
+
+		bool e2e_ok =
+				(calc_crc == CanH_RxData[0]) &&
+				(dataId == 0x16u) &&
+				(counter_ok == true);
+
+		if (e2e_ok)
 		{
 			SMon_CmdStat = loadRequest;
-			CanH_E2eErrCnt = 0;
+
+			CanH_AliveCounter_LoadRequest = aliveCounter;
+			CanH_LoadReq_LastRxTs = CanH_MainCounter;
+
+			CanH_E2eErrCnt = 0u;
 		}
 		else
 		{
-			CanH_AliveCounter_LoadRequest = aliveCounter;
 			CanH_E2eErrCnt++;
+
+			CanH_AliveCounter_LoadRequest = aliveCounter;
 		}
 
 		if(1u < loadRequest)
@@ -1095,14 +1255,5 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	for(uint8_t i = 0; i < 8; i++)
 	{
 		CanH_RxData[i] = 0;
-	}
-
-	if(1u == EcuM_SleeModeActive && 0u == EcuM_WakeupPending)
-	{
-		HAL_PWR_EnableSleepOnExit();
-	}
-	else
-	{
-		/* Do nothing. */
 	}
 }

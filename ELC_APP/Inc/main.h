@@ -26,6 +26,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+extern uint16_t Ain_DmaBuffer[5u];
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -35,8 +36,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define WUP_LINE_Pin GPIO_PIN_0
-#define WUP_LINE_GPIO_Port GPIOA
 #define ANT30VFB_Pin GPIO_PIN_1
 #define ANT30VFB_GPIO_Port GPIOA
 #define AN_ISENSE_L1_Pin GPIO_PIN_2

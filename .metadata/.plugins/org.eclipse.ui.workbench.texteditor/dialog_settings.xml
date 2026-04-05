@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="Dcm_SWV"/>
+		<item key="selection" value="ROM_APPL_START_ADDR"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="Dcm_SWV"/>
-			<item value="mode01"/>
-			<item value="mode02"/>
-			<item value="Dcm_OBD_CALID"/>
-			<item value="mode09"/>
-			<item value="mode06"/>
-			<item value="vin"/>
-			<item value="mode04"/>
-			<item value="while (indexx"/>
-			<item value="while (idexx"/>
-			<item value="while(index"/>
-			<item value="while(indexx"/>
-			<item value="sid == 0x34"/>
-			<item value="rd_f32"/>
-			<item value="word"/>
+			<item value="ROM_APPL_START_ADDR"/>
+			<item value="hardreset"/>
+			<item value="FBL_DiagService_ER_HardReset"/>
+			<item value="systemreset"/>
+			<item value="SMon_P_BattCurrentDeadband_A"/>
+			<item value="dt_h"/>
+			<item value="SMon_main"/>
+			<item value="CanH_OBD_ObdReadiness"/>
+			<item value="CanH_VehicleStatus"/>
+			<item value="vehicle"/>
+			<item value="NominalCapacity_Ah"/>
+			<item value="InternalResistance_Ohm"/>
+			<item value="Available"/>
+			<item value="available"/>
+			<item value="CanH_NoCommCounter"/>
 		</list>
 		<list key="replacehistory">
 			<item value="rd_f32_swap"/>
@@ -34,5 +34,9 @@
 		<item key="DIALOG_WIDTH" value="322"/>
 		<item key="DIALOG_HEIGHT" value="391"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.GotoLineAction$GotoLineDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="724"/>
+		<item key="DIALOG_Y_ORIGIN" value="392"/>
 	</section>
 </section>

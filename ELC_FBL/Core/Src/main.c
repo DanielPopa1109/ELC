@@ -25,7 +25,7 @@
 #define APPL_START_ADDRESS 					0x08003C00
 #define APPL_END_ADDRESS     0x0800F7FFu    /* same as erase end */
 #define APPL_CRC_ADDRESS     (APPL_END_ADDRESS - 3u) /* last 4 bytes */
-#define RESET_COUNTER_ADDR					0x20004Fd4
+#define RESET_COUNTER_ADDR					0x20004FC8
 #define FBL_APP_START_ADDR     APPL_START_ADDRESS   /* 0x08004000 */
 #define FBL_APP_END_ADDR       0x0800F7FFu          /* Last byte of application area */
 #define APPL_PARAMFLASH_START_ADDRESS 0x08003800u
@@ -61,7 +61,7 @@ volatile uint32 FBL_BlockStartAddr = 0u;
 uint32 FBL_BlockLength    = 0u;
 uint8_t FBL_PendingBytes[4];
 uint8_t FBL_PendingLen = 0u;
-uint8_t FBL_Dcm_SWV[4u] = {30u, 30u, 30u, 0xFFu};
+uint8_t FBL_Dcm_SWV[4u] = {31u, 31u, 31u, 0xFFu};
 uint8 FBL_RxFrame[8] = {0};
 FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
 CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -73,7 +73,7 @@ uint32 FBL_ProgrammingData = 0;
 uint32 FBL_ProgrammingIndex = 0;
 uint32 FBL_ProgrammingAddress = 0;
 uint32 ROM_APPL_START_ADDR_storedValue = 0;
-uint32 ROM_APPL_START_ADDR = 0x8004000;
+uint32 ROM_APPL_START_ADDR = APPL_START_ADDRESS;
 uint32 FBL_DSC_Status = 0;
 extern uint8_t __ram_blob_load_start[];
 extern uint8_t __ram_blob_load_end[];
@@ -192,9 +192,23 @@ int main(void)
 	/* Initialize interrupts */
 	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
+
+	PWR_PVDTypeDef sConfigPVD;
+
+	sConfigPVD.Mode = PWR_PVD_MODE_IT_FALLING;
+	sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
+
+	HAL_PWR_ConfigPVD(&sConfigPVD);
+
+	HAL_PWR_EnablePVD();
+
 	if(((RCC->CSR & RCC_CSR_PORRSTF) != 0))
 	{
-		for(uint32* addr = ((uint32*)0x20004fc0); addr <= ((uint32*)0x20004fff); addr++) *addr = 0;
+		for(uint32* addr = ((uint32*)0x20004fc0); addr <= ((uint32*)0x20004fff); addr++)
+		{
+			*addr = 0;
+		}
+
 		RCC->CSR |= RCC_CSR_PORRSTF;
 		RCC->CSR |= RCC_CSR_RMVF;
 	}
@@ -203,7 +217,7 @@ int main(void)
 		/* Do nothing. */
 	}
 
-	if(*FBL_ResetCounterFBL >= 50)
+	if(*FBL_ResetCounterFBL >= 50 && *FBL_ResetCounterFBL <= 52)
 	{
 		FBL_DSC_Status = PROGRAMMING;
 	}
@@ -480,6 +494,8 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 				FBL_TxHeader.IDE   = CAN_ID_STD;
 				FBL_TxHeader.RTR   = CAN_RTR_DATA;
 				FBL_TxHeader.DLC   = 5u;
+
+				FBL_NvM_FlashWriteData(APPL_CRC_ADDRESS, &crcCalc, 1u);
 
 				HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
 			}
@@ -1086,7 +1102,8 @@ void FBL_DiagService_ER_HardReset(void)
 {
 	__disable_irq();
 
-	*FBL_DSC_Pointer = 0;
+	*FBL_DSC_Pointer = 0u;
+	*FBL_ResetCounterFBL = 0u;
 
 	__NVIC_SystemReset();
 }

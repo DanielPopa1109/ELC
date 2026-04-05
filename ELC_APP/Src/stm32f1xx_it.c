@@ -6,12 +6,12 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "EcuM.h"
+#include "FreeRTOSConfig.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
-extern void EcuM_CyclicActivity(void);
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -24,9 +24,6 @@ extern void EcuM_CyclicActivity(void);
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
-extern uint8_t EcuM_SleeModeActive;
-extern volatile unsigned long ulHighFrequencyTimerTicks;
 
 /* USER CODE END PV */
 
@@ -43,7 +40,6 @@ extern DMA_HandleTypeDef hdma_adc1;
 extern ADC_HandleTypeDef hadc1;
 extern CAN_HandleTypeDef hcan;
 extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
@@ -312,20 +308,6 @@ void TIM1_CC_IRQHandler(void)
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_CC_IRQn 1 */
   /* USER CODE END TIM1_CC_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-	 EcuM_CyclicActivity();
-  /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-
-  /* USER CODE END TIM2_IRQn 1 */
 }
 
 /**

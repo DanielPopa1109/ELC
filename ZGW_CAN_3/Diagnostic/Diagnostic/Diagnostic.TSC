@@ -63,7 +63,7 @@ SubServiceCount=1
 [TfrmDiagnostics_ReadDTCInformation]
 SubServiceCount=2
 [TfrmDiagnostics_ReadDataByIdentifier]
-SubServiceCount=32
+SubServiceCount=28
 [TfrmDiagnostics_ReadDataByIdentifier_0]
 isRegSystemVar=0
 FServiceName=SWV
@@ -755,7 +755,7 @@ FFunctionIDType=Standard
 FFilledByte=0
 FSTMin=5
 FTxSTMin=5
-FEnableUserTxSTMin=0
+FEnableUserTxSTMin=1
 FBlockSize=240
 FEnableUserFCDelay=1
 FFCDelay=5
@@ -782,10 +782,10 @@ FDOIPVersion=2
 FDOIPActive=1
 FDUTClientCheckMask=1
 FDOIPReconnectIntervalTime=5000
-FS3ClientTime=5400
-FS3ServerTime=2700
-FP2Timeout=10000
-FP2Extended=10000
+FS3ClientTime=800
+FS3ServerTime=800
+FP2Timeout=5000
+FP2Extended=5000
 FSeedAndKeyDll=TP_seedNKeyDiag.dll
 FIsDotNet=0
 FSupportEmbeddedSeedKey=0
@@ -902,6 +902,13 @@ FEncryptingMethod=0
 FLengthOfFileSize=4
 FUnCompressedFileSize=
 FCompressedFilesize=
+FTransferConfigFilePath=
+FTransferPackageType=0
+FEnableIntegrityCheck=0
+FIntegrityCheckRoutineID=514
+FIntegrityCheckDataString=
+FIntegrityCheckDataFromConfig=
+FIntegrityExpectedResponseString=00
 [TfrmDiagnostics_DownloadFile_0FileCRC]
 FType=2
 initVal=-1
@@ -989,6 +996,13 @@ FEncryptingMethod=0
 FLengthOfFileSize=4
 FUnCompressedFileSize=
 FCompressedFilesize=
+FTransferConfigFilePath=
+FTransferPackageType=0
+FEnableIntegrityCheck=0
+FIntegrityCheckRoutineID=514
+FIntegrityCheckDataString=
+FIntegrityCheckDataFromConfig=
+FIntegrityExpectedResponseString=00
 [TfrmDiagnostics_DownloadFile_1FileCRC]
 FType=32
 initVal=7209063
@@ -1068,6 +1082,13 @@ FEncryptingMethod=0
 FLengthOfFileSize=4
 FUnCompressedFileSize=
 FCompressedFilesize=
+FTransferConfigFilePath=
+FTransferPackageType=0
+FEnableIntegrityCheck=0
+FIntegrityCheckRoutineID=514
+FIntegrityCheckDataString=
+FIntegrityCheckDataFromConfig=
+FIntegrityExpectedResponseString=00
 [TfrmDiagnostics_DownloadFile_2FileCRC]
 FType=93
 initVal=788
@@ -1118,8 +1139,8 @@ FIsFunctionID=0
 FHasResponse=1
 FServiceCode=49
 FIDParametersCount=2
-FReqParametersCount=1
-FResParametersCount=1
+FReqParametersCount=2
+FResParametersCount=2
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
@@ -3087,7 +3108,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_2]
 isRegSystemVar=0
-FServiceName=TIMESLEEP
+FServiceName=TIMEACTIVE
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -3097,17 +3118,17 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=676742656676024174370740808
+FGUID=676770782780410496723421623
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 [TfrmDiagnostics_ReadDataByIdentifier_2_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=2
+FDefaultValue=3
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_2_ResPara0]
 FByteOrder=1
@@ -3495,7 +3516,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_3]
 isRegSystemVar=0
-FServiceName=TIMEACTIVE
+FServiceName=TIMENORESET
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -3505,17 +3526,17 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=676770782780410496723421623
+FGUID=676775625776148673859652640
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=0
+FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_3_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=3
+FDefaultValue=4
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_3_ResPara0]
 FByteOrder=1
@@ -3903,7 +3924,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_4]
 isRegSystemVar=0
-FServiceName=TIMENORESET
+FServiceName=RESETDATA
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -3913,7 +3934,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=676775625776148673859652640
+FGUID=676780466057623650575269066
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -3923,7 +3944,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_4_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=4
+FDefaultValue=5
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_4_ResPara0]
 FByteOrder=1
@@ -3932,7 +3953,7 @@ FName=Data
 FDefaultValue=00
 FDataType=UInt
 FConversionID=0
-FLength=32
+FLength=16
 FBitMask=0
 FCheckValue=0
 FSyncDataToSystemVar=0
@@ -4311,7 +4332,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_5]
 isRegSystemVar=0
-FServiceName=RESETDATA
+FServiceName=CPULOAD
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -4321,7 +4342,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=676780466057623650575269066
+FGUID=1731770156078172378864696278
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -4331,16 +4352,16 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_5_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=5
+FDefaultValue=6
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_5_ResPara0]
 FByteOrder=1
 FStartBit=31
 FName=Data
 FDefaultValue=00
-FDataType=UInt
+FDataType=Hex Array
 FConversionID=0
-FLength=16
+FLength=8
 FBitMask=0
 FCheckValue=0
 FSyncDataToSystemVar=0
@@ -5165,7 +5186,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_6]
 isRegSystemVar=0
-FServiceName=CPULOAD
+FServiceName=ADS
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -5175,7 +5196,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1731770156078172378864696278
+FGUID=516618121163336595367900176
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -5185,7 +5206,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_6_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=6
+FDefaultValue=61822
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_6_ResPara0]
 FByteOrder=1
@@ -12689,7 +12710,7 @@ FDefaultValue=1
 FByteNum=1
 [TfrmDiagnostics_ReadDataByIdentifier_7]
 isRegSystemVar=0
-FServiceName=ADS
+FServiceName=ASB
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -12699,7 +12720,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=516618121163336595367900176
+FGUID=51662500439945905228389730
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -12709,7 +12730,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_7_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=61822
+FDefaultValue=61823
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_7_ResPara0]
 FByteOrder=1
@@ -13004,7 +13025,7 @@ supporttexttable=0
 supporttexttable=0
 [TfrmDiagnostics_ReadDataByIdentifier_8]
 isRegSystemVar=0
-FServiceName=ASB
+FServiceName=RSA
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -13014,7 +13035,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=51662500439945905228389730
+FGUID=4557960969806250025035175
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -13024,7 +13045,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_8_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=61823
+FDefaultValue=7
 FByteNum=2
 [TfrmDiagnostics_ReadDataByIdentifier_8_ResPara0]
 FByteOrder=1
@@ -13732,7 +13753,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_9]
 isRegSystemVar=0
-FServiceName=RSA
+FServiceName=T30 MIN 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -13742,7 +13763,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=4557960969806250025035175
+FGUID=1048570006142910940308046715
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -13753,7 +13774,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_9_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=7
+FDefaultValue=11
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_9_ResPara0]
@@ -13763,7 +13784,7 @@ FName=Data
 FDefaultValue=00
 FDataType=Hex Array
 FConversionID=0
-FLength=8
+FLength=32
 FBitMask=0
 FCheckValue=0
 FSystemVarName=
@@ -13944,7 +13965,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_10]
 isRegSystemVar=0
-FServiceName=WL WU
+FServiceName=T30 MAX 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -13954,7 +13975,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=104854125982911667219585954
+FGUID=1048575311833810521849952345
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -13965,7 +13986,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_10_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=8
+FDefaultValue=12
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_10_ResPara0]
@@ -13975,7 +13996,7 @@ FName=Data
 FDefaultValue=00
 FDataType=Hex Array
 FConversionID=0
-FLength=8
+FLength=32
 FBitMask=0
 FCheckValue=0
 FSystemVarName=
@@ -14035,7 +14056,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_11]
 isRegSystemVar=0
-FServiceName=CAN WU
+FServiceName=T30 AVG 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14045,18 +14066,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048555467513694076874461272
+FGUID=1048581253371226844649461332
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_11_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=9
+FDefaultValue=13
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_11_ResPara0]
@@ -14066,7 +14087,7 @@ FName=Data
 FDefaultValue=00
 FDataType=Hex Array
 FConversionID=0
-FLength=8
+FLength=32
 FBitMask=0
 FCheckValue=0
 FSystemVarName=
@@ -14126,7 +14147,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_12]
 isRegSystemVar=0
-FServiceName=DIAG WU
+FServiceName=L1 MIN 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14136,7 +14157,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048560007411237185356262998
+FGUID=1048886878907558161876997695
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -14147,7 +14168,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_12_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=10
+FDefaultValue=14
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_12_ResPara0]
@@ -14157,7 +14178,7 @@ FName=Data
 FDefaultValue=00
 FDataType=Hex Array
 FConversionID=0
-FLength=8
+FLength=32
 FBitMask=0
 FCheckValue=0
 FSystemVarName=
@@ -14217,7 +14238,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_13]
 isRegSystemVar=0
-FServiceName=T30 MIN 10S
+FServiceName=L1 MAX 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14227,18 +14248,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048570006142910940308046715
+FGUID=1048890932919459507338582695
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_13_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=11
+FDefaultValue=15
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_13_ResPara0]
@@ -14308,7 +14329,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_14]
 isRegSystemVar=0
-FServiceName=T30 MAX 10S
+FServiceName=L1 AVG 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14318,18 +14339,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048575311833810521849952345
+FGUID=1048895625970648254886694121
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_14_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=12
+FDefaultValue=16
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_14_ResPara0]
@@ -14399,7 +14420,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_15]
 isRegSystemVar=0
-FServiceName=T30 AVG 10S
+FServiceName=L1 CURRENT MIN 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14409,18 +14430,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048581253371226844649461332
+FGUID=1048904685377017529013102421
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=0
+FMainTainOriginalFileStruct=1
 
 [TfrmDiagnostics_ReadDataByIdentifier_15_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=13
+FDefaultValue=17
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_15_ResPara0]
@@ -14490,7 +14511,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_16]
 isRegSystemVar=0
-FServiceName=L1 MIN 10S
+FServiceName=L1 CURRENT MAX 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14500,7 +14521,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048886878907558161876997695
+FGUID=1048908908327719709875085584
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -14511,7 +14532,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_16_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=14
+FDefaultValue=18
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_16_ResPara0]
@@ -14581,7 +14602,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_17]
 isRegSystemVar=0
-FServiceName=L1 MAX 10S
+FServiceName=L1 CURRENT AVG 10S
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14591,18 +14612,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048890932919459507338582695
+FGUID=1048918281195706749989923531
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=0
+FMainTainOriginalFileStruct=1
 
 [TfrmDiagnostics_ReadDataByIdentifier_17_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=15
+FDefaultValue=19
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_17_ResPara0]
@@ -14672,7 +14693,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_18]
 isRegSystemVar=0
-FServiceName=L1 AVG 10S
+FServiceName=T30 MIN SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14682,18 +14703,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048895625970648254886694121
+FGUID=1048923126818450884766727993
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=0
+FMainTainOriginalFileStruct=1
 
 [TfrmDiagnostics_ReadDataByIdentifier_18_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=16
+FDefaultValue=20
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_18_ResPara0]
@@ -14763,7 +14784,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_19]
 isRegSystemVar=0
-FServiceName=L1 CURRENT MIN 10S
+FServiceName=T30 MAX SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14773,7 +14794,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048904685377017529013102421
+FGUID=1048928281136597004890566562
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -14784,7 +14805,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_19_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=17
+FDefaultValue=21
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_19_ResPara0]
@@ -14854,7 +14875,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_20]
 isRegSystemVar=0
-FServiceName=L1 CURRENT MAX 10S
+FServiceName=T30 AVG SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14864,7 +14885,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048908908327719709875085584
+FGUID=1048933126901767477883083977
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -14875,7 +14896,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_20_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=18
+FDefaultValue=22
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_20_ResPara0]
@@ -14945,7 +14966,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_21]
 isRegSystemVar=0
-FServiceName=L1 CURRENT AVG 10S
+FServiceName=L1 MIN SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -14955,7 +14976,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048918281195706749989923531
+FGUID=1048946717225182226137252657
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -14966,7 +14987,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_21_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=19
+FDefaultValue=23
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_21_ResPara0]
@@ -15036,7 +15057,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_22]
 isRegSystemVar=0
-FServiceName=T30 MIN SW
+FServiceName=L1 MAX SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15046,18 +15067,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048923126818450884766727993
+FGUID=1048951256201176260868479363
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_22_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=20
+FDefaultValue=24
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_22_ResPara0]
@@ -15127,7 +15148,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_23]
 isRegSystemVar=0
-FServiceName=T30 MAX SW
+FServiceName=L1 AVG SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15137,7 +15158,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048928281136597004890566562
+FGUID=1048956877026179417613050747
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -15148,7 +15169,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_23_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=21
+FDefaultValue=25
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_23_ResPara0]
@@ -15218,7 +15239,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_24]
 isRegSystemVar=0
-FServiceName=T30 AVG SW
+FServiceName=L1 CURRENT MIN SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15228,7 +15249,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048933126901767477883083977
+FGUID=104896375590254075130673280
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -15239,7 +15260,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_24_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=22
+FDefaultValue=26
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_24_ResPara0]
@@ -15309,7 +15330,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_25]
 isRegSystemVar=0
-FServiceName=L1 MIN SW
+FServiceName=L1 CURRENT MAX SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15319,18 +15340,18 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048946717225182226137252657
+FGUID=1048972032395634575761090694
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
 FLengthOfMemorySize=4
 FByteOrderOfChecksum=1
-FMainTainOriginalFileStruct=1
+FMainTainOriginalFileStruct=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_25_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=23
+FDefaultValue=27
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_25_ResPara0]
@@ -15400,7 +15421,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_26]
 isRegSystemVar=0
-FServiceName=L1 MAX SW
+FServiceName=L1 CURRENT AVG SW
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15410,7 +15431,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048951256201176260868479363
+FGUID=1048980158895736212948410331
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -15421,7 +15442,7 @@ FMainTainOriginalFileStruct=0
 [TfrmDiagnostics_ReadDataByIdentifier_26_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=24
+FDefaultValue=28
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_26_ResPara0]
@@ -15491,7 +15512,7 @@ supporttexttable=0
 
 [TfrmDiagnostics_ReadDataByIdentifier_27]
 isRegSystemVar=0
-FServiceName=L1 AVG SW
+FServiceName=LOAD STATUS
 FIsFunctionID=0
 FHasResponse=1
 FServiceCode=34
@@ -15501,7 +15522,7 @@ FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
 FGenrateKeyAutomatically=1
-FGUID=1048956877026179417613050747
+FGUID=1363034371059754650354686887
 FHideDeleteButton=0
 FBlockAndFileUseDiffrentChecksum=0
 FLengthOfMemoryAddress=4
@@ -15512,7 +15533,7 @@ FMainTainOriginalFileStruct=1
 [TfrmDiagnostics_ReadDataByIdentifier_27_IDPara0]
 FName=DataIdentifier
 FIsSubFunction=0
-FDefaultValue=25
+FDefaultValue=29
 FByteNum=2
 
 [TfrmDiagnostics_ReadDataByIdentifier_27_ResPara0]
@@ -15522,7 +15543,7 @@ FName=Data
 FDefaultValue=00
 FDataType=Hex Array
 FConversionID=0
-FLength=32
+FLength=8
 FBitMask=0
 FCheckValue=0
 FSystemVarName=
@@ -15937,7 +15958,7 @@ supporttexttable=0
 FByteOrder=1
 FStartBit=39
 FName=Timer
-FDefaultValue=00
+FDefaultValue=01
 FDataType=UInt
 FConversionID=0
 FLength=8
@@ -15990,7 +16011,7 @@ supporttexttable=0
 [TfrmDiagnostics_RoutineControl_4_ResPara0]
 FByteOrder=1
 FStartBit=0
-FName=Timer
+FName=Status
 FDefaultValue=0
 FDataType=UInt
 FConversionID=0
@@ -16045,22 +16066,22 @@ supporttexttable=0
 SubServiceCount=1
 
 [TfrmDiagnostics_PowertrainData]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_FreezeFrameData]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_OxygenSensorMonitoringTestResults]
 SubServiceCount=0
 
 [TfrmDiagnostics_OBD_OnBoardMonitoringTestResults]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_VehicleInformation]
 SubServiceCount=3
 
 [TfrmDiagnostics_OBD_ControlOperationOfOnBoardComponentSystem]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_ClearEmissionRelatedDiagnosticInformation]
 SubServiceCount=1
@@ -16680,6 +16701,46 @@ FBitPosition=0
 FFactor=0
 FOffSet=0
 FDenominator=0
+FLowerLimit=0
+FUpperLimit=0
+supporttexttable=0
+
+[TfrmDiagnostics_RoutineControl_4_ReqPara1]
+FByteOrder=1
+FStartBit=1
+FName=Status
+FDefaultValue=1
+FDataType=UInt
+FConversionID=0
+FLength=8
+FBitMask=255
+FCheckValue=0
+FSystemVarName=
+FBytePosition=0
+FBitPosition=0
+FFactor=0
+FOffSet=6.95329845867782E-310
+FDenominator=1.21149451253438E-311
+FLowerLimit=0
+FUpperLimit=0
+supporttexttable=0
+
+[TfrmDiagnostics_RoutineControl_4_ResPara1]
+FByteOrder=1
+FStartBit=1
+FName=Timer
+FDefaultValue=0
+FDataType=UInt
+FConversionID=0
+FLength=8
+FBitMask=255
+FCheckValue=0
+FSystemVarName=
+FBytePosition=0
+FBitPosition=0
+FFactor=0
+FOffSet=6.95329845867782E-310
+FDenominator=1.21149451025772E-311
 FLowerLimit=0
 FUpperLimit=0
 supporttexttable=0

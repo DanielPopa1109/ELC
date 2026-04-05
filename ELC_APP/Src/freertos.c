@@ -34,48 +34,42 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
-uint8_t OS_IdleIndex = 0;
-volatile uint32_t oscnt;
-uint32_t ulTotalRunTime = {0};
-uint32_t localTaskCounter = 0;
-uint8_t OS_XCP_U8_CPU_Load = 0;
-float OS_XCP_CpuLoad = 0;
-float OS_IdleRunTime = 0;
-float OS_DeltaIdleRunTime = 0;
-float OS_CpuLoad = 0;
-float OS_AverageCpuLoad = 0;
-TaskStatus_t xTaskStatusArray[7] = {0};
-UBaseType_t uxArraySize = {0};
-long long idlecnt;
-long long OS_Counter = 0;
-long long IDLE_Counter = 0;
-volatile unsigned long ulHighFrequencyTimerTicks;
-extern uint32_t _estack;            // from linker
-extern uint32_t _Min_Stack_Size;    // from linker (absolute symbol)
-extern uint8_t EcuM_SWState;
-extern uint16_t Ain_DmaBuffer[5u];
-
+static TaskStatus_t xTaskStatusArray[7];
+static UBaseType_t uxArraySize;
+uint8_t OS_IdleIndex = 0u;
+uint8_t OS_XCP_U8_CPU_Load = 0u;
+volatile uint32_t oscnt = 0u;
+uint32_t ulTotalRunTime_G = 0u;
+uint32_t localTaskCounter = 0u;
+float OS_XCP_CpuLoad = 0.0f;
+float OS_IdleRunTime = 0.0f;
+float OS_DeltaIdleRunTime = 0.0f;
+float OS_CpuLoad  = 0.0f;
+float OS_AverageCpuLoad  = 0.0f;
+volatile unsigned long ulHighFrequencyTimerTicks = 0u;
+long long idlecnt = 0u;
+long long OS_Counter = 0u;
+long long IDLE_Counter = 0u;
 /* USER CODE END Variables */
 /* Definitions for QM_BSW */
 osThreadId_t QM_BSWHandle;
 const osThreadAttr_t QM_BSW_attributes = {
   .name = "QM_BSW",
-  .stack_size = 128 * 4,
+  .stack_size = 272 * 4,
   .priority = (osPriority_t) osPriorityHigh5,
 };
 /* Definitions for QM_APPL */
 osThreadId_t QM_APPLHandle;
 const osThreadAttr_t QM_APPL_attributes = {
   .name = "QM_APPL",
-  .stack_size = 128 * 4,
+  .stack_size = 272 * 4,
   .priority = (osPriority_t) osPriorityHigh4,
 };
 /* Definitions for QM_DIAG */
 osThreadId_t QM_DIAGHandle;
 const osThreadAttr_t QM_DIAG_attributes = {
   .name = "QM_DIAG",
-  .stack_size = 1200 * 4,
+  .stack_size = 872 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for CPULOAD_OS */
@@ -93,7 +87,6 @@ const osTimerAttr_t Alarm5ms_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
 /* USER CODE END FunctionPrototypes */
 
 void QM_BSW_TASK(void *argument);
@@ -132,8 +125,7 @@ unsigned long getRunTimeCounterValue(void)
 void vApplicationIdleHook( void )
 {
 	idlecnt++;
-
-	uxArraySize = uxTaskGetSystemState(xTaskStatusArray, 7, &ulTotalRunTime);
+	uxArraySize = uxTaskGetSystemState(xTaskStatusArray, 7, &ulTotalRunTime_G);
 }
 
 /* USER CODE END 2 */
@@ -142,6 +134,27 @@ void vApplicationIdleHook( void )
 void vApplicationTickHook( void )
 {
 	oscnt++;
+
+	if (EcuM_SWState < 3)
+	{
+		uint32_t adcState = HAL_ADC_GetState(&hadc1);
+
+		if ((adcState & HAL_ADC_STATE_REG_BUSY) == 0u)
+		{
+			if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u) != HAL_OK)
+			{
+				/* do nothing */
+			}
+		}
+		else
+		{
+			/* do nothing */
+		}
+	}
+	else
+	{
+		/* do nothing */
+	}
 }
 
 /* USER CODE END 3 */
@@ -276,9 +289,20 @@ void CPULOAD_OS_TASK(void *argument)
 
 		OS_DeltaIdleRunTime = xTaskStatusArray[OS_IdleIndex].ulRunTimeCounter - OS_IdleRunTime;
 
-		if(0 != ulHighFrequencyTimerTicks && 0u != OS_DeltaIdleRunTime)
+		if (ulHighFrequencyTimerTicks != 0u)
 		{
-			OS_CpuLoad = 100 - (OS_DeltaIdleRunTime / ulHighFrequencyTimerTicks) * 100;
+			uint32_t idle_permille = (OS_DeltaIdleRunTime * 1000u) / ulHighFrequencyTimerTicks;
+
+			if (idle_permille > 1000u)
+			{
+				idle_permille = 1000u;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+
+			OS_CpuLoad = 100u - (idle_permille / 10u);
 		}
 		else
 		{
@@ -286,14 +310,14 @@ void CPULOAD_OS_TASK(void *argument)
 		}
 
 		OS_AverageCpuLoad += OS_CpuLoad;
-		ulHighFrequencyTimerTicks = 0;
+		ulHighFrequencyTimerTicks = 0u;
 		OS_IdleRunTime = xTaskStatusArray[OS_IdleIndex].ulRunTimeCounter;
 
-		if(localTaskCounter % 12 == 0 && 0u != localTaskCounter)
+		if(localTaskCounter % 12u == 0u && 0u != localTaskCounter)
 		{
 			OS_XCP_CpuLoad = OS_AverageCpuLoad / 12; /* Calculate CPU load value every 480 milliseconds. */
 			OS_XCP_U8_CPU_Load = (uint8_t)OS_XCP_CpuLoad;
-			OS_AverageCpuLoad = 0;
+			OS_AverageCpuLoad = 0u;
 		}
 		else
 		{
@@ -310,22 +334,13 @@ void Alarm5ms_Callback(void *argument)
 {
   /* USER CODE BEGIN Alarm5ms_Callback */
 
-	static uint32_t counter = 0;
+	static uint32_t counter = 0u;
 
 	counter++;
 
-	if(counter % 8 == 0 && counter != 0)
+	if(counter % 8u == 0u && counter != 0u)
 	{
 		vTaskResume(CPULOAD_OSHandle);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(EcuM_SWState < 3)
-	{
-		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
 	}
 	else
 	{

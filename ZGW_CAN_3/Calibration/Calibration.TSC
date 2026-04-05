@@ -129,6 +129,7 @@ PROGRAM=1
 PROGRAM_RESET=1
 Var Byte Order=Intel
 Disable read back=False
+Select Cal Page Timing=After Connect Completed
 
 [Memory_ELC]
 Cache enable=False

@@ -1,36 +1,10 @@
 #include "Dem.h"
-#include "can.h"
 #include "Nvm.h"
 #include "CanH.h"
-
-extern CanH_ComStat_t CanH_CommunicationState;
-extern uint8_t CSBSDAT_Year;
-extern uint8_t CSBSDAT_Month;
-extern uint8_t CSBSDAT_Day;
-extern uint8_t CSBSDAT_Hour;
-extern uint8_t CSBSDAT_Minute;
-extern uint8_t CSBSDAT_Second;
-extern uint8_t CSBSDAT_Millisecond;
-extern uint8_t Dcm_CDTCS;
-extern uint8_t OS_XCP_U8_CPU_Load;
-extern uint16_t SMon_VfbL1;
-extern uint16_t SMon_VfbT30;
-extern float SMon_NTC_Temperature_L1;
-extern float SMon_ISenseL1_Float;
-extern float SMon_McuTempValue;
-extern volatile uint8_t CanH_VehicleStatus;
-extern uint8_t CanH_OBD_AmbientTemperature ;
-extern uint8_t CanH_OBD_EngineCoolantTemperature ;
-extern uint8_t CanH_OBD_IntakeAirTemperature ;
-extern uint8_t CanH_OBD_EngineSpeed ;
-extern uint8_t CanH_OBD_EngineLoad ;
-extern uint8_t CanH_OBD_VehicleSpeed;
-extern uint8_t CanH_OBD_ObdReadiness;
-
-extern const uint32_t CanH_P_DelayTxParam;
+#include "SMon.h"
+#include "Dcm.h"
 
 Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
-Dem_ObdFreezeFrame_t Dem_OBD_FF[DEM_MAX_OBD_FF_DTC];
 
 const uint32_t Dem_PreDefined_OBD_DTC_Table[DEM_MAX_OBD_FF_DTC] =
 {
@@ -66,10 +40,11 @@ const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 		0x60, // SHORT TO BATT L1 P3
 		0x61, // XCP USED
 		0x62, // SA USED
-		0x63, // SHORT TO BATT L1 ON
+		0x64u, // OBD READINESS SIGNAL INVALID
 };
 
 uint32_t Dem_DTC_Stat_OBD[DEM_MAX_OBD_FF_DTC] = {
+		0x50u,
 		0x50u,
 		0x50u,
 		0x50u,
@@ -81,14 +56,15 @@ uint32_t Dem_DTC_Stat_OBD[DEM_MAX_OBD_FF_DTC] = {
 };
 
 uint32_t Dem_DTC_Stat_OBD_Permanent[DEM_MAX_OBD_FF_DTC] = {
-		0,
+		0u,
 		1u,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0
+		0u,
+		0u,
+		0u,
+		0u,
+		0u,
+		0u,
+		0u
 };
 
 uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
@@ -123,12 +99,12 @@ void Dem_CaptureFreezeFrame(uint8_t idx);
 uint8_t Dem_GetDtcStatus(uint32_t id);
 uint8_t Dem_GetDtcStatus_Obd(uint32_t id);
 void Dem_SetDtc_Obd(uint32_t id, uint8_t stat);
-void Dem_CaptureFreezeFrame_Obd(uint8_t idx);
 void Dem_main(void);
 
 void Dem_main(void)
 {
 	static uint32_t localCnt = 0u;
+	static uint8_t flag = 0u;
 
 	switch(CanH_OBD_ObdReadiness)
 	{
@@ -138,28 +114,37 @@ void Dem_main(void)
 		Dem_ELC_OBD_ObdReadiness = 0u;
 		localCnt = 0u;
 
-		for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
+		if(0u == flag)
 		{
-			if(0xAFu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i]))
+			for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
 			{
-				Dem_SetDtc_Obd(Dem_PreDefined_OBD_DTC_Table[i], 0x2E);
+				if(0xAFu == Dem_GetDtcStatus_Obd(Dem_PreDefined_OBD_DTC_Table[i]))
+				{
+					Dem_SetDtc_Obd(Dem_PreDefined_OBD_DTC_Table[i], 0x2E);
+				}
+				else
+				{
+					// do nothing.
+				}
 			}
-			else
-			{
-				// do nothing.
-			}
-		}
 
-		for(uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
+			for(uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
+			{
+				if(0x2Fu == Dem_GetDtcStatus(Dem_PreDefined_DTC_Table[i]))
+				{
+					Dem_SetDtc(Dem_PreDefined_DTC_Table[i], 0x2E);
+				}
+				else
+				{
+					// do nothing.
+				}
+			}
+
+			flag = 1u;
+		}
+		else
 		{
-			if(0x2Fu == Dem_GetDtcStatus(Dem_PreDefined_DTC_Table[i]))
-			{
-				Dem_SetDtc(Dem_PreDefined_OBD_DTC_Table[i], 0x2E);
-			}
-			else
-			{
-				// do nothing.
-			}
+			// do nothing.
 		}
 
 		Dem_InternalObdStatus = 0u;
@@ -197,6 +182,7 @@ void Dem_main(void)
 			if(0xAFu == Dem_GetDtcStatus_Obd(0x0164u))
 			{
 				Dem_SetDtc_Obd(0x0164u, 0xAE);
+				Dem_SetDtc(0x64u, 0x2E);
 			}
 			else
 			{
@@ -239,12 +225,13 @@ void Dem_main(void)
 		localCnt = 0u;
 		Dem_ELC_OBD_ObdReadiness = 4u;
 		Dem_InternalObdStatus = 4u;
+		flag = 0u;
 
 		break;
 
 	case 15u:
 
-		if(0u == localCnt && 200u < Dem_MainCounter)
+		if(0u == localCnt && 2000u < Dem_MainCounter)
 		{
 			localCnt = Dem_MainCounter;
 		}
@@ -253,9 +240,10 @@ void Dem_main(void)
 			// do nothing.
 		}
 
-		if(200u > Dem_MainCounter - localCnt)
+		if(2000u > Dem_MainCounter - localCnt)
 		{
 			Dem_SetDtc_Obd(0x0164u, 0xAFu);
+			Dem_SetDtc(0x64u, 0x2F);
 			localCnt = 0u;
 		}
 		else
@@ -279,6 +267,16 @@ void Dem_main(void)
 
 void Dem_CaptureFreezeFrame(uint8_t idx)
 {
+	if (idx >= DEM_MAX_FF_DTC)
+	{
+		/* optional: DET/DEM error hook */
+		return;
+	}
+	else
+	{
+		// do nothing.
+	}
+
 	Dem_FF[idx].occurrenceCnt++;
 	Dem_FF[idx].year = CSBSDAT_Year;
 	Dem_FF[idx].month = CSBSDAT_Month;
@@ -293,19 +291,6 @@ void Dem_CaptureFreezeFrame(uint8_t idx)
 	Dem_FF[idx].vehStatus = CanH_VehicleStatus;
 
 	Nvm_WriteBlock(2u, &Dem_FF[0].occurrenceCnt);   // separate FF block
-}
-
-void Dem_CaptureFreezeFrame_Obd(uint8_t idx)
-{
-	Dem_OBD_FF[idx].OBD_AmbientTemperature = CanH_OBD_AmbientTemperature;
-	Dem_OBD_FF[idx].OBD_EngineCoolantTemperature = CanH_OBD_EngineCoolantTemperature;
-	Dem_OBD_FF[idx].OBD_IntakeAirTemperature = CanH_OBD_IntakeAirTemperature;
-	Dem_OBD_FF[idx].OBD_EngineSpeed = CanH_OBD_EngineSpeed;
-	Dem_OBD_FF[idx].OBD_EngineLoad = CanH_OBD_EngineLoad;
-	Dem_OBD_FF[idx].OBD_VehicleSpeed = CanH_OBD_VehicleSpeed;
-	Dem_OBD_FF[idx].OBD_ObdReadiness = CanH_OBD_ObdReadiness;
-
-	Nvm_WriteBlock(4u, &Dem_OBD_FF[0u].OBD_AmbientTemperature);   // separate FF block
 }
 
 uint8_t Dem_GetDtcStatus(uint32_t id)
@@ -394,8 +379,7 @@ void Dem_SetDtc_Obd(uint32_t id, uint8_t stat)
 		if(stat != Dem_DTC_Stat_OBD[aux_index] && stat == 0xAfu)
 		{
 			Dem_DTC_Stat_OBD[aux_index] = stat;
-			Nvm_WriteBlock(5u, &Dem_DTC_Stat_OBD[0u]);
-			Dem_CaptureFreezeFrame_Obd(aux_index);
+			Nvm_WriteBlock(4u, &Dem_DTC_Stat_OBD[0u]);
 		}
 		else
 		{
@@ -410,12 +394,18 @@ void Dem_SetDtc_Obd(uint32_t id, uint8_t stat)
 			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 			uint32_t TxMailbox = 0u;
 
-			arrtx[0u] = (uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index]);
-			arrtx[1u] = (uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 8u);
-			arrtx[2u] = ((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 16u) & 0x3Fu);
-			arrtx[2u] = (((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 24u) & 0x03u) << 6u);
-			arrtx[3u] = (((uint8_t)(Dem_PreDefined_OBD_DTC_Table[aux_index] >> 24u) >> 2u) & 0x03u );
-			arrtx[3u] = ((stat & 0x3fu) << 2u);
+			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[aux_index];   /* or OBD table */
+
+			arrtx[0u] = (uint8_t)(dtc);
+			arrtx[1u] = (uint8_t)(dtc >> 8u);
+
+			arrtx[2u] = 0u;
+			arrtx[2u] |= (uint8_t)((dtc >> 16u) & 0x3Fu);          /* bits 0..5 */
+			arrtx[2u] |= (uint8_t)(((dtc >> 24u) & 0x03u) << 6u);  /* bits 6..7 */
+
+			arrtx[3u] = 0u;
+			arrtx[3u] |= (uint8_t)(((dtc >> 24u) >> 2u) & 0x03u);  /* bits 0..1 */
+			arrtx[3u] |= (uint8_t)((stat & 0x3Fu) << 2u);          /* bits 2..7 */
 
 			TxHeader.DLC = 4;
 			TxHeader.StdId = 0x7FEu;
@@ -484,12 +474,18 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 			uint32_t TxMailbox = 0u;
 
-			arrtx[0u] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index]);
-			arrtx[1u] = (uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 8u);
-			arrtx[2u] = ((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 16u) & 0x3Fu);
-			arrtx[2u] = (((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u) & 0x03u) << 6u);
-			arrtx[3u] = (((uint8_t)(Dem_PreDefined_DTC_Table[aux_index] >> 24u) >> 2u) & 0x03u );
-			arrtx[3u] = ((stat & 0x3fu) << 2u);
+			uint32_t dtc = Dem_PreDefined_DTC_Table[aux_index];   /* or OBD table */
+
+			arrtx[0u] = (uint8_t)(dtc);
+			arrtx[1u] = (uint8_t)(dtc >> 8u);
+
+			arrtx[2u] = 0u;
+			arrtx[2u] |= (uint8_t)((dtc >> 16u) & 0x3Fu);          /* bits 0..5 */
+			arrtx[2u] |= (uint8_t)(((dtc >> 24u) & 0x03u) << 6u);  /* bits 6..7 */
+
+			arrtx[3u] = 0u;
+			arrtx[3u] |= (uint8_t)(((dtc >> 24u) >> 2u) & 0x03u);  /* bits 0..1 */
+			arrtx[3u] |= (uint8_t)((stat & 0x3Fu) << 2u);          /* bits 2..7 */
 
 			TxHeader.DLC = 4;
 			TxHeader.StdId = 0x7FEu;

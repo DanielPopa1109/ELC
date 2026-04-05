@@ -7,7 +7,7 @@
 #define __enable_irq_()    __asm volatile ("cpsie i")
 #define SESSIONSTATUS_ADDR 0x20004FC0UL
 #define FLASH_START_ADDR   0x08000000UL
-#define FLASH_END_ADDR     0x08003FFFUL
+#define FLASH_END_ADDR     0x080037FFUL
 #define FLASH_PAGE_SIZE    1024U
 #define BOOT_ISOTP_RX_ID       0x702u
 #define BOOT_ISOTP_TX_ID       0x703u
@@ -145,7 +145,7 @@ static uint32_t prog_addr        = 0;
 static uint32_t bytes_received   = 0;
 static uint8_t  pending_bytes[4];
 static uint8_t  pending_len      = 0;
-static uint8_t  sw_version[4] = {30u, 30u, 30u, 0xFFu};
+static uint8_t  sw_version[4] = {31u, 31u, 31u, 0xFFu};
 static uint8_t  isotp_rx_buf_ram[ISOTP_MAX_RX_LEN_RAM];
 static uint16_t isotp_rx_len      = 0u;
 static uint16_t isotp_rx_expected = 0u;

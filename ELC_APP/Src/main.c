@@ -7,7 +7,6 @@
 #include "can.h"
 #include "crc.h"
 #include "dma.h"
-#include "iwdg.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -16,8 +15,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
-#include "Nvm.h"
 #include <stdbool.h>
+#include "Nvm.h"
+#include "SMon.h"
+#include "EcuM.h"
+#include "Dcm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,43 +38,6 @@
 
 /* USER CODE BEGIN PV */
 uint16_t Ain_DmaBuffer[5u];
-
-extern uint8_t SMon_CLSFlag; // CLS status flag - not started / running / done
-extern uint8_t SMon_CmdStat; // Command Status
-extern uint8_t SMon_RequestPhysicalStatus;
-extern uint16_t SMon_VfbL1; // Voltage Feedback L1/CLS
-extern uint16_t SMon_VfbT30; // Voltage Feedback KL30
-extern uint32_t SMon_ISenseL1; // I Sense L1
-extern float SMon_ISenseL1_Float;
-extern float SMon_PeakCurrent;
-extern float SMon_NTC_Temperature_L1;
-extern const uint16_t SMon_P_Varef;
-extern const uint16_t SMon_P_ADC_MaxValue;
-extern const uint32_t SMon_P_NTC_PullUp_ResistorVale;
-extern const float SMon_P_RoomTempKelvin;
-extern const uint16_t SMon_P_BetaConst;
-extern float SMon_McuTempValue;
-extern const float SMon_P_VoltsAt25;
-extern const float SMon_P_AvgSlope;
-extern const float SMon_P_RoomTemperature;
-extern uint8_t Dcm_LoadStatus;
-extern const float SMon_P_Kelvin;
-extern const float SMon_P_VoltageDivider;
-extern const float SMon_P_AlphaFilter;
-extern const float SMon_P_TwoPointCalib_ConvFacISense;
-extern const float SMon_P_TwoPointCalib_NoLoad_ISense;
-extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamA ;
-extern const float SMon_P_VFB_T30_TwoPointCalibration_ParamB ;
-extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamA ;
-extern const float SMon_P_VFB_L1_TwoPointCalibration_ParamB ;
-extern uint8_t Dcm_SWV[4u];
-extern uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
-extern const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA; // R0_cal in ohms
-extern const uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB;  // Beta_cal in K
-extern float SMon_ISenseL1_ExtChISense;
-extern const float SMon_P_AlphaFilterExtChIsense;
-extern uint8_t EcuM_WUPLine;
-extern volatile uint8_t SMon_CheckForVoltageFlag;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,8 +45,6 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
-extern void Nvm_InitParamFlash(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -94,48 +57,92 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	static float aux_isense = 0.0f;
 	static float vfb1_mV = 0.0f;
 	static float vfb2_mV = 0.0f;
-	static float ln_ratio;
-	static float inv_T;
-	static float T_kelvin;
+	static float ln_ratio = 0.0f;
+	static float inv_T = 0.0f;
+	static float T_kelvin = 0.0f;
 	static float aux_isense2 = 0.0f;
 	static float filt_isense2 = 0.0f;
 	static float aux_mcutemp = 0.0f;
 	static float aux_ntctemp = 0.0f;
+	const float ADC_MAX = (float)SMon_P_ADC_MaxValue;
+	const float VREF = SMon_P_Varef;
+	const float EPS = 1e-3f;
 
-	if(Ain_DmaBuffer[2u] < 1090u && 1u == SMon_CheckForVoltageFlag)
+	float adc1 = ((float)Ain_DmaBuffer[1u] / ADC_MAX) * VREF;
+	float adc3 = ((float)Ain_DmaBuffer[3u] / ADC_MAX) * 3.3f;
+	float adc4 = ((float)Ain_DmaBuffer[4u] / ADC_MAX) * VREF;
+
+	if (adc3 >= (5.0f - EPS))
 	{
-		SMon_CheckForVoltageFlag = 0u;
-		vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[2u] + SMon_P_VFB_L1_TwoPointCalibration_ParamB;
-		SMon_VfbL1 = vfb1_mV;
-		HAL_GPIO_WritePin(ENL1_GPIO_Port, ENL1_Pin, 1u);
+		adc3 = 5.0f - EPS;
 	}
-	else
+	else if (adc3 < 0.0f)
 	{
-		/* Do nothing */
-	}
-
-	v1 = ((float)Ain_DmaBuffer[1u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // current sense L1
-	v4 = SMon_P_NTC_PullUp_ResistorVale * (((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * 3.3f) / (5.0f - (((float)Ain_DmaBuffer[3u] / SMon_P_ADC_MaxValue) * 3.3f));
-	v5 = ((float)Ain_DmaBuffer[4u] / SMon_P_ADC_MaxValue) * SMon_P_Varef; // MCU TEMP
-
-	if (v4 > 0.0f)
-	{
-		ln_ratio = logf(v4 / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamA);
+		adc3 = 0.0f;
 	}
 	else
 	{
 		/* Do nothing. */
 	}
 
-	inv_T = (1.0f / SMon_P_RoomTempKelvin) + (ln_ratio / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamB);
-	T_kelvin = 1.0f / inv_T;
-	vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[2u] + SMon_P_VFB_L1_TwoPointCalibration_ParamB;
-	vfb2_mV = SMon_P_VFB_T30_TwoPointCalibration_ParamA * Ain_DmaBuffer[0u] + SMon_P_VFB_T30_TwoPointCalibration_ParamB;
-	aux_isense = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) * SMon_P_TwoPointCalib_ConvFacISense;
-	aux_isense2 = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) * SMon_P_TwoPointCalib_ConvFacISense;
-	filt_isense2 = filt_isense2 + SMon_P_AlphaFilterExtChIsense * (aux_isense2 - filt_isense2);
+	v1 = adc1;
+	v5 = adc4;
 
-	if(SMon_PeakCurrent < aux_isense)
+	float denom = (5.0f - adc3);
+
+	bool ntc_valid = false;
+	ln_ratio = 0.0f;   /* deterministic reset every cycle */
+
+	if (denom > EPS)
+	{
+		v4 = SMon_P_NTC_PullUp_ResistorVale * adc3 / denom;
+
+		if (v4 > EPS)
+		{
+			ln_ratio = logf(v4 / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamA);
+			ntc_valid = true;
+		}
+		else
+		{
+			ntc_valid = false;
+		}
+	}
+	else
+	{
+		v4 = 0.0f;
+		ntc_valid = false;
+	}
+
+	if (ntc_valid == true)
+	{
+		inv_T = (1.0f / SMon_P_RoomTempKelvin) +
+				(ln_ratio / (float)SMon_P_NTC_L1_TwoPointCalibration_ParamB);
+
+		if (inv_T > EPS)
+		{
+			T_kelvin = 1.0f / inv_T;
+		}
+		else
+		{
+			T_kelvin = SMon_P_RoomTempKelvin;
+		}
+	}
+	else
+	{
+		T_kelvin = SMon_P_RoomTempKelvin;
+	}
+
+	vfb1_mV = SMon_P_VFB_L1_TwoPointCalibration_ParamA * Ain_DmaBuffer[2u] +
+			SMon_P_VFB_L1_TwoPointCalibration_ParamB;
+	vfb2_mV = SMon_P_VFB_T30_TwoPointCalibration_ParamA * Ain_DmaBuffer[0u] +
+			SMon_P_VFB_T30_TwoPointCalibration_ParamB;
+	aux_isense = (v1 - SMon_P_TwoPointCalib_NoLoad_ISense) *
+			SMon_P_TwoPointCalib_ConvFacISense;
+	aux_isense2 = aux_isense;
+	filt_isense2 = filt_isense2 +
+			SMon_P_AlphaFilterExtChIsense * (aux_isense2 - filt_isense2);
+
+	if (SMon_PeakCurrent < aux_isense)
 	{
 		SMon_PeakCurrent = aux_isense;
 	}
@@ -144,15 +151,22 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		/* Do nothing. */
 	}
 
-	SMon_ISenseL1_ExtChISense = filt_isense2 / 1000u;
-	SMon_ISenseL1_Float = aux_isense / 1000u;
+	SMon_ISenseL1_ExtChISense = filt_isense2 / 1000.0f;
+	SMon_ISenseL1_Float = aux_isense / 1000.0f;
 	SMon_ISenseL1 = aux_isense;
 	SMon_VfbL1 = vfb1_mV;
 	SMon_VfbT30 = vfb2_mV;
-	aux_mcutemp = ((SMon_P_VoltsAt25 - v5) / SMon_P_AvgSlope) + SMon_P_RoomTemperature;
+	aux_mcutemp = ((SMon_P_VoltsAt25 - v5) / SMon_P_AvgSlope) +
+			SMon_P_RoomTemperature;
 	aux_ntctemp = T_kelvin - SMon_P_Kelvin;
-	SMon_NTC_Temperature_L1 = SMon_NTC_Temperature_L1 + SMon_P_AlphaFilterExtChIsense * (aux_ntctemp - SMon_NTC_Temperature_L1);
-	SMon_McuTempValue = SMon_McuTempValue + SMon_P_AlphaFilterExtChIsense * (aux_mcutemp - SMon_McuTempValue);
+	SMon_NTC_Temperature_L1 =
+			SMon_NTC_Temperature_L1 +
+			SMon_P_AlphaFilterExtChIsense *
+			(aux_ntctemp - SMon_NTC_Temperature_L1);
+	SMon_McuTempValue =
+			SMon_McuTempValue +
+			SMon_P_AlphaFilterExtChIsense *
+			(aux_mcutemp - SMon_McuTempValue);
 }
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
@@ -162,9 +176,9 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 		SMon_ISenseL1 = 0xFFFFu;
 		SMon_VfbL1 = 0xFFFFu;
 		SMon_VfbT30 = 0xFFFFu;
-		SMon_NTC_Temperature_L1 = 0xFFFFu;
-		SMon_McuTempValue = 0xFFFFu;
-		EcuM_PerformReset(125, 125);
+		SMon_NTC_Temperature_L1 = 1e9f;
+		SMon_McuTempValue = 1e9f;
+		EcuM_PerformReset(125u, 125u);
 	}
 	else
 	{
@@ -211,8 +225,6 @@ int main(void)
   MX_CAN_Init();
   MX_CRC_Init();
   MX_TIM3_Init();
-  MX_IWDG_Init();
-  MX_TIM2_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -289,11 +301,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -368,9 +379,6 @@ static void MX_NVIC_Init(void)
   /* ADC1_2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(ADC1_2_IRQn, 9, 0);
   HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
-  /* TIM2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* TIM3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(TIM3_IRQn);

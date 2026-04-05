@@ -37,7 +37,7 @@ extern unsigned long getRunTimeCounterValue(void);
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 56 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)8900)
+#define configTOTAL_HEAP_SIZE                    ((size_t)9216)
 #define configMAX_TASK_NAME_LEN                  ( 255 )
 #define configGENERATE_RUN_TIME_STATS            1
 #define configUSE_TRACE_FACILITY                 1
@@ -134,7 +134,20 @@ standard names. */
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN Defines */
-/* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+extern uint8_t OS_IdleIndex;
+extern uint8_t OS_XCP_U8_CPU_Load;
+extern volatile uint32_t oscnt;
+extern uint32_t ulTotalRunTime_G;
+extern uint32_t localTaskCounter;
+extern float OS_XCP_CpuLoad;
+extern float OS_IdleRunTime;
+extern float OS_DeltaIdleRunTime;
+extern float OS_CpuLoad;
+extern float OS_AverageCpuLoad;
+extern volatile unsigned long ulHighFrequencyTimerTicks;
+extern long long idlecnt;
+extern long long OS_Counter;
+extern long long IDLE_Counter;
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

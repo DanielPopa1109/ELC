@@ -2,7 +2,7 @@
   "Items":  
   [
     {
-      "Name":"Flashing FBL APP PARAMFLASH",
+      "Name":"SW Update",
       "Type":      1,
       "GUID":"s130422815322973415002662052",
       "SEL":"Checked",
@@ -14,6 +14,51 @@
       "GUID":"s432338282156380228923305779",
       "SEL":"Checked",
       "REG":"False"    
+    },
+    {
+      "Name":"Diagnostics SWV31",
+      "Type":      0,
+      "GUID":"s52128754314729970131124779",
+      "SEL":"Checked",
+      "REG":"False",
+      "Items":      
+      [
+        {
+          "Name":"Diagnosis Session State Change",
+          "Type":          1,
+          "GUID":"s52187342958583532397784422",
+          "SEL":"Checked",
+          "REG":"False"        
+        },
+        {
+          "Name":"DTC Read Clear",
+          "Type":          1,
+          "GUID":"s91981046117375985103534027",
+          "SEL":"Checked",
+          "REG":"False"        
+        },
+        {
+          "Name":"OBD",
+          "Type":          1,
+          "GUID":"s1021338123128595387481839874",
+          "SEL":"Checked",
+          "REG":"False"        
+        },
+        {
+          "Name":"Diagnosis Data Read",
+          "Type":          1,
+          "GUID":"s1098339533584303451777727699",
+          "SEL":"Checked",
+          "REG":"False"        
+        },
+        {
+          "Name":"Extended Diagnosis Test",
+          "Type":          1,
+          "GUID":"s1100315466414534344579322358",
+          "SEL":"Checked",
+          "REG":"False"        
+        }      
+      ]    
     }  
   ]
 }

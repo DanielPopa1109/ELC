@@ -36,31 +36,54 @@ BS_:
 BU_: ELC ZGW
 
 
-BO_ 1728 ELC_OBD_Data: 8 ELC
+BO_ 1783 BattDiagnosis: 8 ELC
+ SG_ Confidence : 56|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ ValidOcvCalibration : 48|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ CrankingEvent : 40|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ DeepDischarge : 32|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ WeakBattery : 24|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Discharging : 16|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ Charging : 8|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ BattRest : 0|8@1+ (1,0) [0|255] ""  ZGW
+
+BO_ 1782 BattFullStat: 8 ELC
+ SG_ TimeToFull : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ RuntimeRemaining : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1781 BattCurrent: 8 ELC
+ SG_ AvgDischargeCurrent : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ AvgChargeCurrent : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1780 BattCapRes: 8 ELC
+ SG_ IntResistance : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ CapacityAh : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1779 BattSoCSoH: 8 ELC
+ SG_ SoH : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ SoC_Hybrid : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1778 BattSoC: 8 ELC
+ SG_ SoC_OCV : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ SoC_Coulomb : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1777 BattChargeDischarge: 8 ELC
+ SG_ DischargeAh : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+ SG_ ChargeAh : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
+
+BO_ 1728 ELC_OBD: 8 ELC
  SG_ ELC_OBD_OutputVoltage : 8|8@1+ (1,0) [0|255] ""  ZGW
  SG_ ELC_OBD_ObdReadiness : 32|8@1+ (1,0) [0|255] ""  ZGW
  SG_ ELC_OBD_LoadTemperature : 24|8@1+ (1,0) [-40|145] ""  ZGW
  SG_ ELC_OBD_InputVoltage : 0|8@1+ (1,0) [0|255] ""  ZGW
  SG_ ELC_OBD_CurrentConsumption : 16|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 1744 ZGW_CAN_3_OBD_Data: 8 ZGW
- SG_ OBD_VehicleSpeed : 40|8@1+ (1,0) [0|255] ""  ELC
- SG_ OBD_ObdReadiness : 48|8@1+ (1,0) [0|255] ""  ELC
- SG_ OBD_IntakeAirTemperature : 16|8@1- (1,0) [-40|125] ""  ELC
- SG_ OBD_EngineSpeed : 24|8@1+ (1,0) [0|255] ""  ELC
- SG_ OBD_EngineLoad : 32|8@1+ (1,0) [0|255] ""  ELC
- SG_ OBD_EngineCoolantTemperature : 8|8@1- (1,0) [-40|125] ""  ELC
- SG_ OBD_AmbientTemperature : 0|8@1- (1,0) [-40|125] ""  ELC
+BO_ 1744 ZGW_CAN_3_OBD: 1 ZGW
+ SG_ OBD_ObdReadiness : 0|8@1+ (1,0) [0|255] ""  ELC
 
-BO_ 151 VehicleData: 3 ZGW
- SG_ VehicleStatus : 5|4@1+ (1,0) [0|15] ""  ELC
- SG_ Speed : 16|8@1+ (1,0) [0|255] ""  ELC
- SG_ Rpm : 9|7@1+ (1,0) [0|127] ""  ELC
- SG_ IrSenStat : 4|1@1+ (1,0) [0|1] ""  ELC
- SG_ Ignition : 0|2@1+ (1,0) [0|2] ""  ELC
- SG_ Gear : 2|2@1+ (1,0) [0|3] ""  ELC
+BO_ 151 VehicleData: 1 ZGW
+ SG_ VehicleStatus : 0|8@1+ (1,0) [0|15] ""  ELC
 
-BO_ 1985 Xcp7C1: 7 ELC
+BO_ 1985 Xcp7C1: 8 ELC
  SG_ Resp_Xcp7c0_7 : 48|8@1+ (1,0) [0|255] ""  ZGW
  SG_ Resp_Xcp7c0_5 : 40|8@1+ (1,0) [0|255] ""  ZGW
  SG_ Resp_Xcp7c0_4 : 32|8@1+ (1,0) [0|255] ""  ZGW
@@ -83,14 +106,14 @@ BO_ 1774 TempMeas: 8 ELC
  SG_ McuTemperature : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
  SG_ NTCTemperature_L1 : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
 
-BO_ 2046 StatusErrorSetting_0x703: 4 ELC
+BO_ 2046 Error_703: 4 ELC
  SG_ StatusErrorSetting_Data_4 : 26|6@1+ (1,0) [0|63] ""  ZGW
  SG_ StatusErrorSetting_Data_3 : 22|4@1+ (1,0) [0|255] ""  ZGW
  SG_ StatusErrorSetting_Data_2 : 16|6@1+ (1,0) [0|255] ""  ZGW
  SG_ StatusErrorSetting_Data_1 : 8|8@1+ (1,0) [0|255] ""  ZGW
  SG_ StatusErrorSetting_Data_0 : 0|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 1023 Networkmanagement3_Status: 1 ZGW
+BO_ 1023 NM3: 1 ZGW
  SG_ NM3S_PN1 : 0|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 1795 Diag703: 8 ZGW
@@ -122,18 +145,13 @@ BO_ 514 SDAT: 5 ZGW
  SG_ CSB_SDAT_Hour : 15|5@1+ (1,0) [0|24] ""  ELC
  SG_ CSB_SDAT_Day : 10|5@1+ (1,0) [0|31] ""  ELC
 
-BO_ 1776 LoadTracing2: 4 ELC
- SG_ LoadTrace_I2TCounter_Byte3 : 24|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_I2TCounter_Byte2 : 16|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_I2TCounter_Byte1 : 8|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_I2TCounter_Byte0 : 0|8@1+ (1,0) [0|255] ""  ZGW
+BO_ 1776 L1_I2TCounter: 4 ELC
+ SG_ LoadTrace_I2TCounter : 0|32@1+ (1,0) [0|4294967295] ""  ZGW
 
-BO_ 1775 LoadTracing: 8 ELC
+BO_ 1775 VoltageCurrent: 8 ELC
  SG_ CurrentSense_L1_Float : 32|32@1- (1,0) [-3.4E+38|3.4E+38] "" Vector__XXX
- SG_ LoadTrace_Voltage_Byte2 : 24|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_Voltage_Byte1 : 16|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_T30Voltage_Byte2 : 8|8@1+ (1,0) [0|255] ""  ZGW
- SG_ LoadTrace_T30Voltage_Byte1 : 0|8@1+ (1,0) [0|255] ""  ZGW
+ SG_ LoadTrace_L1Voltage : 16|16@1+ (1,0) [0|65535] ""  ZGW
+ SG_ LoadTrace_T30Voltage : 0|16@1+ (1,0) [0|65535] ""  ZGW
 
 BO_ 81 LoadStatus: 3 ELC
  SG_ LoadStatus_Crc : 0|8@1+ (1,0) [0|255] "" Vector__XXX
@@ -153,6 +171,18 @@ BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
 BA_DEF_  "BusType" STRING ;
 BA_DEF_DEF_  "MultiplexExtEnabled" "No";
 BA_DEF_DEF_  "BusType" "CAN";
+SIG_VALTYPE_ 1782 TimeToFull : 1;
+SIG_VALTYPE_ 1782 RuntimeRemaining : 1;
+SIG_VALTYPE_ 1781 AvgDischargeCurrent : 1;
+SIG_VALTYPE_ 1781 AvgChargeCurrent : 1;
+SIG_VALTYPE_ 1780 IntResistance : 1;
+SIG_VALTYPE_ 1780 CapacityAh : 1;
+SIG_VALTYPE_ 1779 SoH : 1;
+SIG_VALTYPE_ 1779 SoC_Hybrid : 1;
+SIG_VALTYPE_ 1778 SoC_OCV : 1;
+SIG_VALTYPE_ 1778 SoC_Coulomb : 1;
+SIG_VALTYPE_ 1777 DischargeAh : 1;
+SIG_VALTYPE_ 1777 ChargeAh : 1;
 SIG_VALTYPE_ 1774 McuTemperature : 1;
 SIG_VALTYPE_ 1774 NTCTemperature_L1 : 1;
 SIG_VALTYPE_ 1775 CurrentSense_L1_Float : 1;
