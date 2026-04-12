@@ -142,7 +142,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	filt_isense2 = filt_isense2 +
 			SMon_P_AlphaFilterExtChIsense * (aux_isense2 - filt_isense2);
 
-	if (SMon_PeakCurrent < aux_isense)
+	if (SMon_PeakCurrent < abs(aux_isense))
 	{
 		SMon_PeakCurrent = aux_isense;
 	}
@@ -161,11 +161,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	aux_ntctemp = T_kelvin - SMon_P_Kelvin;
 	SMon_NTC_Temperature_L1 =
 			SMon_NTC_Temperature_L1 +
-			SMon_P_AlphaFilterExtChIsense *
+			SMon_P_AlphaFilter *
 			(aux_ntctemp - SMon_NTC_Temperature_L1);
 	SMon_McuTempValue =
 			SMon_McuTempValue +
-			SMon_P_AlphaFilterExtChIsense *
+			SMon_P_AlphaFilter *
 			(aux_mcutemp - SMon_McuTempValue);
 }
 

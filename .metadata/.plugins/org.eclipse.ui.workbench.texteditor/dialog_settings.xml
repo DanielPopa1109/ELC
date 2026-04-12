@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="ROM_APPL_START_ADDR"/>
+		<item key="selection" value="SMon_P_BattRestTimeTicks"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="ROM_APPL_START_ADDR"/>
-			<item value="hardreset"/>
-			<item value="FBL_DiagService_ER_HardReset"/>
-			<item value="systemreset"/>
-			<item value="SMon_P_BattCurrentDeadband_A"/>
-			<item value="dt_h"/>
-			<item value="SMon_main"/>
-			<item value="CanH_OBD_ObdReadiness"/>
-			<item value="CanH_VehicleStatus"/>
-			<item value="vehicle"/>
-			<item value="NominalCapacity_Ah"/>
-			<item value="InternalResistance_Ohm"/>
-			<item value="Available"/>
-			<item value="available"/>
-			<item value="CanH_NoCommCounter"/>
+			<item value="SMon_P_BattRestTimeTicks"/>
+			<item value="SMon_P_BattRestDetectCurrent_A"/>
+			<item value="SMon_P_ISenseZeroOffset_A"/>
+			<item value="SMon_P_AlphaFilter"/>
+			<item value="nvm_write"/>
+			<item value="SMon_P_BattRintMinStep_A"/>
+			<item value="extern"/>
+			<item value="if (SMon_Battery.BatteryRested != 0u)"/>
+			<item value="ocv_est_V"/>
+			<item value="ocv_est_v = SMon_Battery.VoltageFilt_V +&#x0A;&#x09;&#x09;&#x09;(i_eff_signed_a * SMon_Battery.InternalResistance_Ohm)"/>
+			<item value="ocv_est_v = SMon_Battery.VoltageFilt_V +&#x0A;&#x09;&#x09;&#x09;(i_eff_signed_a * SMon_Battery.InternalResistance_Ohm);"/>
+			<item value="static void SMon_Batt_UpdateRestState(void)"/>
+			<item value="#include &quot;SMon.h&quot;"/>
+			<item value="RestTimeTick"/>
+			<item value="resttimetick"/>
 		</list>
 		<list key="replacehistory">
 			<item value="rd_f32_swap"/>

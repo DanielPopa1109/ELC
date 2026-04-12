@@ -8,39 +8,91 @@
 #include "adc.h"
 #include "tim.h"
 
+typedef enum
+{
+    SMON_BATT_STATE_UNKNOWN   = 0u,
+    SMON_BATT_STATE_REST      = 1u,
+    SMON_BATT_STATE_CHARGE    = 2u,
+    SMON_BATT_STATE_DISCHARGE = 3u
+} SMon_BattState_t;
+
 typedef struct
 {
-    float Voltage_V;
-    float VoltageFilt_V;
-    float Current_A;
-    float CurrentFilt_A;
-    float Power_W;
-    float Charge_Ah_Acc;
-    float Discharge_Ah_Acc;
-    float Charge_Wh_Acc;
-    float Discharge_Wh_Acc;
-    float SoC_Coulomb_pct;
-    float SoC_OCV_pct;
-    float SoC_Hybrid_pct;
-    float SoH_pct;
-    float AvailableCapacity_Ah;
-    float NominalCapacity_Ah;
-    float InternalResistance_Ohm;
-    float AvgChargeCurrent_A;
-    float AvgDischargeCurrent_A;
-    float RuntimeRemaining_h;
-    float TimeToFull_h;
-    uint8_t BatteryRested;
-    uint8_t Charging;
-    uint8_t Discharging;
-    uint8_t WeakBattery;
-    uint8_t DeepDischarge;
-    uint8_t CrankingEvent;
-    uint8_t ValidOcvCalibration;
-    uint8_t Confidence_pct;
+	float Voltage_V;
+	float VoltageL1_V;
+	float Current_A;
+	float VoltageFilt_V;
+	float VoltageL1Filt_V;
+	float CurrentFilt_A;
+	float DeltaL1T30_V;
+	float OcvEst_V;
+	float SoC_pct;
+	float SoC_CC_pct;
+	float SoC_OCV_pct;
+	float SoH_pct;
+	float SoH_Rint_pct;
+	float SoH_VoltageCap_pct;
+	float WorstRestedVoltage_V;
+	uint8_t WorstRestedVoltageValid;
+	float InternalResistance_Ohm;
+	float NominalCapacity_Ah;
+	float AvailableCapacity_Ah;
+	float AvgChargeCurrent_A;
+	float AvgDischargeCurrent_A;
+	float RuntimeRemaining_h;
+	float TimeToFull_h;
+	float Charge_Ah_Acc;
+	float Charge_Wh_Acc;
+	float Discharge_Ah_Acc;
+	float Discharge_Wh_Acc;
+	float Net_Ah_Acc;
+	float Net_Wh_Acc;
+	float Power_W;
+	float ChargePower_W;
+	float DischargePower_W;
+	uint8_t State;
+	uint8_t Charging;
+	uint8_t Discharging;
+	uint8_t ChargerPathActive;
+	uint8_t BatteryRested;
+	uint8_t ValidOcvCalibration;
+	uint8_t WeakBattery;
+	uint8_t DeepDischarge;
+	uint8_t CrankingEvent;
+	uint8_t Confidence_pct;
 } SMon_BatteryData_t;
 
+typedef struct
+{
+	uint8_t initialized;
+	uint8_t prevState;
+	uint8_t pendingState;
+	uint8_t prevChargerPathActive;
+	uint8_t lastRestVoltageValid;
+	uint32_t pendingStateTicks;
+	uint32_t chargePathOnTicks;
+	uint32_t chargePathOffTicks;
+	uint32_t restTicks;
+	uint32_t chargeSessionTicks;
+	uint32_t dischargeSessionTicks;
+	uint32_t chargeCurrentCnt;
+	uint32_t dischargeCurrentCnt;
+	float restReferenceV;
+	float prevSoc_pct;
+	float chargeCurrentSum_A;
+	float dischargeCurrentSum_A;
+	float lastRestVoltage_V;
+} SMon_BatteryInternal_t;
+
 typedef uint32_t i2t_t;
+
+#define SMON_BATT_DT_S                (0.005f)
+#define SMON_BATT_DT_H                (SMON_BATT_DT_S / 3600.0f)
+#define SMON_BATT_STATE_REST          (0u)
+#define SMON_BATT_STATE_DISCHARGE     (1u)
+#define SMON_BATT_STATE_CHARGE        (2u)
+#define SMON_BATT_OCV_MIN_V           (10.50f)
+#define SMON_BATT_OCV_MAX_V           (12.75f)
 
 #define I2T_SCALE_DIV          (1000u)   /* mA²·ms → A²·s */
 #define I2T_DECAY_PERCENT      (85u)
@@ -152,7 +204,6 @@ extern float SMon_P_TwoPointCalib_NoLoad_ISense;
 extern float SMon_P_ExternalChargerThreshold;
 extern float SMon_P_NTCTemperatureMax;
 extern float SMon_P_NTCTemperatureRelease;
-
 extern float SMon_P_BattNominalCapacity_Ah      ;
 extern float SMon_P_BattInitialSoC_pct          ;
 extern float SMon_P_BattMinSoC_pct              ;
@@ -175,6 +226,14 @@ extern float SMon_P_BattBadRint_Ohm             ;
 extern float SMon_P_BattCurrentAlpha;
 extern float SMon_P_BattCurrentDeadband_A;
 extern float SMon_P_ISenseZeroOffset_A;
+extern float SMon_P_BattCurrentHys_A            ;
+extern float SMon_P_BattChargePathDeltaOn_V     ;
+extern float SMon_P_BattChargePathDeltaOff_V    ;
+extern float SMon_P_BattRintMinStep_A           ;
+extern float SMon_P_BattAvgCurrentAlpha         ;
+extern float SMon_P_BattHybridBlendLowLoad      ;
+extern float SMon_P_BattChargeVoltageCompGain;
+extern float SMon_P_BattRestDetectCurrent_A;
 
 extern void SMon_main(void);
 

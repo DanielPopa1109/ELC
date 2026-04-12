@@ -1,17 +1,15 @@
 oscnt
 EcuM_SWState
-SMon_ShortToPlusTest
-SMon_S2BErrorStatus
 SMon_VfbL1
 SMon_VfbT30
-CanH_VehicleStatus
-CanH_OBD_ObdReadiness
-SMon_CalculatedCommand
-EcuM_WUPLine
-CanH_RxData[0]
 SMon_Battery
-CanH_VehicleStatus
-SMon_P_BattCurrentAlpha
-SMon_P_BattCurrentDeadband_A
-SMon_P_ISenseZeroOffset_A
-g_run_ram_updater
+SMon_BattInt
+OS_DeltaIdleRunTime
+xTaskStatusArray[OS_IdleIndex].ulRunTimeCounter - OS_IdleRunTime
+OS_IdleIndex
+SMon_P_BattRintMinStep_A
+SMon_P_BattRestDetectCurrent_A
+SMon_BattInt.restTicks
+SMon_P_BattRestVoltDelta_V
+SMon_P_BattRestTimeTicks
+SMon_BattInt.restTicks

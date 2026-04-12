@@ -12,7 +12,7 @@ Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
 uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u, 1u, 1u};
 uint8_t Nvm_WriteAllFinished = 0u;
 uint8_t Nvm_ReadAllFinished = 0u;
-uint8_t Nvm_ParamFlashBlock[264u] = {0u};
+uint8_t Nvm_ParamFlashBlock[290u] = {0u};
 
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 {
@@ -88,7 +88,7 @@ void Nvm_InitParamFlash(void)
 {
 	Nvm_FlashReadData(NVM_PARAMFLASH_START_ADDRESS, (uint32_t*)Nvm_ParamFlashBlock, sizeof(Nvm_ParamFlashBlock) / 4u);
 
-	if(0xAAu == Nvm_ParamFlashBlock[263u])
+	if(0xAAu == Nvm_ParamFlashBlock[289u])
 	{
 		uint32_t idx = 0u;
 
@@ -156,6 +156,14 @@ void Nvm_InitParamFlash(void)
 		SMon_P_BattCurrentAlpha = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattCurrentDeadband_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_ISenseZeroOffset_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattCurrentHys_A             = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattChargePathDeltaOn_V      = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattChargePathDeltaOff_V     = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattRintMinStep_A            = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattAvgCurrentAlpha          = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattHybridBlendLowLoad       = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattChargeVoltageCompGain = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		SMon_P_BattRestDetectCurrent_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 	}
 	else
 	{
@@ -165,7 +173,7 @@ void Nvm_InitParamFlash(void)
 		SMon_P_I2TDebounceTime = 20u;
 		SMon_P_Rtcntmax = 13u; // Retry Counter Parameter
 		SMon_P_CLSTime = 22u; // CLS Duration Parameter
-		SMon_P_WaitTimeOVUV = 20u; // OV UV De-bounce Time Parameter
+		SMon_P_WaitTimeOVUV = 80u; // OV UV De-bounce Time Parameter
 		SMon_P_WaitTimeCPC = 10u; // Wait Before Changing States For CPC Parameter
 		SMon_P_I2TDecrementPercentFactor = 85u; // Cooling Off Factor Parameter
 		SMon_P_ClsFailureWaitTime = 190u; // Wait Time Between CLS Retries Parameter
@@ -185,17 +193,17 @@ void Nvm_InitParamFlash(void)
 		SMon_P_VFB_L1_TwoPointCalibration_ParamA = 8.13f;
 		SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.13f;
 		SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u; // R0_cal in ohms
-		uint32_t SMon_P_BattRestTimeTicks        = 6000u;   /* tune to scheduler tick */
+		SMon_P_BattRestTimeTicks        = 200u;   /* tune to scheduler tick */
 		SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u;  // Beta_cal in K
 		SMon_P_ISenseNominal = 28.000f; // Nominal Current Parameter
-		SMon_P_I2TRating = 14157.0f; // I2T Rating Parameter
+		SMon_P_I2TRating = 1176.0f; // I2T Rating Parameter
 		SMon_P_RoomTempKelvin = 297.15f;
 		SMon_P_VoltsAt25 = 1430.0f;
 		SMon_P_AvgSlope = 4.30f;
 		SMon_P_RoomTemperature = 25.0f;
 		SMon_P_Kelvin = 273.15f;
 		SMon_P_VoltageDivider = 10.10f;
-		SMon_P_AlphaFilter = 0.9999f;
+		SMon_P_AlphaFilter = 0.90f;
 		SMon_P_AlphaFilterExtChIsense = 0.0001f;
 		SMon_P_TwoPointCalib_ConvFacISense = 15.91f;
 		SMon_P_TwoPointCalib_NoLoad_ISense = 613.2f;
@@ -203,8 +211,8 @@ void Nvm_InitParamFlash(void)
 		SMon_P_NTCTemperatureMax = 90.0f;
 		SMon_P_NTCTemperatureRelease = 80.0f;
 		SMon_P_BattNominalCapacity_Ah      = 77.0f;
-		SMon_P_BattInitialSoC_pct          = 80.0f;
-		SMon_P_BattMinSoC_pct              = 0.0f;
+		SMon_P_BattInitialSoC_pct          = 1.0f;
+		SMon_P_BattMinSoC_pct              = 1.0f;
 		SMon_P_BattMaxSoC_pct              = 100.0f;
 		SMon_P_BattRestCurrent_A           = 0.100f;
 		SMon_P_BattRestVoltDelta_V         = 0.02f;
@@ -216,13 +224,21 @@ void Nvm_InitParamFlash(void)
 		SMon_P_BattAlphaRint               = 0.10f;
 		SMon_P_BattChargeEfficiency        = 0.90f;
 		SMon_P_BattOcvCorrectionGain       = 0.20f;
-		SMon_P_BattSoHMin_pct              = 50.0f;
+		SMon_P_BattSoHMin_pct              = 1.0f;
 		SMon_P_BattSoHMax_pct              = 100.0f;
 		SMon_P_BattNominalRint_Ohm         = 0.015f;
 		SMon_P_BattBadRint_Ohm             = 0.060f;
 		SMon_P_BattCurrentAlpha = 0.0001f;
 		SMon_P_BattCurrentDeadband_A = 1.0f;
-		SMon_P_ISenseZeroOffset_A = 1.0f;
+		SMon_P_ISenseZeroOffset_A = 0.3f;
+		SMon_P_BattCurrentHys_A            = 0.30f;
+		SMon_P_BattChargePathDeltaOn_V     = 0.25f;
+		SMon_P_BattChargePathDeltaOff_V    = 0.10f;
+		SMon_P_BattRintMinStep_A           = 0.20f;
+		SMon_P_BattAvgCurrentAlpha         = 0.05f;
+		SMon_P_BattHybridBlendLowLoad      = 0.15f;
+		SMon_P_BattChargeVoltageCompGain = 0.35f;
+		SMon_P_BattRestDetectCurrent_A = 0.30f;
 
 		uint32_t idx = 0u;
 
@@ -299,9 +315,17 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_BattCurrentAlpha);
 		COPY_TO_BUF(SMon_P_BattCurrentDeadband_A);
 		COPY_TO_BUF(SMon_P_ISenseZeroOffset_A);
+		COPY_TO_BUF(SMon_P_BattCurrentHys_A);
+		COPY_TO_BUF(SMon_P_BattChargePathDeltaOn_V);
+		COPY_TO_BUF(SMon_P_BattChargePathDeltaOff_V);
+		COPY_TO_BUF(SMon_P_BattRintMinStep_A);
+		COPY_TO_BUF(SMon_P_BattAvgCurrentAlpha);
+		COPY_TO_BUF(SMon_P_BattHybridBlendLowLoad);
+		COPY_TO_BUF(SMon_P_BattChargeVoltageCompGain);
+		COPY_TO_BUF(SMon_P_BattRestDetectCurrent_A);
 
-		Nvm_ParamFlashBlock[263u] = 0xAAu;
-		Nvm_ParamFlashBlock[262u] = 0x1cu;
+		Nvm_ParamFlashBlock[289u] = 0xAAu;
+		Nvm_ParamFlashBlock[288u] = 0x20u;
 		Nvm_EraseParamflash();
 		Nvm_FlashWriteData(NVM_PARAMFLASH_START_ADDRESS, (uint32_t*)Nvm_ParamFlashBlock, sizeof(Nvm_ParamFlashBlock) / 4u);
 

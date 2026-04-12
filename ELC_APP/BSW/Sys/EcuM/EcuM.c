@@ -12,8 +12,8 @@
 
 uint8_t EcuM_SWState = 1u;
 uint8_t EcuM_WUPLine = 0xFFu;
-uint32_t EcuM_RunTimer = 600u;
-uint32_t EcuM_PostRunTimer = 600u;
+uint32_t EcuM_RunTimer = 200u;
+uint32_t EcuM_PostRunTimer = 200u;
 uint32_t EcuM_MainCounter = 0u;
 uint8_t EcuM_SWV[4u] __attribute((section(".ncr")));
 uint8_t EcuM_ResetReason __attribute((section(".ncr")));
@@ -109,6 +109,7 @@ void EcuM_main()
 					EcuM_ResetCounter = 0u;
 					EcuM_ResetInfo = 0u;
 					EcuM_ResetReason = 0u;
+					Nvm_WriteAll();
 					/* Enable PWR clock */
 					__HAL_RCC_PWR_CLK_ENABLE();
 					/* Clear Wakeup flag */

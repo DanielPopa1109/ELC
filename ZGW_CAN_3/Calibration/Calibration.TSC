@@ -21,7 +21,7 @@ ECU0=ELC
 
 [ECU_ELC]
 Driver=XCP
-Database=A2L.a2l
+Database=A2L_ELC.a2l
 Transport Layer=CAN
 Logic Channel=1
 Enabled=True
@@ -47,7 +47,7 @@ Ignore Address@0x0000=True
 Force Byte Order=False
 Byte Order=Intel
 Select Calibration Page=No Action
-Sync If Connect Failed=False
+Sync If Connect Failed=True
 Optimize DAQ memory usage=True
 DAQ_CONFIG_TYPE=DYNAMIC
 MAX_DAQ=0
@@ -147,7 +147,7 @@ Flash page identifier=2
 Sync All Characteristic=True
 Exit if sync Characteristic failed=True
 GroupCount=0
-SegmentCount=0
+SegmentCount=1
 FAppFileName=
 FEnableAPPFile=0
 FEnableCaliFile=1
@@ -160,9 +160,11 @@ FlashDataArea=1
 TriggerSystemVarEventBeforeExit=0
 DisconnectBeforeExit=1
 SegCount=0
+Segment0=536871132|524288|4|0|0|1|0|0|{"FSegmentName":"CALRAM","FSegmentLogicNumber":0,"FPageCount":0,"FADDRESS_EXTENSION":0,"FCOMPRESSION_METHOD":0,"FENCRYPTION_METHOD":0,"FChecksumAlgorithm":"","FChecksumMAX_BLOCK_SIZE":0,"FChecksumEXTERNAL_FUNCTION":"","FPages":[],"FAddressMappings":[{"FMappingAddressSource":262144,"FMappingAddressDestination":524288,"FMappingLength":32768}],"FChecksumIsReady":false}|Calibration flash
+SegmentLogicNumber0=0
 
 [ELC_A2LInformation]
-A2LFileName=ELC_A2L.a2l
+A2LFileName=A2L_ELC.a2l
 A2LAlisMapName=
 
 [MeasGroup]

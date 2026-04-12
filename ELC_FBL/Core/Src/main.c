@@ -61,7 +61,7 @@ volatile uint32 FBL_BlockStartAddr = 0u;
 uint32 FBL_BlockLength    = 0u;
 uint8_t FBL_PendingBytes[4];
 uint8_t FBL_PendingLen = 0u;
-uint8_t FBL_Dcm_SWV[4u] = {31u, 31u, 31u, 0xFFu};
+uint8_t FBL_Dcm_SWV[4u] = {32u, 32u, 32u, 0xFFu};
 uint8 FBL_RxFrame[8] = {0};
 FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
 CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
@@ -983,7 +983,7 @@ uint32 FBL_NvM_EraseFlash_APPL(void)
 	FLASH_EraseInitTypeDef EraseInitStruct;
 
 	uint32 PAGEError;
-	uint32 StartPage = 0x08004000;
+	uint32 StartPage = APPL_START_ADDRESS;
 	uint32 EndPageAdress = APPL_END_ADDRESS;
 	uint32 EndPage = Nvm_GetPage(EndPageAdress);
 

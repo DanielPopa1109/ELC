@@ -53,7 +53,7 @@ extern Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS];
 extern uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS];
 extern uint8_t Nvm_WriteAllFinished;
 extern uint8_t Nvm_ReadAllFinished;
-extern uint8_t Nvm_ParamFlashBlock[264u];
+extern uint8_t Nvm_ParamFlashBlock[290u];
 
 extern void Nvm_SectorSwitch(void);
 extern void Nvm_WriteBlock(uint16_t blockId, void* data);

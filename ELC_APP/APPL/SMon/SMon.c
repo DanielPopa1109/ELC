@@ -67,6 +67,7 @@ float SMon_ISenseL1_ExtChISense;
 float SMon_McuTempValue = 0.0f;
 float SMon_DataMinMaxAvg[18u];
 SMon_BatteryData_t SMon_Battery;
+SMon_BatteryInternal_t SMon_BattInt;
 
 uint32_t SMon_P_10sCycles = 2000u;
 uint32_t SMon_P_RetryCntS2bTestOn = 564000u;
@@ -74,7 +75,7 @@ uint32_t SMon_P_StatusVoltageL1Filter = 250u;
 uint32_t SMon_P_I2TDebounceTime = 20u;
 uint32_t SMon_P_Rtcntmax = 13u; // Retry Counter Parameter
 uint32_t SMon_P_CLSTime = 22u; // CLS Duration Parameter
-uint32_t SMon_P_WaitTimeOVUV = 20u; // OV UV De-bounce Time Parameter
+uint32_t SMon_P_WaitTimeOVUV = 80u; // OV UV De-bounce Time Parameter
 uint32_t SMon_P_WaitTimeCPC = 10u; // Wait Before Changing States For CPC Parameter
 uint32_t SMon_P_I2TDecrementPercentFactor = 85u; // Cooling Off Factor Parameter
 uint32_t SMon_P_ClsFailureWaitTime = 190u; // Wait Time Between CLS Retries Parameter
@@ -96,28 +97,27 @@ float SMon_P_VFB_L1_TwoPointCalibration_ParamB = 8.13f;
 uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamA = 12332u; // R0_cal in ohms
 uint32_t SMon_P_NTC_L1_TwoPointCalibration_ParamB = 4984u;  // Beta_cal in K
 float SMon_P_ISenseNominal = 28.000f; // Nominal Current Parameter
-float SMon_P_I2TRating = 14157.0f; // I2T Rating Parameter
+float SMon_P_I2TRating = 1176.0f; // I2T Rating Parameter
 float SMon_P_RoomTempKelvin = 297.15f;
 float SMon_P_VoltsAt25 = 1430.0f;
 float SMon_P_AvgSlope = 4.30f;
 float SMon_P_RoomTemperature = 25.0f;
 float SMon_P_Kelvin = 273.15f;
 float SMon_P_VoltageDivider = 10.10f;
-float SMon_P_AlphaFilter = 0.9999f;
+float SMon_P_AlphaFilter = 0.90f;
 float SMon_P_AlphaFilterExtChIsense = 0.0001f;
 float SMon_P_TwoPointCalib_ConvFacISense = 15.91f;
 float SMon_P_TwoPointCalib_NoLoad_ISense = 613.2f;
 float SMon_P_ExternalChargerThreshold = -1.0f;
-float SMon_P_NTCTemperatureMax = 70.0f;
-float SMon_P_NTCTemperatureRelease = 60.0f;
-
+float SMon_P_NTCTemperatureMax = 90.0f;
+float SMon_P_NTCTemperatureRelease = 80.0f;
 float SMon_P_BattNominalCapacity_Ah      = 77.0f;
-float SMon_P_BattInitialSoC_pct          = 80.0f;
-float SMon_P_BattMinSoC_pct              = 0.0f;
+float SMon_P_BattInitialSoC_pct          = 1.0f;
+float SMon_P_BattMinSoC_pct              = 1.0f;
 float SMon_P_BattMaxSoC_pct              = 100.0f;
 float SMon_P_BattRestCurrent_A           = 0.100f;
 float SMon_P_BattRestVoltDelta_V         = 0.02f;
-uint32_t SMon_P_BattRestTimeTicks        = 6000u;   /* tune to scheduler tick */
+uint32_t SMon_P_BattRestTimeTicks        = 200u;   /* tune to scheduler tick */
 float SMon_P_BattWeakVolt_V              = 11.80f;
 float SMon_P_BattDeepDischargeVolt_V     = 11.10f;
 float SMon_P_BattCrankVolt_V             = 9.60f;
@@ -126,13 +126,21 @@ float SMon_P_BattAlphaCurr               = 0.05f;
 float SMon_P_BattAlphaRint               = 0.10f;
 float SMon_P_BattChargeEfficiency        = 0.90f;
 float SMon_P_BattOcvCorrectionGain       = 0.20f;
-float SMon_P_BattSoHMin_pct              = 50.0f;
+float SMon_P_BattSoHMin_pct              = 1.0f;
 float SMon_P_BattSoHMax_pct              = 100.0f;
 float SMon_P_BattNominalRint_Ohm         = 0.015f;  /* typical healthy flooded/AGM range must be calibrated */
 float SMon_P_BattBadRint_Ohm             = 0.060f;
 float SMon_P_BattCurrentAlpha = 0.0001f;
 float SMon_P_BattCurrentDeadband_A = 1.0f;
-float SMon_P_ISenseZeroOffset_A = 1.0f;
+float SMon_P_ISenseZeroOffset_A = 0.3f;
+float SMon_P_BattCurrentHys_A            = 0.30f;
+float SMon_P_BattChargePathDeltaOn_V     = 0.25f;
+float SMon_P_BattChargePathDeltaOff_V    = 0.10f;
+float SMon_P_BattRintMinStep_A           = 0.20f;
+float SMon_P_BattAvgCurrentAlpha         = 0.05f;
+float SMon_P_BattHybridBlendLowLoad      = 0.15f;
+float SMon_P_BattChargeVoltageCompGain = 0.35f;
+float SMon_P_BattRestDetectCurrent_A = 0.30f;
 
 static void SMon_LoadCurrentErrorState(void);
 static void SMon_LoadSwitchState(void);
@@ -180,7 +188,7 @@ static void SMon_I2TAccumulation(void)
 
 	if(SMon_P_ISenseNominal < ISenseL1_Avged_Float && 0u == SMon_I2TError && 1u == SMon_CmdStat)
 	{
-		DeltaAmper_Float = (ISenseL1_Avged_Float * ISenseL1_Avged_Float - SMon_P_ISenseNominal * SMon_P_ISenseNominal);
+		DeltaAmper_Float = (ISenseL1_Avged_Float * ISenseL1_Avged_Float - SMon_P_ISenseNominal * SMon_P_ISenseNominal) / 10.0f;
 		I2TCounter_Float += DeltaAmper_Float;
 		SMon_I2TCounter = (uint32_t)I2TCounter_Float;
 	}
@@ -252,20 +260,18 @@ static float SMon_Batt_ClampF(float x, float lo, float hi)
 	}
 }
 
-/* 12 V lead-acid OCV table at ~25 C, rested battery only.
- * This is only an approximation and must be adapted to the actual battery type. */
 static float SMon_Batt_OcvToSoc(float ocv_v)
 {
-	static const float ocv_tbl[11] =
+	static const float ocv_tbl[13] =
 	{
-			11.80f, 11.95f, 12.06f, 12.15f, 12.24f,
-			12.32f, 12.40f, 12.48f, 12.56f, 12.64f, 12.73f
+		10.50f, 10.70f, 10.90f, 11.20f, 11.60f, 11.90f, 12.10f,
+		12.22f, 12.32f, 12.42f, 12.52f, 12.63f, 12.75f
 	};
 
-	static const float soc_tbl[11] =
+	static const float soc_tbl[13] =
 	{
-			0.0f, 10.0f, 20.0f, 30.0f, 40.0f,
-			50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f
+		0.0f, 2.0f, 5.0f, 10.0f, 18.0f, 28.0f, 40.0f,
+		50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f
 	};
 
 	uint32_t i;
@@ -275,21 +281,20 @@ static float SMon_Batt_OcvToSoc(float ocv_v)
 		return soc_tbl[0u];
 	}
 
-	if (ocv_v >= ocv_tbl[10u])
+	if (ocv_v >= ocv_tbl[12u])
 	{
-		return soc_tbl[10u];
+		return soc_tbl[12u];
 	}
 
-	for (i = 0u; i < 10u; i++)
+	for (i = 0u; i < 12u; i++)
 	{
 		if ((ocv_v >= ocv_tbl[i]) && (ocv_v < ocv_tbl[i + 1u]))
 		{
-			const float x0 = ocv_tbl[i];
-			const float x1 = ocv_tbl[i + 1u];
-			const float y0 = soc_tbl[i];
-			const float y1 = soc_tbl[i + 1u];
-			const float ratio = (ocv_v - x0) / (x1 - x0);
-			return y0 + (ratio * (y1 - y0));
+			float x0 = ocv_tbl[i];
+			float x1 = ocv_tbl[i + 1u];
+			float y0 = soc_tbl[i];
+			float y1 = soc_tbl[i + 1u];
+			return y0 + ((ocv_v - x0) * (y1 - y0) / (x1 - x0));
 		}
 	}
 
@@ -311,327 +316,647 @@ static float SMon_Batt_RintToSoh(float rint_ohm)
 	else
 	{
 		soh = 100.0f -
-				((rint_ohm - SMon_P_BattNominalRint_Ohm) *
-						(100.0f - SMon_P_BattSoHMin_pct) /
-						(SMon_P_BattBadRint_Ohm - SMon_P_BattNominalRint_Ohm));
+			  ((rint_ohm - SMon_P_BattNominalRint_Ohm) *
+			   (100.0f - SMon_P_BattSoHMin_pct) /
+			   (SMon_P_BattBadRint_Ohm - SMon_P_BattNominalRint_Ohm));
 	}
 
 	return SMon_Batt_ClampF(soh, SMon_P_BattSoHMin_pct, SMon_P_BattSoHMax_pct);
 }
 
-void SMon_BatteryData(void)
+static float SMon_Batt_RestedVoltageToSohCap(float rested_v)
 {
-	static uint8_t initialized = 0u;
-	static float prev_v_filt = 0.0f;
-	static float prev_i_filt = 0.0f;
-	static float last_rest_reference_v = 0.0f;
-	static uint32_t rest_start_ts = 0u;
-	static float sum_charge_current = 0.0f;
-	static float sum_discharge_current = 0.0f;
-	static uint32_t cnt_charge = 0u;
-	static uint32_t cnt_discharge = 0u;
-	static float i_filt_state = 0.0f;
-	float v_meas = 0.0f;
-	float i_raw = 0.0f;
-	float i_est = 0.0f;
-	float dt_h = 0.0f;
-	float dv = 0.0f;
-	float di = 0.0f;
-	float abs_i = 0.0f;
-	float soc_ocv_now = 0.0f;
-	float current_abs_for_state = 0.0f;
-	float charge_a = 0.0f;
-	float discharge_a = 0.0f;
-
-	if(initialized == 0u)
+	if (rested_v <= 10.70f)
 	{
-		initialized = 1u;
-		SMon_Battery.Voltage_V              = v_meas;
-		SMon_Battery.VoltageFilt_V          = v_meas;
-		SMon_Battery.Current_A              = i_raw;
-		SMon_Battery.CurrentFilt_A          = i_est;
-		SMon_Battery.Power_W                = v_meas * i_est;
-		SMon_Battery.Charge_Ah_Acc          = 0.0f;
-		SMon_Battery.Discharge_Ah_Acc       = 0.0f;
-		SMon_Battery.Charge_Wh_Acc          = 0.0f;
-		SMon_Battery.Discharge_Wh_Acc       = 0.0f;
-		SMon_Battery.SoC_Coulomb_pct        = SMon_P_BattInitialSoC_pct;
-		SMon_Battery.SoC_OCV_pct            = SMon_Batt_OcvToSoc(v_meas);
-		SMon_Battery.SoC_Hybrid_pct         = SMon_P_BattInitialSoC_pct;
-		SMon_Battery.SoH_pct                = 100.0f;
-		SMon_Battery.AvailableCapacity_Ah   = SMon_P_BattNominalCapacity_Ah;
-		SMon_Battery.NominalCapacity_Ah     = SMon_P_BattNominalCapacity_Ah;
-		SMon_Battery.InternalResistance_Ohm = SMon_P_BattNominalRint_Ohm;
-		SMon_Battery.AvgChargeCurrent_A     = 0.0f;
-		SMon_Battery.AvgDischargeCurrent_A  = 0.0f;
-		SMon_Battery.RuntimeRemaining_h     = 0.0f;
-		SMon_Battery.TimeToFull_h           = 0.0f;
-		SMon_Battery.BatteryRested          = 0u;
-		SMon_Battery.Charging               = 0u;
-		SMon_Battery.Discharging            = 0u;
-		SMon_Battery.WeakBattery            = 0u;
-		SMon_Battery.DeepDischarge          = 0u;
-		SMon_Battery.CrankingEvent          = 0u;
-		SMon_Battery.ValidOcvCalibration    = 0u;
-		SMon_Battery.Confidence_pct         = 50u;
-		prev_v_filt = v_meas;
-		prev_i_filt = i_est;
-		last_rest_reference_v = v_meas;
+		return 35.0f;
+	}
+	else if (rested_v <= 10.90f)
+	{
+		return 45.0f;
+	}
+	else if (rested_v <= 11.20f)
+	{
+		return 55.0f;
+	}
+	else if (rested_v <= 11.50f)
+	{
+		return 65.0f;
+	}
+	else if (rested_v <= 11.80f)
+	{
+		return 80.0f;
+	}
+	else if (rested_v <= 12.00f)
+	{
+		return 90.0f;
 	}
 	else
 	{
-		/* do nothing */
+		return 100.0f;
 	}
+}
 
-	dt_h = 0.005f / 3600.0f;
-	v_meas = ((float)SMon_VfbT30) / 1000.0f;
-	i_raw = SMon_ISenseL1_Float;
-	i_filt_state = (SMon_P_BattCurrentAlpha * i_filt_state) + ((1.0f - SMon_P_BattCurrentAlpha) * i_raw);
+static void SMon_Batt_InitIfNeeded(float v_t30_v, float v_l1_v, float i_raw_a)
+{
+	if (SMon_BattInt.initialized == 0u)
+	{
+		SMon_Battery.Voltage_V = v_t30_v;
+		SMon_Battery.VoltageL1_V = v_l1_v;
+		SMon_Battery.Current_A = i_raw_a;
 
-	/* Raw and filtered values */
-	SMon_Battery.Voltage_V = v_meas;
-	SMon_Battery.Current_A = i_raw;
-	/* Voltage filter only; current already filtered above */
-	SMon_Battery.VoltageFilt_V += SMon_P_BattAlphaVolt * (v_meas - SMon_Battery.VoltageFilt_V);
-	SMon_Battery.CurrentFilt_A = i_est;
-	/* Power based on filtered estimator current */
-	SMon_Battery.Power_W = SMon_Battery.VoltageFilt_V * SMon_Battery.CurrentFilt_A;
-	/* State flags + integration use the same thresholds */
-	if (SMon_Battery.CurrentFilt_A <= -SMon_P_BattCurrentDeadband_A)
-	{
-		SMon_Battery.Charging = 1u;
-		SMon_Battery.Discharging = 0u;
-		charge_a = -SMon_Battery.CurrentFilt_A;
-		SMon_Battery.Charge_Ah_Acc += charge_a * dt_h;
-		SMon_Battery.Charge_Wh_Acc += (SMon_Battery.VoltageFilt_V * charge_a) * dt_h;
-		sum_charge_current += charge_a;
-		cnt_charge++;
-	}
-	else if (SMon_Battery.CurrentFilt_A >= SMon_P_BattCurrentDeadband_A)
-	{
-		SMon_Battery.Charging = 0u;
-		SMon_Battery.Discharging = 1u;
-		discharge_a = SMon_Battery.CurrentFilt_A;
-		SMon_Battery.Discharge_Ah_Acc += discharge_a * dt_h;
-		SMon_Battery.Discharge_Wh_Acc += (SMon_Battery.VoltageFilt_V * discharge_a) * dt_h;
-		sum_discharge_current += discharge_a;
-		cnt_discharge++;
-	}
-	else
-	{
-		SMon_Battery.Charging = 0u;
-		SMon_Battery.Discharging = 0u;
-	}
+		SMon_Battery.VoltageFilt_V = v_t30_v;
+		SMon_Battery.VoltageL1Filt_V = v_l1_v;
+		SMon_Battery.CurrentFilt_A = i_raw_a;
 
-	if (cnt_charge > 0u)
-	{
-		SMon_Battery.AvgChargeCurrent_A = sum_charge_current / (float)cnt_charge;
-	}
-	else
-	{
-		SMon_Battery.AvgChargeCurrent_A = 0.0f;
-	}
+		SMon_Battery.NominalCapacity_Ah = SMon_P_BattNominalCapacity_Ah;
 
-	if (cnt_discharge > 0u)
-	{
-		SMon_Battery.AvgDischargeCurrent_A = sum_discharge_current / (float)cnt_discharge;
-	}
-	else
-	{
-		SMon_Battery.AvgDischargeCurrent_A = 0.0f;
-	}
-	/* Coulomb-count SoC with same deadband policy */
-	if (SMon_Battery.CurrentFilt_A >= SMon_P_BattCurrentDeadband_A)
-	{
-		SMon_Battery.SoC_Coulomb_pct -=
-				(SMon_Battery.CurrentFilt_A * dt_h * 100.0f) / SMon_Battery.AvailableCapacity_Ah;
-	}
-	else if (SMon_Battery.CurrentFilt_A <= -SMon_P_BattCurrentDeadband_A)
-	{
-		charge_a = -SMon_Battery.CurrentFilt_A;
-		SMon_Battery.SoC_Coulomb_pct +=
-				((charge_a * SMon_P_BattChargeEfficiency) * dt_h * 100.0f) /
-				SMon_Battery.AvailableCapacity_Ah;
-	}
-	else
-	{
-		/* no coulomb update in deadband */
-	}
-
-	SMon_Battery.SoC_Coulomb_pct =
-			SMon_Batt_ClampF(SMon_Battery.SoC_Coulomb_pct,
-					SMon_P_BattMinSoC_pct,
-					SMon_P_BattMaxSoC_pct);
-
-	/* Rest detection */
-	abs_i = SMon_Batt_AbsF(SMon_Battery.CurrentFilt_A);
-
-	if ((abs_i <= SMon_P_BattRestCurrent_A) &&
-			(SMon_Batt_AbsF(SMon_Battery.VoltageFilt_V - last_rest_reference_v) <= SMon_P_BattRestVoltDelta_V))
-	{
-		if (rest_start_ts == 0u)
+		if ((SMon_Battery.InternalResistance_Ohm < 0.001f) ||
+			(SMon_Battery.InternalResistance_Ohm > 0.300f))
 		{
-			rest_start_ts = SMon_MainCnt;
-			last_rest_reference_v = SMon_Battery.VoltageFilt_V;
-			SMon_Battery.BatteryRested = 0u;
+			SMon_Battery.InternalResistance_Ohm = SMon_P_BattNominalRint_Ohm;
+		}
+
+		if ((SMon_Battery.SoC_pct < 0.0f) || (SMon_Battery.SoC_pct > 100.0f))
+		{
+			SMon_Battery.SoC_pct = SMon_Batt_OcvToSoc(v_t30_v);
+		}
+
+		SMon_Battery.SoC_pct = SMon_Batt_ClampF(SMon_Battery.SoC_pct,
+												SMon_P_BattMinSoC_pct,
+												SMon_P_BattMaxSoC_pct);
+
+		SMon_Battery.SoC_CC_pct = SMon_Battery.SoC_pct;
+		SMon_Battery.SoC_OCV_pct = SMon_Batt_OcvToSoc(v_t30_v);
+		SMon_Battery.SoH_Rint_pct = SMon_Batt_RintToSoh(SMon_Battery.InternalResistance_Ohm);
+		SMon_Battery.SoH_VoltageCap_pct = 100.0f;
+		SMon_Battery.SoH_pct = SMon_Battery.SoH_Rint_pct;
+		SMon_Battery.AvailableCapacity_Ah =
+			SMon_Battery.NominalCapacity_Ah * (SMon_Battery.SoH_pct / 100.0f);
+
+		if (SMon_Battery.AvailableCapacity_Ah < 1.0f)
+		{
+			SMon_Battery.AvailableCapacity_Ah = 1.0f;
+		}
+
+		SMon_Battery.State = SMON_BATT_STATE_REST;
+		SMon_Battery.Charging = 0u;
+		SMon_Battery.Discharging = 0u;
+		SMon_Battery.ChargerPathActive = 0u;
+		SMon_Battery.BatteryRested = 0u;
+		SMon_Battery.ValidOcvCalibration = 0u;
+
+		if ((SMon_Battery.WorstRestedVoltage_V < 0.0f) ||
+			(SMon_Battery.WorstRestedVoltage_V > 20.0f))
+		{
+			SMon_Battery.WorstRestedVoltage_V = 0.0f;
+			SMon_Battery.WorstRestedVoltageValid = 0u;
+		}
+
+		SMon_BattInt.prevState = SMON_BATT_STATE_REST;
+		SMon_BattInt.pendingState = SMON_BATT_STATE_REST;
+		SMon_BattInt.prevChargerPathActive = 0u;
+		SMon_BattInt.restReferenceV = v_t30_v;
+		SMon_BattInt.prevSoc_pct = SMon_Battery.SoC_pct;
+		SMon_BattInt.initialized = 1u;
+	}
+}
+
+static void SMon_Batt_UpdateChargePath(float delta_v)
+{
+	if (SMon_Battery.ChargerPathActive == 0u)
+	{
+		if (delta_v >= SMon_P_BattChargePathDeltaOn_V)
+		{
+			if (SMon_BattInt.chargePathOnTicks < SMon_P_WaitTimeOVUV)
+			{
+				SMon_BattInt.chargePathOnTicks++;
+			}
+
+			if (SMon_BattInt.chargePathOnTicks >= SMon_P_WaitTimeOVUV)
+			{
+				SMon_Battery.ChargerPathActive = 1u;
+				SMon_BattInt.chargePathOffTicks = 0u;
+			}
 		}
 		else
 		{
-			if ((SMon_MainCnt - rest_start_ts) >= SMon_P_BattRestTimeTicks)
+			SMon_BattInt.chargePathOnTicks = 0u;
+		}
+	}
+	else
+	{
+		if (delta_v <= SMon_P_BattChargePathDeltaOff_V)
+		{
+			if (SMon_BattInt.chargePathOffTicks < SMon_P_WaitTimeOVUV)
 			{
-				SMon_Battery.BatteryRested = 1u;
+				SMon_BattInt.chargePathOffTicks++;
+			}
+
+			if (SMon_BattInt.chargePathOffTicks >= SMon_P_WaitTimeOVUV)
+			{
+				SMon_Battery.ChargerPathActive = 0u;
+				SMon_BattInt.chargePathOnTicks = 0u;
+			}
+		}
+		else
+		{
+			SMon_BattInt.chargePathOffTicks = 0u;
+		}
+	}
+}
+
+static uint8_t SMon_Batt_CalcRawState(float i_filt_a)
+{
+	float enter_thr = SMon_P_BattCurrentDeadband_A + SMon_P_BattCurrentHys_A;
+	float exit_thr  = SMon_P_BattCurrentDeadband_A;
+
+	if ((SMon_BattInt.prevState == SMON_BATT_STATE_CHARGE && i_filt_a <= (-exit_thr)) ||
+		(i_filt_a <= (-enter_thr)))
+	{
+		return SMON_BATT_STATE_CHARGE;
+	}
+
+	if ((SMon_BattInt.prevState == SMON_BATT_STATE_DISCHARGE && i_filt_a >= exit_thr) ||
+		(i_filt_a >= enter_thr))
+	{
+		return SMON_BATT_STATE_DISCHARGE;
+	}
+
+	return SMON_BATT_STATE_REST;
+}
+
+static void SMon_Batt_OnStateEntry(uint8_t new_state)
+{
+	if (new_state == SMON_BATT_STATE_CHARGE)
+	{
+		SMon_BattInt.chargeSessionTicks = 0u;
+		SMon_BattInt.chargeCurrentSum_A = 0.0f;
+		SMon_BattInt.chargeCurrentCnt = 0u;
+		SMon_Battery.AvgChargeCurrent_A = 0.0f;
+		SMon_Battery.TimeToFull_h = 0.0f;
+		SMon_Battery.BatteryRested = 0u;
+		SMon_Battery.ValidOcvCalibration = 0u;
+		SMon_BattInt.restTicks = 0u;
+	}
+	else if (new_state == SMON_BATT_STATE_DISCHARGE)
+	{
+		SMon_BattInt.dischargeSessionTicks = 0u;
+		SMon_BattInt.dischargeCurrentSum_A = 0.0f;
+		SMon_BattInt.dischargeCurrentCnt = 0u;
+		SMon_Battery.AvgDischargeCurrent_A = 0.0f;
+		SMon_Battery.RuntimeRemaining_h = 0.0f;
+		SMon_Battery.BatteryRested = 0u;
+		SMon_Battery.ValidOcvCalibration = 0u;
+		SMon_BattInt.restTicks = 0u;
+	}
+	else
+	{
+		SMon_BattInt.restTicks = 0u;
+		SMon_BattInt.restReferenceV = SMon_Battery.VoltageFilt_V;
+	}
+
+	SMon_BattInt.prevState = new_state;
+}
+
+static void SMon_Batt_UpdateState(float i_filt_a)
+{
+	uint8_t raw_state = SMon_Batt_CalcRawState(i_filt_a);
+
+	if (raw_state != SMon_BattInt.prevState)
+	{
+		if (raw_state != SMon_BattInt.pendingState)
+		{
+			SMon_BattInt.pendingState = raw_state;
+			SMon_BattInt.pendingStateTicks = 1u;
+		}
+		else
+		{
+			if (SMon_BattInt.pendingStateTicks < SMon_P_WaitTimeOVUV)
+			{
+				SMon_BattInt.pendingStateTicks++;
+			}
+
+			if (SMon_BattInt.pendingStateTicks >= SMon_P_WaitTimeOVUV)
+			{
+				SMon_Batt_OnStateEntry(raw_state);
+				SMon_BattInt.pendingStateTicks = 0u;
+			}
+		}
+	}
+	else
+	{
+		SMon_BattInt.pendingState = raw_state;
+		SMon_BattInt.pendingStateTicks = 0u;
+	}
+
+	SMon_Battery.State = SMon_BattInt.prevState;
+	SMon_Battery.Charging = (SMon_Battery.State == SMON_BATT_STATE_CHARGE) ? 1u : 0u;
+	SMon_Battery.Discharging = (SMon_Battery.State == SMON_BATT_STATE_DISCHARGE) ? 1u : 0u;
+}
+
+static void SMon_Batt_HandleChargePathEdge(void)
+{
+	if (SMon_Battery.ChargerPathActive != SMon_BattInt.prevChargerPathActive)
+	{
+		SMon_BattInt.restTicks = 0u;
+		SMon_Battery.BatteryRested = 0u;
+		SMon_Battery.ValidOcvCalibration = 0u;
+
+		if (SMon_Battery.ChargerPathActive != 0u)
+		{
+			SMon_BattInt.chargeSessionTicks = 0u;
+			SMon_BattInt.chargeCurrentSum_A = 0.0f;
+			SMon_BattInt.chargeCurrentCnt = 0u;
+			SMon_Battery.AvgChargeCurrent_A = 0.0f;
+			SMon_Battery.TimeToFull_h = 0.0f;
+		}
+		else
+		{
+			SMon_BattInt.dischargeSessionTicks = 0u;
+			SMon_BattInt.dischargeCurrentSum_A = 0.0f;
+			SMon_BattInt.dischargeCurrentCnt = 0u;
+			SMon_Battery.AvgDischargeCurrent_A = 0.0f;
+			SMon_Battery.RuntimeRemaining_h = 0.0f;
+		}
+
+		SMon_BattInt.prevChargerPathActive = SMon_Battery.ChargerPathActive;
+	}
+}
+
+static void SMon_Batt_UpdateRestState(void)
+{
+	float rest_curr_thr = SMon_P_BattRestDetectCurrent_A;
+
+	if ((SMon_Battery.ChargerPathActive == 0u) &&
+		(SMon_Batt_AbsF(SMon_Battery.CurrentFilt_A) <= rest_curr_thr))
+	{
+		if (SMon_BattInt.restTicks == 0u)
+		{
+			SMon_BattInt.restReferenceV = SMon_Battery.VoltageFilt_V;
+			SMon_BattInt.restTicks = 1u;
+		}
+		else
+		{
+			if (SMon_Batt_AbsF(SMon_Battery.VoltageFilt_V - SMon_BattInt.restReferenceV) <= SMon_P_BattRestVoltDelta_V)
+			{
+				if (SMon_BattInt.restTicks < SMon_P_BattRestTimeTicks)
+				{
+					SMon_BattInt.restTicks++;
+				}
 			}
 			else
 			{
-				SMon_Battery.BatteryRested = 0u;
+				SMon_BattInt.restReferenceV = SMon_Battery.VoltageFilt_V;
+				SMon_BattInt.restTicks = 1u;
+			}
+		}
+
+		SMon_Battery.BatteryRested =
+			(SMon_BattInt.restTicks >= SMon_P_BattRestTimeTicks) ? 1u : 0u;
+
+		if (SMon_Battery.BatteryRested != 0u)
+		{
+			SMon_BattInt.lastRestVoltage_V = SMon_Battery.VoltageFilt_V;
+			SMon_BattInt.lastRestVoltageValid = 1u;
+
+			if ((SMon_Battery.WorstRestedVoltageValid == 0u) ||
+				(SMon_Battery.VoltageFilt_V < SMon_Battery.WorstRestedVoltage_V))
+			{
+				SMon_Battery.WorstRestedVoltage_V = SMon_Battery.VoltageFilt_V;
+				SMon_Battery.WorstRestedVoltageValid = 1u;
 			}
 		}
 	}
 	else
 	{
-		rest_start_ts = 0u;
-		last_rest_reference_v = SMon_Battery.VoltageFilt_V;
+		SMon_BattInt.restTicks = 0u;
+		SMon_BattInt.restReferenceV = SMon_Battery.VoltageFilt_V;
 		SMon_Battery.BatteryRested = 0u;
 	}
-	/* OCV-based SoC and fusion */
-	soc_ocv_now = SMon_Batt_OcvToSoc(SMon_Battery.VoltageFilt_V);
-	SMon_Battery.SoC_OCV_pct = soc_ocv_now;
+}
 
-	if (SMon_Battery.BatteryRested == 1u)
+static void SMon_Batt_UpdateRintFromRestStep(float i_discharge_eff_a)
+{
+	static uint32_t stepTicks = 0u;
+	float r_inst;
+
+	if ((SMon_Battery.State != SMON_BATT_STATE_DISCHARGE) ||
+		(SMon_BattInt.lastRestVoltageValid == 0u) ||
+		(i_discharge_eff_a < SMon_P_BattRintMinStep_A))
 	{
-		SMon_Battery.SoC_Coulomb_pct +=
-				SMon_P_BattOcvCorrectionGain *
-				(soc_ocv_now - SMon_Battery.SoC_Coulomb_pct);
-		SMon_Battery.SoC_Coulomb_pct =
-				SMon_Batt_ClampF(SMon_Battery.SoC_Coulomb_pct,
-						SMon_P_BattMinSoC_pct,
-						SMon_P_BattMaxSoC_pct);
-		SMon_Battery.ValidOcvCalibration = 1u;
-	}
-	else
-	{
-		/* do nothing */
+		stepTicks = 0u;
+		return;
 	}
 
-	SMon_Battery.SoC_Hybrid_pct = SMon_Battery.SoC_Coulomb_pct;
-	/* Internal resistance estimate from natural transients */
-	dv = prev_v_filt - SMon_Battery.VoltageFilt_V;
-	di = SMon_Battery.CurrentFilt_A - prev_i_filt;
-
-	if ((SMon_Batt_AbsF(di) > 1.0f) && (SMon_Batt_AbsF(dv) > 0.01f))
+	if (stepTicks < SMon_P_WaitTimeOVUV)
 	{
-		const float r_inst = SMon_Batt_AbsF(dv / di);
+		stepTicks++;
+		return;
+	}
 
-		if ((r_inst > 0.001f) && (r_inst < 0.300f))
+	r_inst = (SMon_BattInt.lastRestVoltage_V - SMon_Battery.VoltageFilt_V) / i_discharge_eff_a;
+
+	if ((r_inst >= 0.001f) && (r_inst <= 0.300f))
+	{
+		SMon_Battery.InternalResistance_Ohm +=
+			SMon_P_BattAlphaRint * (r_inst - SMon_Battery.InternalResistance_Ohm);
+		SMon_BattInt.lastRestVoltageValid = 0u;
+	}
+
+	stepTicks = 0u;
+}
+
+static void SMon_BatteryData(void)
+{
+	float v_t30_v = 0.0f;
+	float v_l1_v = 0.0f;
+	float i_raw_a = 0.0f;
+	float delta_l1_t30_v = 0.0f;
+	float i_charge_eff_a = 0.0f;
+	float i_discharge_eff_a = 0.0f;
+	float i_eff_signed_a = 0.0f;
+	float dAh_charge = 0.0f;
+	float dAh_discharge = 0.0f;
+	float cap_ah = 0.0f;
+	float conf = 0.0f;
+
+	v_t30_v = ((float)SMon_VfbT30) / 1000.0f;
+	v_l1_v  = ((float)SMon_VfbL1) / 1000.0f;
+	i_raw_a = SMon_ISenseL1_Float;
+
+	SMon_Batt_InitIfNeeded(v_t30_v, v_l1_v, i_raw_a);
+
+	SMon_Battery.Voltage_V = v_t30_v;
+	SMon_Battery.VoltageL1_V = v_l1_v;
+	SMon_Battery.Current_A = i_raw_a;
+	SMon_Battery.NominalCapacity_Ah = SMon_P_BattNominalCapacity_Ah;
+
+	SMon_Battery.VoltageFilt_V +=
+		SMon_P_BattAlphaVolt * (v_t30_v - SMon_Battery.VoltageFilt_V);
+
+	SMon_Battery.VoltageL1Filt_V +=
+		SMon_P_BattAlphaVolt * (v_l1_v - SMon_Battery.VoltageL1Filt_V);
+
+	SMon_Battery.CurrentFilt_A +=
+		SMon_P_BattAlphaCurr * (i_raw_a - SMon_Battery.CurrentFilt_A);
+
+	delta_l1_t30_v = SMon_Battery.VoltageL1Filt_V - SMon_Battery.VoltageFilt_V;
+	SMon_Battery.DeltaL1T30_V = delta_l1_t30_v;
+
+	SMon_Batt_UpdateChargePath(delta_l1_t30_v);
+	SMon_Batt_HandleChargePathEdge();
+	SMon_Batt_UpdateState(SMon_Battery.CurrentFilt_A);
+	SMon_Batt_UpdateRestState();
+
+	{
+		float soh_rint;
+		float soh_cap;
+
+		soh_rint = SMon_Batt_RintToSoh(SMon_Battery.InternalResistance_Ohm);
+		soh_cap = 100.0f;
+
+		if (SMon_Battery.WorstRestedVoltageValid != 0u)
 		{
-			SMon_Battery.InternalResistance_Ohm +=
-					SMon_P_BattAlphaRint * (r_inst - SMon_Battery.InternalResistance_Ohm);
+			soh_cap = SMon_Batt_RestedVoltageToSohCap(SMon_Battery.WorstRestedVoltage_V);
 		}
-		else
+		else if ((SMon_Battery.BatteryRested != 0u) &&
+				 (SMon_Battery.ChargerPathActive == 0u))
 		{
-			/* do nothing */
+			soh_cap = SMon_Batt_RestedVoltageToSohCap(SMon_Battery.VoltageFilt_V);
 		}
-	}
-	else
-	{
-		/* do nothing */
+
+		SMon_Battery.SoH_Rint_pct = soh_rint;
+		SMon_Battery.SoH_VoltageCap_pct = soh_cap;
+		SMon_Battery.SoH_pct = (soh_rint < soh_cap) ? soh_rint : soh_cap;
 	}
 
-	prev_v_filt = SMon_Battery.VoltageFilt_V;
-	prev_i_filt = SMon_Battery.CurrentFilt_A;
-	/* SoH from internal resistance only */
-	SMon_Battery.SoH_pct = SMon_Batt_RintToSoh(SMon_Battery.InternalResistance_Ohm);
-	/* Capacity derating from SoH */
 	SMon_Battery.AvailableCapacity_Ah =
-			SMon_P_BattNominalCapacity_Ah * (SMon_Battery.SoH_pct / 100.0f);
+		SMon_Battery.NominalCapacity_Ah * (SMon_Battery.SoH_pct / 100.0f);
 
 	if (SMon_Battery.AvailableCapacity_Ah < 1.0f)
 	{
 		SMon_Battery.AvailableCapacity_Ah = 1.0f;
 	}
-	else
-	{
-		/* do nothing */
-	}
-	/* Remaining runtime and time-to-full */
+
+	cap_ah = SMon_Battery.AvailableCapacity_Ah;
+
 	if (SMon_Battery.CurrentFilt_A >= SMon_P_BattCurrentDeadband_A)
 	{
+		i_discharge_eff_a = SMon_Battery.CurrentFilt_A - SMon_P_BattCurrentDeadband_A;
+	}
+	else
+	{
+		i_discharge_eff_a = 0.0f;
+	}
+
+	if (SMon_Battery.CurrentFilt_A <= (-SMon_P_BattCurrentDeadband_A))
+	{
+		i_charge_eff_a = (-SMon_Battery.CurrentFilt_A) - SMon_P_BattCurrentDeadband_A;
+	}
+	else
+	{
+		i_charge_eff_a = 0.0f;
+	}
+
+	i_eff_signed_a = i_discharge_eff_a - i_charge_eff_a;
+
+	dAh_charge = i_charge_eff_a * SMON_BATT_DT_H;
+	dAh_discharge = i_discharge_eff_a * SMON_BATT_DT_H;
+
+	SMon_Battery.SoC_CC_pct +=
+		((dAh_charge * SMon_P_BattChargeEfficiency) -
+		 dAh_discharge) * 100.0f / cap_ah;
+
+	SMon_Battery.SoC_CC_pct =
+		SMon_Batt_ClampF(SMon_Battery.SoC_CC_pct,
+						 SMon_P_BattMinSoC_pct,
+						 SMon_P_BattMaxSoC_pct);
+
+	if (SMon_Battery.BatteryRested != 0u)
+	{
+		SMon_Battery.OcvEst_V = SMon_Battery.VoltageFilt_V;
+		SMon_Battery.ValidOcvCalibration = 1u;
+		SMon_Battery.SoC_OCV_pct = SMon_Batt_OcvToSoc(SMon_Battery.OcvEst_V);
+	}
+	else
+	{
+		SMon_Battery.ValidOcvCalibration = 0u;
+		/* keep previous SoC_OCV_pct */
+	}
+
+	if (SMon_Battery.BatteryRested != 0u)
+	{
+		SMon_Battery.SoC_CC_pct +=
+			SMon_P_BattOcvCorrectionGain *
+			(SMon_Battery.SoC_OCV_pct - SMon_Battery.SoC_CC_pct);
+	}
+	else if ((SMon_Battery.State == SMON_BATT_STATE_REST) &&
+			 (SMon_Batt_AbsF(SMon_Battery.CurrentFilt_A) <=
+			  (SMon_P_BattCurrentDeadband_A + 0.1f)))
+	{
+		SMon_Battery.SoC_CC_pct +=
+			(0.25f * SMon_P_BattOcvCorrectionGain) *
+			(SMon_Battery.SoC_OCV_pct - SMon_Battery.SoC_CC_pct);
+	}
+	else
+	{
+		/* no OCV correction under active charge/discharge */
+	}
+
+	SMon_Battery.SoC_CC_pct =
+		SMon_Batt_ClampF(SMon_Battery.SoC_CC_pct,
+						 SMon_P_BattMinSoC_pct,
+						 SMon_P_BattMaxSoC_pct);
+
+	SMon_Battery.SoC_pct = SMon_Battery.SoC_CC_pct;
+
+	SMon_Batt_UpdateRintFromRestStep(i_discharge_eff_a);
+
+	{
+		float soh_rint;
+		float soh_cap;
+
+		soh_rint = SMon_Batt_RintToSoh(SMon_Battery.InternalResistance_Ohm);
+		soh_cap = 100.0f;
+
+		if (SMon_Battery.WorstRestedVoltageValid != 0u)
+		{
+			soh_cap = SMon_Batt_RestedVoltageToSohCap(SMon_Battery.WorstRestedVoltage_V);
+		}
+		else if ((SMon_Battery.BatteryRested != 0u) &&
+				 (SMon_Battery.ChargerPathActive == 0u))
+		{
+			soh_cap = SMon_Batt_RestedVoltageToSohCap(SMon_Battery.VoltageFilt_V);
+		}
+
+		SMon_Battery.SoH_Rint_pct = soh_rint;
+		SMon_Battery.SoH_VoltageCap_pct = soh_cap;
+		SMon_Battery.SoH_pct = (soh_rint < soh_cap) ? soh_rint : soh_cap;
+	}
+
+	SMon_Battery.AvailableCapacity_Ah =
+		SMon_Battery.NominalCapacity_Ah * (SMon_Battery.SoH_pct / 100.0f);
+
+	if (SMon_Battery.AvailableCapacity_Ah < 1.0f)
+	{
+		SMon_Battery.AvailableCapacity_Ah = 1.0f;
+	}
+
+	SMon_Battery.Charge_Ah_Acc += dAh_charge * SMon_P_BattChargeEfficiency;
+	SMon_Battery.Discharge_Ah_Acc += dAh_discharge;
+	SMon_Battery.Net_Ah_Acc +=
+		(dAh_charge * SMon_P_BattChargeEfficiency) - dAh_discharge;
+
+	SMon_Battery.Charge_Wh_Acc +=
+		(SMon_Battery.VoltageFilt_V * dAh_charge * SMon_P_BattChargeEfficiency);
+
+	SMon_Battery.Discharge_Wh_Acc +=
+		(SMon_Battery.VoltageFilt_V * dAh_discharge);
+
+	SMon_Battery.Net_Wh_Acc +=
+		(SMon_Battery.VoltageFilt_V *
+		 ((dAh_charge * SMon_P_BattChargeEfficiency) - dAh_discharge));
+
+	if (i_charge_eff_a > 0.0f)
+	{
+		SMon_BattInt.chargeCurrentSum_A += i_charge_eff_a;
+		SMon_BattInt.chargeCurrentCnt++;
+		SMon_Battery.AvgChargeCurrent_A =
+			SMon_BattInt.chargeCurrentSum_A / (float)SMon_BattInt.chargeCurrentCnt;
+		SMon_BattInt.chargeSessionTicks++;
+	}
+
+	if (i_discharge_eff_a > 0.0f)
+	{
+		SMon_BattInt.dischargeCurrentSum_A += i_discharge_eff_a;
+		SMon_BattInt.dischargeCurrentCnt++;
+		SMon_Battery.AvgDischargeCurrent_A =
+			SMon_BattInt.dischargeCurrentSum_A / (float)SMon_BattInt.dischargeCurrentCnt;
+		SMon_BattInt.dischargeSessionTicks++;
+	}
+
+	SMon_Battery.Power_W = SMon_Battery.VoltageFilt_V * i_eff_signed_a;
+	SMon_Battery.ChargePower_W =
+		(i_charge_eff_a > 0.0f) ? (SMon_Battery.VoltageFilt_V * i_charge_eff_a) : 0.0f;
+	SMon_Battery.DischargePower_W =
+		(i_discharge_eff_a > 0.0f) ? (SMon_Battery.VoltageFilt_V * i_discharge_eff_a) : 0.0f;
+
+	if ((SMon_Battery.State == SMON_BATT_STATE_DISCHARGE) &&
+		(SMon_Battery.AvgDischargeCurrent_A > 0.05f))
+	{
 		SMon_Battery.RuntimeRemaining_h =
-				((SMon_Battery.SoC_Hybrid_pct / 100.0f) * SMon_Battery.AvailableCapacity_Ah) /
-				SMon_Battery.CurrentFilt_A;
+			((SMon_Battery.SoC_pct / 100.0f) * SMon_Battery.AvailableCapacity_Ah) /
+			SMon_Battery.AvgDischargeCurrent_A;
 	}
 	else
 	{
 		SMon_Battery.RuntimeRemaining_h = 0.0f;
 	}
 
-	if (SMon_Battery.CurrentFilt_A <= -SMon_P_BattCurrentDeadband_A)
+	if ((SMon_Battery.State == SMON_BATT_STATE_CHARGE) &&
+		(SMon_Battery.AvgChargeCurrent_A > 0.05f))
 	{
-		charge_a = -SMon_Battery.CurrentFilt_A;
-
 		SMon_Battery.TimeToFull_h =
-				(((100.0f - SMon_Battery.SoC_Hybrid_pct) / 100.0f) * SMon_Battery.AvailableCapacity_Ah) /
-				(charge_a * SMon_P_BattChargeEfficiency);
+			(((100.0f - SMon_Battery.SoC_pct) / 100.0f) *
+			 SMon_Battery.AvailableCapacity_Ah) /
+			(SMon_Battery.AvgChargeCurrent_A * SMon_P_BattChargeEfficiency);
 	}
 	else
 	{
 		SMon_Battery.TimeToFull_h = 0.0f;
 	}
-	/* Battery condition flags */
-	SMon_Battery.WeakBattery =
-			((SMon_Battery.VoltageFilt_V <= SMon_P_BattWeakVolt_V) ||
-					(SMon_Battery.SoC_Hybrid_pct <= 20.0f) ||
-					(SMon_Battery.InternalResistance_Ohm >= (0.75f * SMon_P_BattBadRint_Ohm))) ? 1u : 0u;
-	SMon_Battery.DeepDischarge =
-			((SMon_Battery.VoltageFilt_V <= SMon_P_BattDeepDischargeVolt_V) ||
-					(SMon_Battery.SoC_Hybrid_pct <= 10.0f)) ? 1u : 0u;
-	current_abs_for_state = SMon_Batt_AbsF(SMon_Battery.CurrentFilt_A);
-	SMon_Battery.CrankingEvent =
-			((SMon_Battery.Voltage_V <= SMon_P_BattCrankVolt_V) &&
-					(current_abs_for_state > 5.0f)) ? 1u : 0u;
-	float conf = 40.0f;
 
-	if (SMon_Battery.ValidOcvCalibration == 1u)
+	SMon_Battery.WeakBattery =
+		((SMon_Battery.SoH_pct <= 65.0f) ||
+		 ((SMon_Battery.BatteryRested != 0u) &&
+		  (SMon_Battery.VoltageFilt_V <= SMon_P_BattWeakVolt_V)) ||
+		 (SMon_Battery.SoC_pct <= 20.0f)) ? 1u : 0u;
+
+	SMon_Battery.DeepDischarge =
+		(((SMon_Battery.BatteryRested != 0u) &&
+		  (SMon_Battery.VoltageFilt_V <= SMon_P_BattDeepDischargeVolt_V)) ||
+		 (SMon_Battery.SoC_pct <= 8.0f)) ? 1u : 0u;
+
+	SMon_Battery.CrankingEvent =
+		((SMon_Battery.Voltage_V <= SMon_P_BattCrankVolt_V) &&
+		 (i_discharge_eff_a > 5.0f)) ? 1u : 0u;
+
+	conf = 35.0f;
+
+	if (SMon_Battery.BatteryRested != 0u)
 	{
 		conf += 25.0f;
 	}
-	else
-	{
-		/* do nothing */
-	}
 
-	if (SMon_Battery.BatteryRested == 1u)
-	{
-		conf += 10.0f;
-	}
-	else
-	{
-		/* do nothing */
-	}
-
-	if (SMon_Battery.InternalResistance_Ohm <= SMon_P_BattNominalRint_Ohm)
+	if ((SMon_Battery.InternalResistance_Ohm >= 0.001f) &&
+		(SMon_Battery.InternalResistance_Ohm <= 0.300f))
 	{
 		conf += 15.0f;
 	}
-	else if (SMon_Battery.InternalResistance_Ohm >= SMon_P_BattBadRint_Ohm)
+
+	if (SMon_Battery.State == SMON_BATT_STATE_CHARGE)
 	{
-		conf -= 10.0f;
+		conf += 10.0f;
 	}
-	else
+	else if (SMon_Battery.State == SMON_BATT_STATE_DISCHARGE)
 	{
-		/* do nothing */
+		conf += 10.0f;
 	}
 
-	if (SMon_Battery.CrankingEvent == 1u)
+	if (SMon_Battery.WeakBattery != 0u)
 	{
 		conf -= 5.0f;
 	}
-	else
+
+	if (SMon_Battery.DeepDischarge != 0u)
 	{
-		/* do nothing */
+		conf -= 10.0f;
 	}
 
-	SMon_Battery.Confidence_pct = (uint8_t)SMon_Batt_ClampF(conf, 0.0f, 90.0f);
+	SMon_Battery.Confidence_pct =
+		(uint8_t)SMon_Batt_ClampF(conf, 0.0f, 100.0f);
+
+	SMon_BattInt.prevSoc_pct = SMon_Battery.SoC_pct;
 }
 
 static void SMon_ProcessShortToPlusTest(void)

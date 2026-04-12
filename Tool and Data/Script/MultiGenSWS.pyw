@@ -6,7 +6,7 @@ import can
 import re
 
 START_ADDR = 0x08003800
-TOTAL_SIZE = 264
+TOTAL_SIZE = 290
 
 MINMAX_LABELS = [
     "T30_Min_10s",
@@ -94,35 +94,33 @@ params_def = [
     ("SMon_P_I2TDebounceTime", "I", 20),
     ("SMon_P_Rtcntmax", "I", 13),
     ("SMon_P_CLSTime", "I", 22),
-    ("SMon_P_WaitTimeOVUV", "I", 20),
+    ("SMon_P_WaitTimeOVUV", "I", 80),
     ("SMon_P_WaitTimeCPC", "I", 10),
     ("SMon_P_I2TDecrementPercentFactor", "I", 85),
     ("SMon_P_NTC_L1_TwoPointCalibration_ParamA", "I", 12332),
-    ("SMon_P_BattRestTimeTicks", "I", 6000),
-
+    ("SMon_P_BattRestTimeTicks", "I", 200),
     ("SMon_P_VFB_T30_TwoPointCalibration_ParamA", "f", 8.16),
     ("SMon_P_VFB_T30_TwoPointCalibration_ParamB", "f", 21.93),
     ("SMon_P_VFB_L1_TwoPointCalibration_ParamA", "f", 8.13),
     ("SMon_P_VFB_L1_TwoPointCalibration_ParamB", "f", 8.13),
     ("SMon_P_ISenseNominal", "f", 28.000),
-    ("SMon_P_I2TRating", "f", 14157.0),
+    ("SMon_P_I2TRating", "f", 1176.0),
     ("SMon_P_RoomTempKelvin", "f", 297.15),
     ("SMon_P_VoltsAt25", "f", 1430.0),
     ("SMon_P_AvgSlope", "f", 4.30),
     ("SMon_P_RoomTemperature", "f", 25.0),
     ("SMon_P_Kelvin", "f", 273.15),
     ("SMon_P_VoltageDivider", "f", 10.10),
-    ("SMon_P_AlphaFilter", "f", 0.9999),
+    ("SMon_P_AlphaFilter", "f", 0.90),
     ("SMon_P_AlphaFilterExtChIsense", "f", 0.0001),
     ("SMon_P_TwoPointCalib_ConvFacISense", "f", 15.91),
     ("SMon_P_TwoPointCalib_NoLoad_ISense", "f", 613.2),
     ("SMon_P_ExternalChargerThreshold", "f", -1.0),
-    ("SMon_P_NTCTemperatureMax", "f", 70.0),
-    ("SMon_P_NTCTemperatureRelease", "f", 60.0),
-
+    ("SMon_P_NTCTemperatureMax", "f", 90.0),
+    ("SMon_P_NTCTemperatureRelease", "f", 80.0),
     ("SMon_P_BattNominalCapacity_Ah", "f", 77.0),
-    ("SMon_P_BattInitialSoC_pct", "f", 80.0),
-    ("SMon_P_BattMinSoC_pct", "f", 0.0),
+    ("SMon_P_BattInitialSoC_pct", "f", 1.0),
+    ("SMon_P_BattMinSoC_pct", "f", 1.0),
     ("SMon_P_BattMaxSoC_pct", "f", 100.0),
     ("SMon_P_BattRestCurrent_A", "f", 0.100),
     ("SMon_P_BattRestVoltDelta_V", "f", 0.02),
@@ -134,13 +132,21 @@ params_def = [
     ("SMon_P_BattAlphaRint", "f", 0.10),
     ("SMon_P_BattChargeEfficiency", "f", 0.90),
     ("SMon_P_BattOcvCorrectionGain", "f", 0.20),
-    ("SMon_P_BattSoHMin_pct", "f", 50.0),
+    ("SMon_P_BattSoHMin_pct", "f", 1.0),
     ("SMon_P_BattSoHMax_pct", "f", 100.0),
     ("SMon_P_BattNominalRint_Ohm", "f", 0.015),
     ("SMon_P_BattBadRint_Ohm", "f", 0.060),
     ("SMon_P_BattCurrentAlpha", "f", 0.0001),
     ("SMon_P_BattCurrentDeadband_A", "f", 1.0),
-    ("SMon_P_ISenseZeroOffset_A", "f", 1.0),
+    ("SMon_P_ISenseZeroOffset_A", "f", 0.3),
+    ("SMon_P_BattCurrentHys_A", "f", 0.3),
+    ("SMon_P_BattChargePathDeltaOn_V", "f", 0.25),
+    ("SMon_P_BattChargePathDeltaOff_V", "f", 0.10),
+    ("SMon_P_BattRintMinStep_A", "f", 0.20),
+    ("SMon_P_BattAvgCurrentAlpha", "f", 0.05),
+    ("SMon_P_BattHybridBlendLowLoad", "f", 0.15),
+    ("SMon_P_BattChargeVoltageCompGain", "f", 0.35),
+    ("SMon_P_BattRestDetectCurrent_A", "f", 0.30),
 ]
 
 # ===================== HEX =====================
@@ -179,8 +185,8 @@ def generate_hex(values, out_path):
         messagebox.showerror("HEX Error", f"Invalid parameter value.\n{e}")
         return
 
-    buf[262] = 0x1F
-    buf[263] = 0xAA
+    buf[288] = 0x20
+    buf[289] = 0xAA
 
     lines = [":020000040800F2"]
     addr = START_ADDR & 0xFFFF

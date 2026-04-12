@@ -674,7 +674,7 @@ void CanH_MainFunction(void)
 
 			cnt = 0u;
 
-			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_Coulomb_pct, sizeof(float));
+			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_pct, sizeof(float));
 			memcpy(&CanH_TxData[4u], &SMon_Battery.SoC_OCV_pct, sizeof(float));
 
 			CanH_TxHeader.DLC = 8;
@@ -688,7 +688,7 @@ void CanH_MainFunction(void)
 
 			cnt = 0u;
 
-			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_Hybrid_pct, sizeof(float));
+			memcpy(&CanH_TxData[0u], &SMon_Battery.SoC_CC_pct, sizeof(float));
 			memcpy(&CanH_TxData[4u], &SMon_Battery.SoH_pct, sizeof(float));
 
 			CanH_TxHeader.DLC = 8;
@@ -925,7 +925,7 @@ void CanH_MainFunction(void)
 	CanH_MissingLoadRequest++;
 	CanH_MissingVehicleData++;
 
-	if(600u <= CanH_NoCommCounter)
+	if(200u <= CanH_NoCommCounter)
 	{
 		CanH_CommunicationState = NO_COMMUNICATION;
 	}
