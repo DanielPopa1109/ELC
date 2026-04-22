@@ -10,6 +10,23 @@
 #define DCM_APPL_END_ADDRESS     0x0800F7FFu    /* same as erase end */
 #define DCM_APPL_CRC_ADDRESS     (DCM_APPL_END_ADDRESS - 3u) /* last 4 bytes */
 
+#define DCM_DID_FF_OCCURRENCE_COUNT   0xF300u
+#define DCM_DID_FF_YEAR               0xF301u
+#define DCM_DID_FF_MONTH              0xF302u
+#define DCM_DID_FF_DAY                0xF303u
+#define DCM_DID_FF_HOUR               0xF304u
+#define DCM_DID_FF_MINUTE             0xF305u
+#define DCM_DID_FF_SECOND             0xF306u
+#define DCM_DID_FF_VEH_STATUS         0xF307u
+#define DCM_DID_FF_L1_MV              0xF308u
+#define DCM_DID_FF_T30_MV             0xF309u
+#define DCM_DID_FF_NTC_C              0xF30Au
+#define DCM_DID_FF_ISENSE_A           0xF30Bu
+
+#define DCM_19_04_ALL_DTCS            0xFFFFFFu
+#define DCM_19_04_ALL_RECORDS         0xFFu
+#define DCM_19_04_MAX_PAYLOAD         640u
+
 typedef enum
 {
     DCM_NRC_GENERAL_REJECT                = 0x10u,
@@ -108,16 +125,6 @@ extern void Dcm_RDBI_L1AvgSW(void);
 extern void Dcm_RDBI_L1_Current_MinSW(void);
 extern void Dcm_RDBI_L1_Current_MaxSW(void);
 extern void Dcm_RDBI_L1_Current_AvgSW(void);
-extern void Dcm_HandleOBD(void);
-extern void Dcm_OBD_Mode01(void);
-extern void Dcm_OBD_Mode02(void);
-extern void Dcm_OBD_Mode03(void);
-extern void Dcm_OBD_Mode04(void);
-extern void Dcm_OBD_Mode06(void);
-extern void Dcm_OBD_Mode07(void);
-extern void Dcm_OBD_Mode08(void);
-extern void Dcm_OBD_Mode09(void);
-extern void Dcm_OBD_Mode0A(void);
 extern void Dcm_RC_ReadMinMaxAvg(void);
 extern uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level);
 extern void SecCalcKeyFromSeed(const uint8_t *seedBytes, uint8_t *keyBytes, uint8_t seedLen, uint8_t level);

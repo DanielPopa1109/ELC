@@ -154,7 +154,7 @@ DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMast
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TMPVarLIN", (void *)sizeof(TMPVarLIN), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TLIBTSMapping", (void *)sizeof(TLIBTSMapping), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TLIBSystemVarDef", (void *)sizeof(TLIBSystemVarDef), "")) return -1;
-  if (!AReg(AObj, "check_mp_internal", "auto_start", "0", 0, "")) return -1;
+  if (!AReg(AObj, "check_mp_internal", "auto_start", "1", 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "addr_conf", "app", &app, "")) return -1;
   if (!AReg(AObj, "step_function", "step", "1", reinterpret_cast<const void*>(&step), "")) return -1;
   // MP library functions

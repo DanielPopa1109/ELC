@@ -219,7 +219,6 @@ static void SMon_I2TAccumulation(void)
 	{
 		SMon_I2TError = 1u;
 		Dem_SetDtc(0x53u, 0x2fu);
-		Dem_SetDtc_Obd(0x0153u, 0xafu);
 	}
 	else if(0u == I2TCounter_Float && 1u == SMon_I2TError)
 	{
@@ -230,7 +229,6 @@ static void SMon_I2TAccumulation(void)
 		if(0x2fu == Dem_GetDtcStatus(0x53u))
 		{
 			Dem_SetDtc(0x53u, 0x2eu);
-			Dem_SetDtc_Obd(0x0153u, 0xaeu);
 		}
 		else
 		{
@@ -1009,7 +1007,7 @@ static void SMon_ProcessShortToPlusTest(void)
 					if(SMon_T30P50 <= SMon_VfbL1)
 					{
 						Dem_SetDtc(0x52, 0x2f);
-						Dem_SetDtc_Obd(0x0152u, 0xafu);
+
 						SMon_ShortToPlusTest = 2u; // go-to next phase
 						SMon_S2BErrorStatus = 1u;
 					}
@@ -1028,7 +1026,6 @@ static void SMon_ProcessShortToPlusTest(void)
 						if(0x2f == Dem_GetDtcStatus(0x52u))
 						{
 							Dem_SetDtc(0x52, 0x2e);
-							Dem_SetDtc_Obd(0x0152u, 0xaeu);
 						}
 						else
 						{
@@ -1050,7 +1047,7 @@ static void SMon_ProcessShortToPlusTest(void)
 					if((SMon_VfbT30 * 3 / 10) <= SMon_VfbL1)
 					{
 						Dem_SetDtc(0x5f, 0x2f);
-						Dem_SetDtc_Obd(0x0152u, 0xafu);
+
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 2u;
 					}
@@ -1069,7 +1066,6 @@ static void SMon_ProcessShortToPlusTest(void)
 						if(0x2f == Dem_GetDtcStatus(0x5fu))
 						{
 							Dem_SetDtc(0x5f, 0x2e);
-							Dem_SetDtc_Obd(0x0152u, 0xaeu);
 						}
 						else
 						{
@@ -1091,7 +1087,6 @@ static void SMon_ProcessShortToPlusTest(void)
 					if(SMon_P_LowVoltage <= SMon_VfbL1)
 					{
 						Dem_SetDtc(0x60, 0x2f);
-						Dem_SetDtc_Obd(0x0152u, 0xafu);
 						SMon_S2BErrorStatus = 3u;
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 					}
@@ -1110,7 +1105,7 @@ static void SMon_ProcessShortToPlusTest(void)
 						if(0x2f == Dem_GetDtcStatus(0x60u))
 						{
 							Dem_SetDtc(0x60, 0x2e);
-							Dem_SetDtc_Obd(0x0152u, 0xaeu);
+
 						}
 						else
 						{
@@ -1270,7 +1265,6 @@ static void SMon_ProcessEcuVoltageState(void)
 				{
 					SMon_ECU_UV = 1u;
 					Dem_SetDtc(0x50, 0x2f);
-					Dem_SetDtc_Obd(0x0150u, 0xafu);
 				}
 				else
 				{
@@ -1278,7 +1272,6 @@ static void SMon_ProcessEcuVoltageState(void)
 					if(0x2f == Dem_GetDtcStatus(0x50))
 					{
 						Dem_SetDtc(0x50, 0x2e);
-						Dem_SetDtc_Obd(0x0150u, 0xaeu);
 					}
 					else
 					{
@@ -1304,7 +1297,7 @@ static void SMon_ProcessEcuVoltageState(void)
 				{
 					SMon_ECU_OV = 1u;
 					Dem_SetDtc(0x51, 0x2f);
-					Dem_SetDtc_Obd(0x0151u, 0xafu);
+
 				}
 				else
 				{
@@ -1313,7 +1306,7 @@ static void SMon_ProcessEcuVoltageState(void)
 					if(0x2f == Dem_GetDtcStatus(0x51))
 					{
 						Dem_SetDtc(0x51, 0x2e);
-						Dem_SetDtc_Obd(0x0151u, 0xaeu);
+
 					}
 					else
 					{
@@ -1383,7 +1376,6 @@ static void SMon_ProcessLoadErrorStatus(void)
 				SMon_NtcError = 1u;
 
 				Dem_SetDtc(0x58u, 0x2f);
-				Dem_SetDtc_Obd(0x0158u, 0xafu);
 
 				localTimeStamp3 = 0;
 			}
@@ -1545,7 +1537,6 @@ static void SMon_ProcessLoadErrorStatus(void)
 	{
 		SMon_LockSupply = 1u;
 		Dem_SetDtc(0x54, 0x2f);
-		Dem_SetDtc_Obd(0x0154u, 0xafu);
 	}
 	else
 	{
@@ -1585,7 +1576,6 @@ static void SMon_ProcessLoadErrorStatus(void)
 					if (0x2fu == Dem_GetDtcStatus(0x56u))
 					{
 						Dem_SetDtc(0x56u, 0x2eu);
-						Dem_SetDtc_Obd(0x0156u, 0xaeu);
 					}
 					else
 					{
@@ -1650,7 +1640,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 				if(0x2f == Dem_GetDtcStatus(0x55))
 				{
 					Dem_SetDtc(0x55, 0x2e);
-					Dem_SetDtc_Obd(0x0155u, 0xaeu);
+
 				}
 				else
 				{
@@ -1662,7 +1652,6 @@ static void SMon_LoadSwitchingDiagnosis(void)
 				SMon_CLS_Failure = 1u;
 				SMon_RequestPhysicalStatus = 0u;
 				Dem_SetDtc(0x55, 0x2f);
-				Dem_SetDtc_Obd(0x0155u, 0xafu);
 			}
 		}
 		else
@@ -1721,7 +1710,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 							SMon_L1_UVStatus = 1u;
 							SMon_RequestPhysicalStatus = 0u;
 							Dem_SetDtc(0x56, 0x2f);
-							Dem_SetDtc_Obd(0x0156u, 0xafu);
+
 						}
 						else
 						{
@@ -1734,7 +1723,6 @@ static void SMon_LoadSwitchingDiagnosis(void)
 					if(0x2f == Dem_GetDtcStatus(0x56))
 					{
 						Dem_SetDtc(0x56, 0x2e);
-						Dem_SetDtc_Obd(0x0156u, 0xaeu);
 					}
 					else
 					{

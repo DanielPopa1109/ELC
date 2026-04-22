@@ -9,7 +9,7 @@
 #include "stdio.h"
 #include <stdlib.h>
 
-#define NVM_NO_BLOCKS               6U
+#define NVM_NO_BLOCKS               5U
 #define NVM_SIZE_HEADER_BYTES       8U
 #define NVM_PARAMFLASH_START_ADDRESS 0x08003800u
 #define NVM_PARAMFLASH_END_ADDRESS   0x08003BFFu
@@ -53,7 +53,7 @@ extern Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS];
 extern uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS];
 extern uint8_t Nvm_WriteAllFinished;
 extern uint8_t Nvm_ReadAllFinished;
-extern uint8_t Nvm_ParamFlashBlock[290u];
+extern uint8_t Nvm_ParamFlashBlock[292u];
 
 extern void Nvm_SectorSwitch(void);
 extern void Nvm_WriteBlock(uint16_t blockId, void* data);

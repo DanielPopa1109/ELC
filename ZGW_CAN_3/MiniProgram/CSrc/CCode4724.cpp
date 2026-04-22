@@ -19,10 +19,10 @@
 #define CAN_BURST_COUNT            (CAN_BURST_TOTAL_MS / CAN_BURST_PERIOD_MS)
 
 #define RELAY_ON_TIME_MS           500u
-#define ACTION_WINDOW_MS           1500u
+#define POST_BURST_WAIT_MS         1000u
 
 #define T_DELAY_START_MS           0u
-#define T_DELAY_END_MS             12000u
+#define T_DELAY_END_MS             3740u
 #define T_DELAY_STEP_MS            1u
 
 static const char* SV_START_NM3       = "CWT_NM3";
@@ -34,7 +34,7 @@ static const char* SV_STATE_WUP       = "CWP_WUP_STATE";
 static const char* SV_STATE_WUP_NM3   = "CWP_WUP_NM3_STATE";
 
 static const char* SV_WUP_STAT        = "WUP_STAT";
-static const char* RELAY_COM          = "\\\\.\\COM6";
+static const char* RELAY_COM          = "\\\\.\\COM8";
 
 static const u8 RELAY_CMD_ON[4]  = { 0xA0u, 0x01u, 0x01u, 0xA2u };
 static const u8 RELAY_CMD_OFF[4] = { 0xA0u, 0x01u, 0x00u, 0xA1u };
@@ -49,8 +49,9 @@ enum
 
 enum
 {
-    PHASE_T_DELAY = 0,
-    PHASE_ACTION
+    PHASE_IDLE = 0,
+    PHASE_ACTION,
+    PHASE_WAIT
 };
 
 static HANDLE gRelayHandle = INVALID_HANDLE_VALUE;
@@ -62,14 +63,14 @@ static s32 gPrevStartWup = 0;
 static s32 gPrevStartWupNm3 = 0;
 
 static s32 gMode = MODE_NONE;
-static s32 gPhase = PHASE_T_DELAY;
+static s32 gPhase = PHASE_IDLE;
 
 static u32 gTDelayMs = 0u;
 static u32 gPhaseTimerMs = 0u;
 
 static s32 gRelayIsOn = 0;
-
 static s32 gBurstActive = 0;
+
 static u32 gBurstNextTxMs = 0u;
 static u32 gBurstTxCount = 0u;
 
@@ -147,7 +148,7 @@ static s32 open_relay_port(void)
         return 0;
     }
 
-    SetupComm(gRelayHandle, 64u, 64u);
+    (void)SetupComm(gRelayHandle, 64u, 64u);
 
     memset(&timeouts, 0, sizeof(timeouts));
     timeouts.ReadIntervalTimeout         = 10u;
@@ -162,7 +163,7 @@ static s32 open_relay_port(void)
         return 0;
     }
 
-    PurgeComm(gRelayHandle, PURGE_RXCLEAR | PURGE_TXCLEAR);
+    (void)PurgeComm(gRelayHandle, PURGE_RXCLEAR | PURGE_TXCLEAR);
     return 1;
 }
 
@@ -185,7 +186,7 @@ static s32 relay_write_raw(const u8* data, const DWORD len)
         return 0;
     }
 
-    FlushFileBuffers(gRelayHandle);
+    (void)FlushFileBuffers(gRelayHandle);
     return 1;
 }
 
@@ -231,12 +232,13 @@ static s32 mode_uses_wup(const s32 mode)
     return ((mode == MODE_WUP) || (mode == MODE_WUP_NM3)) ? 1 : 0;
 }
 
-static void reset_action_state(void)
+static void reset_runtime_state(void)
 {
     gRelayIsOn = 0;
     gBurstActive = 0;
     gBurstNextTxMs = 0u;
     gBurstTxCount = 0u;
+    gPhaseTimerMs = 0u;
     set_wup_stat(0);
 }
 
@@ -250,12 +252,11 @@ static void stop_test(const s32 finished)
     }
 
     close_relay_port();
-    reset_action_state();
+    reset_runtime_state();
 
     gMode = MODE_NONE;
-    gPhase = PHASE_T_DELAY;
+    gPhase = PHASE_IDLE;
     gTDelayMs = T_DELAY_START_MS;
-    gPhaseTimerMs = 0u;
 
     if (finished != 0)
     {
@@ -287,9 +288,11 @@ static void start_action_phase(void)
     gPhase = PHASE_ACTION;
     gPhaseTimerMs = 0u;
 
+    gRelayIsOn = 0;
     gBurstActive = 0;
     gBurstNextTxMs = 0u;
     gBurstTxCount = 0u;
+    set_wup_stat(0);
 
     if (mode_uses_wup(gMode) != 0)
     {
@@ -315,27 +318,17 @@ static void start_action_phase(void)
     if (mode_uses_nm3(gMode) != 0)
     {
         gBurstActive = 1;
-        gBurstNextTxMs = 0u;
         gBurstTxCount = 0u;
-
-        send_nm3_frame();
-        gBurstTxCount = 1u;
-        gBurstNextTxMs = CAN_BURST_PERIOD_MS;
-        if (gBurstTxCount >= CAN_BURST_COUNT)
-        {
-            gBurstActive = 0;
-        }
+        gBurstNextTxMs = 0u;
     }
 }
 
 static void start_test(const s32 mode)
 {
     gMode = mode;
-    gPhase = PHASE_T_DELAY;
+    gPhase = PHASE_IDLE;
     gTDelayMs = T_DELAY_START_MS;
-    gPhaseTimerMs = 0u;
-
-    reset_action_state();
+    reset_runtime_state();
 
     if (mode == MODE_NM3)
     {
@@ -353,6 +346,8 @@ static void start_test(const s32 mode)
     {
         set_state_vars(0, 0, 0);
     }
+
+    start_action_phase();
 }
 
 static s32 active_trigger_is_one(const s32 startNm3, const s32 startWup, const s32 startWupNm3)
@@ -372,33 +367,34 @@ static s32 active_trigger_is_one(const s32 startNm3, const s32 startWup, const s
     return 0;
 }
 
-static void process_1ms_tick(void)
+static s32 action_is_complete(void)
 {
-    if (gMode == MODE_NONE)
+    s32 relayDone = 0;
+    s32 burstDone = 0;
+
+    if (mode_uses_wup(gMode) != 0)
     {
-        return;
+        relayDone = (gRelayIsOn == 0) ? 1 : 0;
+    }
+    else
+    {
+        relayDone = 1;
     }
 
-    if (gPhase == PHASE_T_DELAY)
+    if (mode_uses_nm3(gMode) != 0)
     {
-        if (gTDelayMs == 0u)
-        {
-            start_action_phase();
-            return;
-        }
-
-        gPhaseTimerMs++;
-
-        if (gPhaseTimerMs >= gTDelayMs)
-        {
-            start_action_phase();
-        }
-
-        return;
+        burstDone = (gBurstActive == 0) ? 1 : 0;
+    }
+    else
+    {
+        burstDone = 1;
     }
 
-    gPhaseTimerMs++;
+    return ((relayDone != 0) && (burstDone != 0)) ? 1 : 0;
+}
 
+static void process_action_phase_1ms(void)
+{
     if (mode_uses_nm3(gMode) != 0)
     {
         while ((gBurstActive != 0) &&
@@ -431,7 +427,18 @@ static void process_1ms_tick(void)
         }
     }
 
-    if (gPhaseTimerMs >= ACTION_WINDOW_MS)
+    if (action_is_complete() != 0)
+    {
+        gPhase = PHASE_WAIT;
+        gPhaseTimerMs = 0u;
+    }
+}
+
+static void process_wait_phase_1ms(void)
+{
+    const u32 totalWaitMs = POST_BURST_WAIT_MS + gTDelayMs;
+
+    if (gPhaseTimerMs >= totalWaitMs)
     {
         if (gTDelayMs >= T_DELAY_END_MS)
         {
@@ -440,9 +447,27 @@ static void process_1ms_tick(void)
         }
 
         gTDelayMs += T_DELAY_STEP_MS;
-        gPhase = PHASE_T_DELAY;
-        gPhaseTimerMs = 0u;
+        start_action_phase();
     }
+}
+
+static void process_1ms_tick(void)
+{
+    if (gMode == MODE_NONE)
+    {
+        return;
+    }
+
+    if (gPhase == PHASE_ACTION)
+    {
+        process_action_phase_1ms();
+    }
+    else if (gPhase == PHASE_WAIT)
+    {
+        process_wait_phase_1ms();
+    }
+
+    gPhaseTimerMs++;
 }
 
 static void process_elapsed_time(void)
@@ -513,14 +538,14 @@ static void init_once(void)
     gPrevStartWupNm3 = 0;
 
     gMode = MODE_NONE;
-    gPhase = PHASE_T_DELAY;
+    gPhase = PHASE_IDLE;
     gTDelayMs = T_DELAY_START_MS;
     gPhaseTimerMs = 0u;
 
     gLastTickMs = GetTickCount64();
 
     close_relay_port();
-    reset_action_state();
+    reset_runtime_state();
 }
 // CODE BLOCK END Global_Definitions 
 
@@ -541,8 +566,8 @@ void step(void) { try { // interval = 1 ms
     (void)app.get_system_var_int32(SV_START_WUP, &startWup);
     (void)app.get_system_var_int32(SV_START_WUP_NM3, &startWupNm3);
 
-    edgeNm3 = ((gPrevStartNm3 == 0) && (startNm3 == 1)) ? 1 : 0;
-    edgeWup = ((gPrevStartWup == 0) && (startWup == 1)) ? 1 : 0;
+    edgeNm3    = ((gPrevStartNm3 == 0) && (startNm3 == 1)) ? 1 : 0;
+    edgeWup    = ((gPrevStartWup == 0) && (startWup == 1)) ? 1 : 0;
     edgeWupNm3 = ((gPrevStartWupNm3 == 0) && (startWupNm3 == 1)) ? 1 : 0;
 
     if (gMode == MODE_NONE)
@@ -580,10 +605,10 @@ void step(void) { try { // interval = 1 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU0NzI0XQ__,100,164,2447706486331042994,0
+UICommon=0,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU0NzI0XQ__,100,225,2447706486331042994,0
 ScriptName=CCode4724
 DisplayName=CCode4724
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-04-10 22:53:27*/
+LastBuildTime=2026-04-21 23:14:32*/
 // CODE BLOCK END Configuration
 

@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_P_BattRestTimeTicks"/>
+		<item key="selection" value="HandleOBD"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="handleobd"/>
+			<item value="19_04"/>
+			<item value="allsnap"/>
+			<item value="rdtci"/>
+			<item value="SMon_RequestPhysicalStatus"/>
+			<item value="SMon_CalculatedCommand"/>
+			<item value="Nvm_ParamFlashBlock"/>
+			<item value="Review this repository as a senior embedded C code auditor."/>
 			<item value="SMon_P_BattRestTimeTicks"/>
 			<item value="SMon_P_BattRestDetectCurrent_A"/>
 			<item value="SMon_P_ISenseZeroOffset_A"/>
@@ -15,22 +23,14 @@
 			<item value="nvm_write"/>
 			<item value="SMon_P_BattRintMinStep_A"/>
 			<item value="extern"/>
-			<item value="if (SMon_Battery.BatteryRested != 0u)"/>
-			<item value="ocv_est_V"/>
-			<item value="ocv_est_v = SMon_Battery.VoltageFilt_V +&#x0A;&#x09;&#x09;&#x09;(i_eff_signed_a * SMon_Battery.InternalResistance_Ohm)"/>
-			<item value="ocv_est_v = SMon_Battery.VoltageFilt_V +&#x0A;&#x09;&#x09;&#x09;(i_eff_signed_a * SMon_Battery.InternalResistance_Ohm);"/>
-			<item value="static void SMon_Batt_UpdateRestState(void)"/>
-			<item value="#include &quot;SMon.h&quot;"/>
-			<item value="RestTimeTick"/>
-			<item value="resttimetick"/>
 		</list>
 		<list key="replacehistory">
 			<item value="rd_f32_swap"/>
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="8"/>
-		<item key="DIALOG_Y_ORIGIN" value="256"/>
+		<item key="DIALOG_X_ORIGIN" value="1208"/>
+		<item key="DIALOG_Y_ORIGIN" value="144"/>
 		<item key="DIALOG_WIDTH" value="322"/>
 		<item key="DIALOG_HEIGHT" value="391"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>

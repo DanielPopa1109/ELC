@@ -23,7 +23,7 @@ static const char* SV_TRIGGER  = "WAKEUP";
 static const char* SV_BUSY     = "Test.Trigger3FFRelayBusy";
 static const char* SV_ERROR    = "Test.Trigger3FFRelayError";
 static const char* SV_WUP_STAT = "WUP_STAT";
-static const char* RELAY_COM   = "\\\\.\\COM6";
+static const char* RELAY_COM   = "\\\\.\\COM8";
 
 /* Common LCUS-1 relay bytes. */
 static const u8 RELAY_CMD_ON[4]  = { 0xA0u, 0x01u, 0x01u, 0xA2u };
@@ -338,10 +338,10 @@ void step(void) { try { // interval = 1 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU3MjM3XQ__,100,163,5441474283909822556,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU3MjM3XQ__,100,160,5441474283909822556,0
 ScriptName=CCode7237
 DisplayName=CCode7237
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-04-10 13:39:25*/
+LastBuildTime=2026-04-16 10:19:27*/
 // CODE BLOCK END Configuration
 

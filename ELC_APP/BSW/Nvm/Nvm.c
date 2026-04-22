@@ -9,10 +9,10 @@ uint32_t Nvm_SectorSwitchActivated;
 uint32_t Nvm_CurrentSector;
 Nvm_Header_t Nvm_HeaderArr[NVM_NO_BLOCKS];
 Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
-uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u, 1u, 1u};
+uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u, 1u};
 uint8_t Nvm_WriteAllFinished = 0u;
 uint8_t Nvm_ReadAllFinished = 0u;
-uint8_t Nvm_ParamFlashBlock[290u] = {0u};
+uint8_t Nvm_ParamFlashBlock[292u] = {0u};
 
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 {
@@ -20,8 +20,7 @@ Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 		{1u, sizeof(Dem_DTC_Stat), 0u, 0u},
 		{2u, sizeof(Dem_FF), 0u, 0u},
 		{3u, sizeof(SMon_DataMinMaxAvg), 0u, 0u},
-		{4u, sizeof(Dem_DTC_Stat_OBD), 0u, 0u},
-		{5u, sizeof(SMon_Battery), 0u, 0u},
+		{4u, sizeof(SMon_Battery), 0u, 0u},
 };
 
 Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
@@ -30,7 +29,6 @@ Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
 		{sizeof(Dem_DTC_Stat), 0u, 0u,},
 		{sizeof(Dem_FF), 0u, 0u},
 		{sizeof(SMon_DataMinMaxAvg), 0u, 0u},
-		{sizeof(Dem_DTC_Stat_OBD), 0u, 0u},
 		{sizeof(SMon_BatteryData_t), 0u, 0u},
 };
 
@@ -40,7 +38,6 @@ Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =
 		{&Dem_DTC_Stat[0u], 0u},
 		{&Dem_FF[0u].occurrenceCnt, 0u},
 		{&SMon_DataMinMaxAvg[0u], 0u},
-		{&Dem_DTC_Stat_OBD[0u], 0u},
 		{&SMon_Battery.Voltage_V, 0u},
 };
 
@@ -50,7 +47,6 @@ Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS] =
 		{&Dem_DTC_Stat[0u], 0u},
 		{&Dem_FF[0u].occurrenceCnt, 0u},
 		{&SMon_DataMinMaxAvg[0u], 0u},
-		{&Dem_DTC_Stat_OBD[0u], 0u},
 		{&SMon_Battery.Voltage_V, 0u},
 };
 
@@ -88,7 +84,7 @@ void Nvm_InitParamFlash(void)
 {
 	Nvm_FlashReadData(NVM_PARAMFLASH_START_ADDRESS, (uint32_t*)Nvm_ParamFlashBlock, sizeof(Nvm_ParamFlashBlock) / 4u);
 
-	if(0xAAu == Nvm_ParamFlashBlock[289u])
+	if(0xAAu == Nvm_ParamFlashBlock[291u])
 	{
 		uint32_t idx = 0u;
 
@@ -324,8 +320,8 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_BattChargeVoltageCompGain);
 		COPY_TO_BUF(SMon_P_BattRestDetectCurrent_A);
 
-		Nvm_ParamFlashBlock[289u] = 0xAAu;
-		Nvm_ParamFlashBlock[288u] = 0x20u;
+		Nvm_ParamFlashBlock[291u] = 0xAAu;
+		Nvm_ParamFlashBlock[290u] = 0x21u;
 		Nvm_EraseParamflash();
 		Nvm_FlashWriteData(NVM_PARAMFLASH_START_ADDRESS, (uint32_t*)Nvm_ParamFlashBlock, sizeof(Nvm_ParamFlashBlock) / 4u);
 

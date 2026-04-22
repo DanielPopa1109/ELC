@@ -857,7 +857,7 @@ FLengthOfMemorySize=4
 FByteOrderOfChecksum=0
 FMainTainOriginalFileStruct=0
 FHexFilePath=ELC_APP.tsbinary
-FDataFileIsChanged=1
+FDataFileIsChanged=0
 FCheckSumDllPath=
 FBinStartAddr=0
 FBinExtractType=0
@@ -951,7 +951,7 @@ FLengthOfMemorySize=4
 FByteOrderOfChecksum=0
 FMainTainOriginalFileStruct=1
 FHexFilePath=ELC_FBL.tsbinary
-FDataFileIsChanged=1
+FDataFileIsChanged=0
 FCheckSumDllPath=
 FBinStartAddr=0
 FBinExtractType=7536745
@@ -1037,7 +1037,7 @@ FLengthOfMemorySize=4
 FByteOrderOfChecksum=0
 FMainTainOriginalFileStruct=1
 FHexFilePath=ParamFlash.tsbinary
-FDataFileIsChanged=1
+FDataFileIsChanged=0
 FCheckSumDllPath=
 FBinStartAddr=0
 FBinExtractType=0
@@ -4764,7 +4764,7 @@ FIsFunctionID=0
 FHasResponse=1
 FServiceCode=25
 FIDParametersCount=1
-FReqParametersCount=0
+FReqParametersCount=1
 FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
@@ -4783,24 +4783,25 @@ FDefaultValue=2
 FByteNum=1
 [TfrmDiagnostics_ReadDTCInformation_0_ReqPara0]
 FByteOrder=1
-FStartBit=23
-FName=Parameters
-FDefaultValue=FF
-FDataType=Hex Array
+FStartBit=0
+FName=statusMask
+FDefaultValue=0xff
+FDataType=UInt
 FConversionID=0
 FLength=8
-FBitMask=0
+FBitMask=255
 FCheckValue=0
 FSyncDataToSystemVar=0
 FBytePosition=0
 FBitPosition=0
 FFactor=0
-FOffSet=0
-FDenominator=0
+FOffSet=6.95218716310989E-310
+FDenominator=1.19291719366288E-311
 FLowerLimit=0
 FUpperLimit=0
 supporttexttable=0
 supporttexttable=0
+FSystemVarName=
 [TfrmDiagnostics_ReadDTCInformation_0_ResPara0]
 FByteOrder=1
 FStartBit=23
@@ -13539,7 +13540,7 @@ FIsFunctionID=0
 FHasResponse=1
 FServiceCode=25
 FIDParametersCount=1
-FReqParametersCount=0
+FReqParametersCount=1
 FResParametersCount=1
 FReqParaByteOrder=1
 FResParaByteOrder=1
@@ -16063,7 +16064,7 @@ supporttexttable=0
 supporttexttable=0
 
 [TfrmDiagnostics_OBD_StoredDiagnosticTroubleCodes]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_PowertrainData]
 SubServiceCount=0
@@ -16078,19 +16079,19 @@ SubServiceCount=0
 SubServiceCount=0
 
 [TfrmDiagnostics_OBD_VehicleInformation]
-SubServiceCount=3
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_ControlOperationOfOnBoardComponentSystem]
 SubServiceCount=0
 
 [TfrmDiagnostics_OBD_ClearEmissionRelatedDiagnosticInformation]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_PendingDiagnosticTroubleCodes]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_OBD_PermanentDiagnosticTroubleCodes]
-SubServiceCount=1
+SubServiceCount=0
 
 [TfrmDiagnostics_LIN_AssignFrameIdentifier]
 SubServiceCount=0
@@ -16741,6 +16742,26 @@ FBitPosition=0
 FFactor=0
 FOffSet=6.95329845867782E-310
 FDenominator=1.21149451025772E-311
+FLowerLimit=0
+FUpperLimit=0
+supporttexttable=0
+
+[TfrmDiagnostics_ReadDTCInformation_1_ReqPara0]
+FByteOrder=1
+FStartBit=0
+FName=para0
+FDefaultValue=0xFFFFFFFF
+FDataType=UInt
+FConversionID=0
+FLength=32
+FBitMask=255
+FCheckValue=0
+FSystemVarName=
+FBytePosition=0
+FBitPosition=0
+FFactor=0
+FOffSet=6.95218716310989E-310
+FDenominator=1.1929157142169E-311
 FLowerLimit=0
 FUpperLimit=0
 supporttexttable=0

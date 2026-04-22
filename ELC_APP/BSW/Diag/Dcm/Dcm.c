@@ -19,7 +19,7 @@ volatile uint8_t g_sec_unlocked = 0;
 uint8_t rx[8u];
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
-uint8_t Dcm_SWV[4u] = {32u, 32u, 32u, 0xFFu};
+uint8_t Dcm_SWV[4u] = {33u, 33u, 33u, 0xFFu};
 uint8_t Dcm_LoadStatus = 0xFFu;
 uint8_t Dcm_CC = 0u;
 uint8_t Dcm_CDTCS = 0u;
@@ -84,12 +84,6 @@ void Dcm_RDBI_L1AvgSW(void);
 void Dcm_RDBI_L1_Current_MinSW(void);
 void Dcm_RDBI_L1_Current_MaxSW(void);
 void Dcm_RDBI_L1_Current_AvgSW(void);
-void Dcm_HandleOBD(void);
-void Dcm_OBD_Mode03(void);
-void Dcm_OBD_Mode04(void);
-void Dcm_OBD_Mode07(void);
-void Dcm_OBD_Mode0A(void);
-void Dcm_OBD_Mode09(void);
 void Dcm_RC_ReadMinMaxAvg(void);
 uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level);
 void SecCalcKeyFromSeed(const uint8_t *seedBytes, uint8_t *keyBytes, uint8_t seedLen, uint8_t level);
@@ -122,216 +116,6 @@ void Dcm_RC_ReadMinMaxAvg(void)
 	);
 
 	memset(rx, 0, 8);
-}
-
-void Dcm_OBD_Mode03(void)
-{
-	uint8_t payload[64];
-	uint8_t len = 1;
-
-	payload[0] = 0x43;
-
-	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
-	{
-		if(Dem_DTC_Stat_OBD[i] != 0x50u)
-		{
-			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
-
-			payload[len++] = (uint8_t)(dtc >> 8);
-			payload[len++] = (uint8_t)(dtc);
-		}
-		else
-		{
-			// do nothing.
-		}
-	}
-
-	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
-}
-
-void Dcm_OBD_Mode04(void)
-{
-	for(uint8_t i = 0u; i < DEM_MAX_OBD_FF_DTC; i++)
-	{
-		if(Dem_DTC_Stat_OBD_Permanent[i] == 0u)
-		{
-			Dem_DTC_Stat_OBD[i] = 0x50u;
-		}
-		else
-		{
-			// do nothing.
-		}
-	}
-
-	Nvm_WriteBlock(4u, &Dem_DTC_Stat_OBD[0]);
-
-	Dcm_TxData[0] = 0x01;
-	Dcm_TxData[1] = 0x44;
-
-	Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 1, Dcm_TxData, 8);
-}
-
-void Dcm_OBD_Mode07(void)
-{
-	uint8_t payload[64];
-	uint8_t len = 1;
-
-	payload[0] = 0x47;
-
-	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
-	{
-		if(Dem_DTC_Stat_OBD[i] != 0x50u) /* example pending */
-		{
-			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
-
-			payload[len++] = (uint8_t)(dtc >> 8);
-			payload[len++] = (uint8_t)(dtc);
-		}
-		else
-		{
-			// do nothing.
-		}
-	}
-
-	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
-}
-
-void Dcm_OBD_Mode0A(void)
-{
-	uint8_t payload[64];
-	uint8_t len = 1;
-
-	payload[0] = 0x4A;
-
-	for(uint8_t i = 0; i < DEM_MAX_OBD_FF_DTC; i++)
-	{
-		if(Dem_DTC_Stat_OBD[i] == 0xAFu && 1u == Dem_DTC_Stat_OBD_Permanent[i]) /* permanent */
-		{
-			uint32_t dtc = Dem_PreDefined_OBD_DTC_Table[i];
-
-			payload[len++] = (uint8_t)(dtc >> 8);
-			payload[len++] = (uint8_t)(dtc);
-		}
-		else
-		{
-			// do nothing.
-		}
-	}
-
-	Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, payload, len, 0x00, 0);
-}
-
-void Dcm_OBD_Mode09(void)
-{
-	uint8_t pid = rx[2u];
-	uint8_t payload[64];
-	uint8_t len = 0u;
-
-	switch(pid)
-	{
-	case 0x02u: /* VIN */
-
-		payload[len++] = 0x49u;
-		payload[len++] = 0x02u;
-		payload[len++] = 0x01u;
-
-		memcpy(&payload[len], Dcm_OBD_VIN, sizeof(Dcm_OBD_VIN));
-		len += sizeof(Dcm_OBD_VIN);
-
-		break;
-
-	case 0x04u: /* CAL ID */
-
-		payload[len++] = 0x49u;
-		payload[len++] = 0x04u;
-		payload[len++] = 0x01u;
-
-		Nvm_FlashReadData(DCM_APPL_CRC_ADDRESS, (uint32_t*)Dcm_OBD_CALID, 1u);
-
-		memcpy(&payload[len], Dcm_OBD_CALID, sizeof(Dcm_OBD_CALID));
-		len += sizeof(Dcm_OBD_CALID);
-
-		break;
-
-	case 0x0Au: /* ECU NAME */
-
-		payload[len++] = 0x49u;
-		payload[len++] = 0x0Au;
-		payload[len++] = 0x01u;
-
-		memcpy(&payload[len], Dcm_OBD_ECU_NAME, sizeof(Dcm_OBD_ECU_NAME));
-		len += sizeof(Dcm_OBD_ECU_NAME);
-
-		break;
-
-	default:
-
-		Dcm_SendNrc(DCM_NRC_SUBFUNCTION_NOT_SUPPORTED);
-
-		return;
-	}
-
-	(void)Dcm_IsoTp_Send(
-			Dcm_DiagRxHeader.StdId,
-			payload,
-			len,
-			0x00u,
-			0u
-	);
-
-	if(!Dcm_IsoTp_TxActive)
-	{
-		memset(rx, 0, 8);
-	}
-	else
-	{
-		// do nothing.
-	}
-}
-
-void Dcm_HandleOBD(void)
-{
-	switch(rx[1u])
-	{
-	case 0x03u:
-
-		Dcm_OBD_Mode03();
-
-		break;
-
-	case 0x04u:
-
-		Dcm_OBD_Mode04();
-
-		break;
-
-	case 0x07u:
-
-		Dcm_OBD_Mode07();
-
-		break;
-
-	case 0x09u:
-
-		Dcm_OBD_Mode09();
-
-		break;
-
-	case 0x0Au:
-
-		Dcm_OBD_Mode0A();
-
-		break;
-
-	default:
-
-		Dcm_SendNrc(DCM_NRC_SERVICE_NOT_SUPPORTED);
-
-		break;
-
-	}
-
-	memset(&rx[0u], 0u, sizeof(rx));
 }
 
 void Dcm_RDBI_T30Min10s(void)
@@ -976,92 +760,269 @@ void Dcm_CDTCI()
 	}
 }
 
-void Dcm_RDTCI_19_04_AllSnapshots(void)
+static bool Dcm_PutU8(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint8_t v)
 {
-	uint8_t payload[640u];   /* enough for all FFs */
-	uint16_t len = 0u;
+    if ((*len + 1u) > maxLen)
+    {
+        return false;
+    }
 
-	/* Positive response */
-	payload[len++] = 0x59u;   /* SID + 0x40 */
-	payload[len++] = 0x04u;   /* subfunction echo */
-
-	for (uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
-	{
-		/* Only DTCs that are actually set */
-		if (Dem_DTC_Stat[i] != 0x50u)
-		{
-			uint32_t dtc = Dem_PreDefined_DTC_Table[i];
-
-			/* DTC */
-			payload[len++] = (uint8_t)(dtc >> 16);
-			payload[len++] = (uint8_t)(dtc >> 8);
-			payload[len++] = (uint8_t)(dtc);
-
-			/* Snapshot data (raw struct copy) */
-			memcpy(&payload[len], &Dem_FF[i], sizeof(Dem_FreezeFrame_t));
-			len += sizeof(Dem_FreezeFrame_t);
-		}
-		else
-		{
-			// do nothing.
-		}
-	}
-	/* Send using existing ISO-TP */
-	(void)Dcm_IsoTp_Send(
-			Dcm_DiagRxHeader.StdId,
-			payload,
-			len,
-			0x55u,
-			1u
-	);
-
-	/* Cleanup */
-	memset(rx, 0, sizeof(rx));
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
+    buf[*len] = v;
+    *len += 1u;
+    return true;
 }
 
-void Dcm_RDTCI()
+static bool Dcm_PutU16BE(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint16_t v)
 {
-	uint8_t spayload[3u + (24 * 4u)];
-	uint16_t slen = 0u;
-	uint8_t statusMask = rx[3u];
+    if ((*len + 2u) > maxLen)
+    {
+        return false;
+    }
 
-	spayload[0] = (uint8_t)(rx[1u] + 0x40u);
-	spayload[1] = rx[2u];
-	spayload[2] = statusMask;
-	slen = 3u;
+    buf[*len + 0u] = (uint8_t)(v >> 8);
+    buf[*len + 1u] = (uint8_t)(v);
+    *len += 2u;
+    return true;
+}
 
-	for (uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
-	{
-		uint32_t st = Dem_DTC_Stat[i];
-		uint32_t dtc = Dem_PreDefined_DTC_Table[i];
+static bool Dcm_PutU24BE(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint32_t v)
+{
+    if ((*len + 3u) > maxLen)
+    {
+        return false;
+    }
 
-		if(0x50u != st)
-		{
-			spayload[slen + 0u] = st; /* status byte */
-			spayload[slen + 1u] = (uint8_t)(dtc >> 16);
-			spayload[slen + 2u] = (uint8_t)(dtc >> 8);
-			spayload[slen + 3u] = (uint8_t)(dtc);
-			slen += 4u;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
+    buf[*len + 0u] = (uint8_t)(v >> 16);
+    buf[*len + 1u] = (uint8_t)(v >> 8);
+    buf[*len + 2u] = (uint8_t)(v);
+    *len += 3u;
+    return true;
+}
 
-	(void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, spayload, slen, 0x00u, 0u);
+static bool Dcm_PutFloatRaw(uint8_t *buf, uint16_t *len, uint16_t maxLen, float v)
+{
+    if ((*len + 4u) > maxLen)
+    {
+        return false;
+    }
 
-	for (uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
+    memcpy(&buf[*len], &v, sizeof(float));
+    *len += 4u;
+    return true;
+}
+
+static bool Dcm_PutDidU8(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint16_t did, uint8_t value)
+{
+    return Dcm_PutU16BE(buf, len, maxLen, did) &&
+           Dcm_PutU8(buf, len, maxLen, value);
+}
+
+static bool Dcm_PutDidU16(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint16_t did, uint16_t value)
+{
+    return Dcm_PutU16BE(buf, len, maxLen, did) &&
+           Dcm_PutU16BE(buf, len, maxLen, value);
+}
+
+static bool Dcm_PutDidFloat(uint8_t *buf, uint16_t *len, uint16_t maxLen, uint16_t did, float value)
+{
+    return Dcm_PutU16BE(buf, len, maxLen, did) &&
+           Dcm_PutFloatRaw(buf, len, maxLen, value);
+}
+
+/* Encode one snapshot record in a standards-oriented way:
+ *
+ *  DTC[3]
+ *  statusOfDTC[1]
+ *  snapshotRecordNumber[1]
+ *  numberOfIdentifiers[1]
+ *  DID[2] data...
+ *  DID[2] data...
+ *  ...
+ *
+ * Returns false on buffer overflow.
+ */
+static bool Dcm_EncodeOneSnapshotRecord(uint8_t *payload,
+                                        uint16_t *len,
+                                        uint16_t maxLen,
+                                        uint32_t dtc,
+                                        uint8_t status,
+                                        uint8_t snapshotRecordNumber,
+                                        const Dem_FreezeFrame_t *ff)
+{
+    const uint8_t numberOfIdentifiers = 12u;
+
+    if ((payload == NULL) || (len == NULL) || (ff == NULL))
+    {
+        return false;
+    }
+
+    if (!Dcm_PutU24BE(payload, len, maxLen, dtc)) return false;
+    if (!Dcm_PutU8(payload, len, maxLen, status)) return false;
+    if (!Dcm_PutU8(payload, len, maxLen, snapshotRecordNumber)) return false;
+    if (!Dcm_PutU8(payload, len, maxLen, numberOfIdentifiers)) return false;
+
+    if (!Dcm_PutDidU16(payload, len, maxLen, DCM_DID_FF_OCCURRENCE_COUNT, ff->occurrenceCnt)) return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_YEAR,             ff->year))          return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_MONTH,            ff->month))         return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_DAY,              ff->day))           return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_HOUR,             ff->hour))          return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_MINUTE,           ff->minute))        return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_SECOND,           ff->second))        return false;
+    if (!Dcm_PutDidU8 (payload, len, maxLen, DCM_DID_FF_VEH_STATUS,       ff->vehStatus)) return false;
+    if (!Dcm_PutDidU16(payload, len, maxLen, DCM_DID_FF_L1_MV,            ff->L1VFB))            return false;
+    if (!Dcm_PutDidU16(payload, len, maxLen, DCM_DID_FF_T30_MV,           ff->T30VFB))           return false;
+    if (!Dcm_PutDidFloat(payload, len, maxLen, DCM_DID_FF_NTC_C,          ff->L1NTC))return false;
+    if (!Dcm_PutDidFloat(payload, len, maxLen, DCM_DID_FF_ISENSE_A,       ff->L1ISENSE))        return false;
+
+    return true;
+}
+
+/* Standards-oriented implementation for UDS 0x19 0x04
+ *
+ * Request expected:
+ *   rx[1] = 0x19
+ *   rx[2] = 0x04
+ *   rx[3] = DTC high
+ *   rx[4] = DTC mid
+ *   rx[5] = DTC low
+ *   rx[6] = snapshot record number
+ *
+ * Notes:
+ * - record number 0xFF = all records for the requested DTC
+ * - DTC 0xFFFFFF may be accepted as wildcard for "all DTCs"
+ *   if you want that behavior; some testers use exact DTC only.
+ */
+void Dcm_RDTCI_19_04_Standard(void)
+{
+    uint8_t payload[DCM_19_04_MAX_PAYLOAD];
+    uint16_t len = 0u;
+    uint32_t reqDtc;
+    uint8_t reqRecordNumber;
+    bool anyMatch = false;
+
+    /* Need at least SID, subfunction, DTC[3], record number */
+    if (rx[0u] < 5u)
+    {
+        Dcm_SendNrc(DCM_NRC_INCORRECT_LENGTH);
+        return;
+    }
+
+    reqDtc =
+        ((uint32_t)rx[3u] << 16) |
+        ((uint32_t)rx[4u] << 8)  |
+        ((uint32_t)rx[5u]);
+
+    reqRecordNumber = rx[6u];
+
+    payload[len++] = 0x59u;
+    payload[len++] = 0x04u;
+
+    for (uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
+    {
+        const uint32_t dtc = Dem_PreDefined_DTC_Table[i];
+        const uint8_t status = Dem_DTC_Stat[i];
+        const uint8_t snapshotRecordNumber = 0x01u; /* one FF record per DTC in your current design */
+
+        /* No stored DTC */
+        if (status == 0x50u)
+        {
+            continue;
+        }
+
+        /* DTC filter */
+        if ((reqDtc != DCM_19_04_ALL_DTCS) && (dtc != reqDtc))
+        {
+            continue;
+        }
+
+        /* Snapshot record filter */
+        if ((reqRecordNumber != DCM_19_04_ALL_RECORDS) && (reqRecordNumber != snapshotRecordNumber))
+        {
+            continue;
+        }
+
+        if (!Dcm_EncodeOneSnapshotRecord(payload,
+                                         &len,
+                                         (uint16_t)sizeof(payload),
+                                         dtc,
+                                         status,
+                                         snapshotRecordNumber,
+                                         &Dem_FF[i]))
+        {
+            /* Buffer too small -> request out of range is acceptable here */
+            Dcm_SendNrc(DCM_NRC_REQUEST_OUT_OF_RANGE);
+            return;
+        }
+
+        anyMatch = true;
+    }
+
+    if (!anyMatch)
+    {
+        Dcm_SendNrc(DCM_NRC_REQUEST_OUT_OF_RANGE);
+        return;
+    }
+
+    (void)Dcm_IsoTp_Send(
+        Dcm_DiagRxHeader.StdId,
+        payload,
+        len,
+        0x00u,
+        0u
+    );
+
+    for (uint8_t i = 0u; i < 8u; i++)
+    {
+        Dcm_TxData[i] = 0u;
+        rx[i] = 0u;
+    }
+}
+
+void Dcm_RDTCI(void)
+{
+    uint8_t spayload[3u + (DEM_MAX_FF_DTC * 4u)];
+    uint16_t slen = 0u;
+    uint8_t reqStatusMask = rx[3u];
+
+    /* Positive response: 0x59 0x02 */
+    spayload[slen++] = 0x59u;
+    spayload[slen++] = 0x02u;
+
+    /* Supported DTC status bits by this ECU */
+    /* Adjust this if your DEM really supports a different set */
+    spayload[slen++] = 0xFFu;
+
+    for (uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
+    {
+        uint8_t st = Dem_DTC_Stat[i];
+        uint32_t dtc = Dem_PreDefined_DTC_Table[i];
+
+        /* Skip "no fault stored" entries */
+        if (st == 0x50u)
+        {
+            continue;
+        }
+
+        /* Apply request filter like UDS expects */
+        if ((st & reqStatusMask) == 0u)
+        {
+            continue;
+        }
+
+        /* Standard UDS order: DTC[3] + status[1] */
+        spayload[slen++] = (uint8_t)(dtc >> 16);
+        spayload[slen++] = (uint8_t)(dtc >> 8);
+        spayload[slen++] = (uint8_t)(dtc);
+        spayload[slen++] = st;
+    }
+
+    (void)Dcm_IsoTp_Send(Dcm_DiagRxHeader.StdId, spayload, slen, 0x00u, 0u);
+
+    for (uint8_t i = 0u; i < 8u; i++)
+    {
+        Dcm_TxData[i] = 0u;
+        rx[i] = 0u;
+    }
 }
 
 void Dcm_CommunicationControl()
@@ -1742,7 +1703,7 @@ void Dcm_ReadSWV()
 	Dcm_TxData[3u] = rx[3u];
 	Dcm_TxData[4u] = Dcm_SWV[0u];
 	Dcm_TxData[5u] = Dcm_SWV[1u];
-	Dcm_TxData[6u] = Nvm_ParamFlashBlock[262u];
+	Dcm_TxData[6u] = Nvm_ParamFlashBlock[290u];
 	Dcm_TxData[7u] = Dcm_SWV[3u];
 	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
 	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
@@ -1851,20 +1812,9 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	/* OBD services (functional or physical) */
-	if ( (rx[1u] <= 0x0Au) && (rx[1u] != 0x00u))
-	{
-		Dcm_HandleOBD();
-		return;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
 	if(0x19u == rx[1u] && 0x04 == rx[2u])
 	{
-		Dcm_RDTCI_19_04_AllSnapshots();
+		Dcm_RDTCI_19_04_Standard();
 	}
 	else
 	{

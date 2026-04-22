@@ -38,13 +38,6 @@
           "REG":"False"        
         },
         {
-          "Name":"OBD",
-          "Type":          1,
-          "GUID":"s1021338123128595387481839874",
-          "SEL":"Checked",
-          "REG":"False"        
-        },
-        {
           "Name":"Diagnosis Data Read",
           "Type":          1,
           "GUID":"s1098339533584303451777727699",

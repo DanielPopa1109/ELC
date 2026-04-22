@@ -231,7 +231,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
-	htim1.Instance->CCR1 = 514;
+	htim1.Instance->CCR1 = 0;
 
 	HAL_PWR_ConfigPVD(&sConfigPVD);
 

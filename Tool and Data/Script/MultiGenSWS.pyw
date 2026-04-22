@@ -6,7 +6,7 @@ import can
 import re
 
 START_ADDR = 0x08003800
-TOTAL_SIZE = 290
+TOTAL_SIZE = 292
 
 MINMAX_LABELS = [
     "T30_Min_10s",
@@ -185,8 +185,8 @@ def generate_hex(values, out_path):
         messagebox.showerror("HEX Error", f"Invalid parameter value.\n{e}")
         return
 
-    buf[288] = 0x20
-    buf[289] = 0xAA
+    buf[290] = 0x21
+    buf[291] = 0xAA
 
     lines = [":020000040800F2"]
     addr = START_ADDR & 0xFFFF
