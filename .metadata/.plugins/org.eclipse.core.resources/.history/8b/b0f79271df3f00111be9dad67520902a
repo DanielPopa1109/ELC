@@ -1362,46 +1362,55 @@ static void SMon_ProcessLoadErrorStatus(void)
 		/* Do nothing. */
 	}
 
-	if (SMon_NTC_Temperature_L1 > SMon_P_NTCTemperatureMax)
+	if(SMon_P_NTCTemperatureMax < SMon_NTC_Temperature_L1)
 	{
-	    if (localTimeStamp3 == 0u)
-	    {
-	        localTimeStamp3 = SMon_MainCnt;
-	    }
+		if(0u == localTimeStamp3)
+		{
+			localTimeStamp3 = SMon_MainCnt;
+		}
+		else
+		{
+			if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp3))
+			{
+				SMon_RequestPhysicalStatus = 0u;
+				SMon_NtcError = 1u;
 
-	    if ((SMon_MainCnt - localTimeStamp3) >= SMon_P_WaitTimeOVUV)
-	    {
-	        if (SMon_NtcError == 0u)
-	        {
-	            SMon_RequestPhysicalStatus = 0u;
-	            SMon_NtcError = 1u;
-	            Dem_SetDtc(0x58u, 0x2f);
-	        }
-	    }
+				Dem_SetDtc(0x58u, 0x2f);
+
+				localTimeStamp3 = 0;
+			}
+			else
+			{
+				/* Do nothing. */
+			}
+		}
+
 	}
-	else if (SMon_NTC_Temperature_L1 < SMon_P_NTCTemperatureRelease)
+	else if(SMon_P_NTCTemperatureRelease > SMon_NTC_Temperature_L1)
 	{
-	    if (localTimeStamp3 == 0u)
-	    {
-	        localTimeStamp3 = SMon_MainCnt;
-	    }
+		if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - localTimeStamp3))
+		{
+			SMon_NtcError = 0u;
 
-	    if ((SMon_MainCnt - localTimeStamp3) >= SMon_P_WaitTimeOVUV)
-	    {
-	        if (SMon_NtcError == 1u)
-	        {
-	            SMon_NtcError = 0u;
+			if(0x2f == Dem_GetDtcStatus(0x58u))
+			{
+				Dem_SetDtc(0x58u, 0x2e);
+			}
+			else
+			{
+				/* Do nothing. */
+			}
 
-	            if (Dem_GetDtcStatus(0x58u) == 0x2f)
-	            {
-	                Dem_SetDtc(0x58u, 0x2e);
-	            }
-	        }
-	    }
+			localTimeStamp3 = 0;
+		}
+		else
+		{
+			/* Do nothing. */
+		}
 	}
 	else
 	{
-	    localTimeStamp3 = 0u;
+		/* Do nothing. */
 	}
 
 	if(SMon_P_ExternalChargerThreshold > SMon_ISenseL1_ExtChISense)

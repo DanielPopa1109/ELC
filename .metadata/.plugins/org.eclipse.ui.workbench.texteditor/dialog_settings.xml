@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="HandleOBD"/>
+		<item key="selection" value="SMon_P_WaitTimeOVUV"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="SMon_P_WaitTimeOVUV"/>
+			<item value="0x58"/>
+			<item value="uvov"/>
 			<item value="handleobd"/>
 			<item value="19_04"/>
 			<item value="allsnap"/>
@@ -20,9 +23,6 @@
 			<item value="SMon_P_BattRestDetectCurrent_A"/>
 			<item value="SMon_P_ISenseZeroOffset_A"/>
 			<item value="SMon_P_AlphaFilter"/>
-			<item value="nvm_write"/>
-			<item value="SMon_P_BattRintMinStep_A"/>
-			<item value="extern"/>
 		</list>
 		<list key="replacehistory">
 			<item value="rd_f32_swap"/>

@@ -29,7 +29,7 @@
 #define ECU_RESP_TIMEOUT_TICKS     MS_TO_TICKS(100u)     /* 100 ms */
 #define ECU_RESP_ID                0x6EFu
 
-#define T_DELAY_START_TICKS        5996u                    /* 0 ms */
+#define T_DELAY_START_TICKS        0u                    /* 0 ms */
 #define T_DELAY_END_TICKS          MS_TO_TICKS(3000u)    /* 3000 ms -> 7480 ticks */
 #define T_DELAY_STEP_TICKS         1u                    /* 0.5 ms increment */
 
@@ -665,10 +665,10 @@ void step(void) { try { // interval = 0.5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMDld,100,296,3844949029240589717,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMDld,100,179,3844949029240589717,0
 ScriptName=CCode209
 DisplayName=CCode209
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-04-23 00:25:52*/
+LastBuildTime=2026-04-23 00:32:43*/
 // CODE BLOCK END Configuration
 

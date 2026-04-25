@@ -338,7 +338,7 @@ void step(void) { try { // interval = 1 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU3MjM3XQ__,100,160,5441474283909822556,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGU3MjM3XQ__,100,177,5441474283909822556,0
 ScriptName=CCode7237
 DisplayName=CCode7237
 DBDeps=ZGW_CAN_3
