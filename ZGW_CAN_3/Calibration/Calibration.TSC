@@ -1,4 +1,4 @@
-﻿[ECUGroup]
+[ECUGroup]
 Add ECU Prefix To System Variable=True
 
 [RecorderGroup]
@@ -29,7 +29,6 @@ ShowTree=1
 
 [Protocol_ELC]
 Protocol Timeout (ms)=2000
-Seed and Key DLL=ELC_seedNKeyDiag.dll
 Connect Retry Count=1
 Connect Retry Delay (ms)=1000
 Connect Timeout (ms)=2000
@@ -65,8 +64,8 @@ User Defined Fixed ID of Event Channel=False
 GET_COMM_MODE_INFO=1
 GET_ID=1
 SET_REQUEST=1
-GET_SEED=1
-UNLOCK=1
+GET_SEED=0
+UNLOCK=0
 SET_MTA=1
 UPLOAD=1
 SHORT_UPLOAD=1
@@ -170,3 +169,4 @@ A2LAlisMapName=
 [MeasGroup]
 BusLog=C:\Users\Daniel\Desktop\GitHub Repositories\ZGW_CAN_3\Logging\Bus\ZGW_CAN_32026_01_08_00_22_34.blf
 Trace=CAN / CAN FD Trace [#2]
+

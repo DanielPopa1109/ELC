@@ -20,7 +20,6 @@ uint8_t EcuM_ResetReason __attribute((section(".ncr")));
 uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
-uint32_t EcuM_ResetCounter __attribute((section(".ncr")));
 uint32_t EcuM_TotalResetCounter __attribute((section(".ncr")));
 
 void EcuM_main();
@@ -106,7 +105,6 @@ void EcuM_main()
 				if(0u == EcuM_PostRunTimer)
 				{
 					EcuM_SWState = 3u;
-					EcuM_ResetCounter = 0u;
 					EcuM_ResetInfo = 0u;
 					EcuM_ResetReason = 0u;
 					Nvm_WriteAll();
@@ -154,7 +152,6 @@ void EcuM_PerformReset(uint8_t reason, uint8_t info)
 
 	if(reason)
 	{
-		EcuM_ResetCounter++;
 		EcuM_TotalResetCounter++;
 	}
 	else

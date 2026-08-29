@@ -9,10 +9,9 @@
 #include "stdio.h"
 #include <stdlib.h>
 
-#define NVM_NO_BLOCKS               5U
+#define NVM_NO_BLOCKS               4U
 #define NVM_SIZE_HEADER_BYTES       8U
 #define NVM_PARAMFLASH_START_ADDRESS 0x08003800u
-#define NVM_PARAMFLASH_END_ADDRESS   0x08003BFFu
 #define NVM_DTC_START_ADDRESS        0x0800F800u
 #define NVM_DTC_END_ADDRESS          0x0800FFFFu
 #define DFLASH_STARTING_ADDRESS      0x0800F800u
@@ -38,12 +37,9 @@ typedef struct
 typedef struct
 {
     void*    data;
-    uint32_t crc;
 } Nvm_Block_t;
 
 extern uint32_t Nvm_CurrentAddress;
-extern uint32_t Nvm_SectorSwitchActivated;
-extern uint32_t Nvm_CurrentSector;
 extern Nvm_Header_t Nvm_HeaderArr[NVM_NO_BLOCKS];
 extern Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
 extern Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS];
@@ -51,8 +47,6 @@ extern Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS];
 extern Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS];
 extern Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS];
 extern uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS];
-extern uint8_t Nvm_WriteAllFinished;
-extern uint8_t Nvm_ReadAllFinished;
 extern uint8_t Nvm_ParamFlashBlock[292u];
 
 extern void Nvm_SectorSwitch(void);

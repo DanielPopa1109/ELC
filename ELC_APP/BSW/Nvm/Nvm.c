@@ -5,13 +5,9 @@
 #include "SMon.h"
 
 uint32_t Nvm_CurrentAddress;
-uint32_t Nvm_SectorSwitchActivated;
-uint32_t Nvm_CurrentSector;
 Nvm_Header_t Nvm_HeaderArr[NVM_NO_BLOCKS];
 Nvm_NvStat_t Nvm_NvStatArr[NVM_NO_BLOCKS];
-uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u, 1u};
-uint8_t Nvm_WriteAllFinished = 0u;
-uint8_t Nvm_ReadAllFinished = 0u;
+uint8_t Nvm_BlockIdListForWriteAll[NVM_NO_BLOCKS] = {0u, 1u, 1u, 1u};
 uint8_t Nvm_ParamFlashBlock[292u] = {0u};
 
 Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
@@ -19,8 +15,7 @@ Nvm_Header_t Nvm_HeaderArr_Default[NVM_NO_BLOCKS]=
 		{0u, 0u, 0u, 0u}, // block 0 dummy not used
 		{1u, sizeof(Dem_DTC_Stat), 0u, 0u},
 		{2u, sizeof(Dem_FF), 0u, 0u},
-		{3u, sizeof(SMon_DataMinMaxAvg), 0u, 0u},
-		{4u, sizeof(SMon_Battery), 0u, 0u},
+		{3u, sizeof(SMon_Battery), 0u, 0u},
 };
 
 Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
@@ -28,26 +23,23 @@ Nvm_NvStat_t Nvm_NvStatArr_Default[NVM_NO_BLOCKS] =
 		{0u, 0u, 0u}, // block 0 dummy not used
 		{sizeof(Dem_DTC_Stat), 0u, 0u,},
 		{sizeof(Dem_FF), 0u, 0u},
-		{sizeof(SMon_DataMinMaxAvg), 0u, 0u},
 		{sizeof(SMon_BatteryData_t), 0u, 0u},
 };
 
 Nvm_Block_t Nvm_BlockDataList[NVM_NO_BLOCKS] =
 {
-		{0u, 0u}, // block 0 dummy not used
-		{&Dem_DTC_Stat[0u], 0u},
-		{&Dem_FF[0u].occurrenceCnt, 0u},
-		{&SMon_DataMinMaxAvg[0u], 0u},
-		{&SMon_Battery.Voltage_V, 0u},
+		{0u}, // block 0 dummy not used
+		{&Dem_DTC_Stat[0u]},
+		{&Dem_FF[0u].occurrenceCnt},
+		{&SMon_Battery.Voltage_V},
 };
 
 Nvm_Block_t Nvm_RomDefaults_BlockDataList[NVM_NO_BLOCKS] =
 {
-		{0u, 0u}, // block 0 dummy not used
-		{&Dem_DTC_Stat[0u], 0u},
-		{&Dem_FF[0u].occurrenceCnt, 0u},
-		{&SMon_DataMinMaxAvg[0u], 0u},
-		{&SMon_Battery.Voltage_V, 0u},
+		{0u}, // block 0 dummy not used
+		{&Dem_DTC_Stat[0u]},
+		{&Dem_FF[0u].occurrenceCnt},
+		{&SMon_Battery.Voltage_V},
 };
 
 void Nvm_SectorSwitch(void);
@@ -88,8 +80,8 @@ void Nvm_InitParamFlash(void)
 	{
 		uint32_t idx = 0u;
 
-		SMon_P_10sCycles                  = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_RetryCntS2bTestOn          = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* legacy slot kept to preserve param flash layout */
+		idx += 4; /* unused legacy slot */
 		SMon_P_DischargeTimeCycles        = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_NTC_PullUp_ResistorVale    = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_LongDischargeTimeCycles    = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
@@ -101,14 +93,14 @@ void Nvm_InitParamFlash(void)
 		SMon_P_UV_CLS                     = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_Varef                      = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_ADC_MaxValue               = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BetaConst                  = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_NTC_L1_TwoPointCalibration_ParamB = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_StatusVoltageL1Filter       = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_I2TDebounceTime             = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_Rtcntmax                    = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_CLSTime                     = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_WaitTimeOVUV                = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_WaitTimeCPC                 = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_I2TDecrementPercentFactor   = rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_NTC_L1_TwoPointCalibration_ParamA 	= rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattRestTimeTicks        			= rd_u32(&Nvm_ParamFlashBlock[idx]); idx += 4;
@@ -123,7 +115,7 @@ void Nvm_InitParamFlash(void)
 		SMon_P_AvgSlope                           = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_RoomTemperature                    = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_Kelvin                             = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_VoltageDivider                     = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_AlphaFilter                        = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_AlphaFilterExtChIsense             = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_TwoPointCalib_ConvFacISense        = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
@@ -132,10 +124,10 @@ void Nvm_InitParamFlash(void)
 		SMon_P_NTCTemperatureMax                  = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_NTCTemperatureRelease              = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattNominalCapacity_Ah      = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattInitialSoC_pct          = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_BattMinSoC_pct              = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattMaxSoC_pct              = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattRestCurrent_A           = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_BattRestVoltDelta_V         = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattWeakVolt_V              = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattDeepDischargeVolt_V     = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
@@ -149,28 +141,25 @@ void Nvm_InitParamFlash(void)
 		SMon_P_BattSoHMax_pct              = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattNominalRint_Ohm         = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattBadRint_Ohm             = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattCurrentAlpha = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_BattCurrentDeadband_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_ISenseZeroOffset_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
 		SMon_P_BattCurrentHys_A             = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattChargePathDeltaOn_V      = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattChargePathDeltaOff_V     = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 		SMon_P_BattRintMinStep_A            = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattAvgCurrentAlpha          = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattHybridBlendLowLoad       = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
-		SMon_P_BattChargeVoltageCompGain = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
+		idx += 4; /* unused legacy slot */
+		idx += 4; /* unused legacy slot */
+		idx += 4; /* unused legacy slot */
 		SMon_P_BattRestDetectCurrent_A = rd_f32(&Nvm_ParamFlashBlock[idx]); idx += 4;
 	}
 	else
 	{
-		SMon_P_10sCycles = 2000u;
-		SMon_P_RetryCntS2bTestOn = 564000u;
 		SMon_P_StatusVoltageL1Filter = 250u;
 		SMon_P_I2TDebounceTime = 20u;
 		SMon_P_Rtcntmax = 13u; // Retry Counter Parameter
 		SMon_P_CLSTime = 22u; // CLS Duration Parameter
 		SMon_P_WaitTimeOVUV = 80u; // OV UV De-bounce Time Parameter
-		SMon_P_WaitTimeCPC = 10u; // Wait Before Changing States For CPC Parameter
 		SMon_P_I2TDecrementPercentFactor = 85u; // Cooling Off Factor Parameter
 		SMon_P_ClsFailureWaitTime = 190u; // Wait Time Between CLS Retries Parameter
 		SMon_P_DischargeTimeCycles = 132000u; // ~50% Starting Voltage Discharge Time Parameter
@@ -181,7 +170,6 @@ void Nvm_InitParamFlash(void)
 		SMon_P_Varef = 3300u;
 		SMon_P_ADC_MaxValue = 4095u;
 		SMon_P_NTC_PullUp_ResistorVale = 91000u;
-		SMon_P_BetaConst = 3950u;
 		SMon_P_LongDischargeTimeCycles = 564000u; // Maximum Discharge Time Parameter
 		SMon_P_LowDisTimeCyc = 229600; // 2TAU Discharge Time Parameter
 		SMon_P_VFB_T30_TwoPointCalibration_ParamA = 8.16f;
@@ -198,7 +186,6 @@ void Nvm_InitParamFlash(void)
 		SMon_P_AvgSlope = 4.30f;
 		SMon_P_RoomTemperature = 25.0f;
 		SMon_P_Kelvin = 273.15f;
-		SMon_P_VoltageDivider = 10.10f;
 		SMon_P_AlphaFilter = 0.90f;
 		SMon_P_AlphaFilterExtChIsense = 0.0001f;
 		SMon_P_TwoPointCalib_ConvFacISense = 15.91f;
@@ -207,10 +194,8 @@ void Nvm_InitParamFlash(void)
 		SMon_P_NTCTemperatureMax = 90.0f;
 		SMon_P_NTCTemperatureRelease = 80.0f;
 		SMon_P_BattNominalCapacity_Ah      = 77.0f;
-		SMon_P_BattInitialSoC_pct          = 1.0f;
 		SMon_P_BattMinSoC_pct              = 1.0f;
 		SMon_P_BattMaxSoC_pct              = 100.0f;
-		SMon_P_BattRestCurrent_A           = 0.100f;
 		SMon_P_BattRestVoltDelta_V         = 0.02f;
 		SMon_P_BattWeakVolt_V              = 11.80f;
 		SMon_P_BattDeepDischargeVolt_V     = 11.10f;
@@ -224,16 +209,11 @@ void Nvm_InitParamFlash(void)
 		SMon_P_BattSoHMax_pct              = 100.0f;
 		SMon_P_BattNominalRint_Ohm         = 0.015f;
 		SMon_P_BattBadRint_Ohm             = 0.060f;
-		SMon_P_BattCurrentAlpha = 0.0001f;
 		SMon_P_BattCurrentDeadband_A = 1.0f;
-		SMon_P_ISenseZeroOffset_A = 0.3f;
 		SMon_P_BattCurrentHys_A            = 0.30f;
 		SMon_P_BattChargePathDeltaOn_V     = 0.25f;
 		SMon_P_BattChargePathDeltaOff_V    = 0.10f;
 		SMon_P_BattRintMinStep_A           = 0.20f;
-		SMon_P_BattAvgCurrentAlpha         = 0.05f;
-		SMon_P_BattHybridBlendLowLoad      = 0.15f;
-		SMon_P_BattChargeVoltageCompGain = 0.35f;
 		SMon_P_BattRestDetectCurrent_A = 0.30f;
 
 		uint32_t idx = 0u;
@@ -247,8 +227,8 @@ void Nvm_InitParamFlash(void)
 					idx += sizeof(val);                     \
 		} while(0)
 
-		COPY_TO_BUF(SMon_P_10sCycles);
-		COPY_TO_BUF(SMon_P_RetryCntS2bTestOn);
+		idx += 4; /* legacy slot kept to preserve param flash layout */
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_DischargeTimeCycles);
 		COPY_TO_BUF(SMon_P_NTC_PullUp_ResistorVale);
 		COPY_TO_BUF(SMon_P_LongDischargeTimeCycles);
@@ -260,14 +240,14 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_UV_CLS);
 		COPY_TO_BUF(SMon_P_Varef);
 		COPY_TO_BUF(SMon_P_ADC_MaxValue);
-		COPY_TO_BUF(SMon_P_BetaConst);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_NTC_L1_TwoPointCalibration_ParamB);
 		COPY_TO_BUF(SMon_P_StatusVoltageL1Filter);
 		COPY_TO_BUF(SMon_P_I2TDebounceTime);
 		COPY_TO_BUF(SMon_P_Rtcntmax);
 		COPY_TO_BUF(SMon_P_CLSTime);
 		COPY_TO_BUF(SMon_P_WaitTimeOVUV);
-		COPY_TO_BUF(SMon_P_WaitTimeCPC);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_I2TDecrementPercentFactor);
 		COPY_TO_BUF(SMon_P_NTC_L1_TwoPointCalibration_ParamA);
 		COPY_TO_BUF(SMon_P_BattRestTimeTicks);
@@ -282,7 +262,7 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_AvgSlope);
 		COPY_TO_BUF(SMon_P_RoomTemperature);
 		COPY_TO_BUF(SMon_P_Kelvin);
-		COPY_TO_BUF(SMon_P_VoltageDivider);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_AlphaFilter);
 		COPY_TO_BUF(SMon_P_AlphaFilterExtChIsense);
 		COPY_TO_BUF(SMon_P_TwoPointCalib_ConvFacISense);
@@ -291,10 +271,10 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_NTCTemperatureMax);
 		COPY_TO_BUF(SMon_P_NTCTemperatureRelease);
 		COPY_TO_BUF(SMon_P_BattNominalCapacity_Ah);
-		COPY_TO_BUF(SMon_P_BattInitialSoC_pct);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_BattMinSoC_pct);
 		COPY_TO_BUF(SMon_P_BattMaxSoC_pct);
-		COPY_TO_BUF(SMon_P_BattRestCurrent_A);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_BattRestVoltDelta_V);
 		COPY_TO_BUF(SMon_P_BattWeakVolt_V);
 		COPY_TO_BUF(SMon_P_BattDeepDischargeVolt_V);
@@ -308,16 +288,16 @@ void Nvm_InitParamFlash(void)
 		COPY_TO_BUF(SMon_P_BattSoHMax_pct);
 		COPY_TO_BUF(SMon_P_BattNominalRint_Ohm);
 		COPY_TO_BUF(SMon_P_BattBadRint_Ohm);
-		COPY_TO_BUF(SMon_P_BattCurrentAlpha);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_BattCurrentDeadband_A);
-		COPY_TO_BUF(SMon_P_ISenseZeroOffset_A);
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_BattCurrentHys_A);
 		COPY_TO_BUF(SMon_P_BattChargePathDeltaOn_V);
 		COPY_TO_BUF(SMon_P_BattChargePathDeltaOff_V);
 		COPY_TO_BUF(SMon_P_BattRintMinStep_A);
-		COPY_TO_BUF(SMon_P_BattAvgCurrentAlpha);
-		COPY_TO_BUF(SMon_P_BattHybridBlendLowLoad);
-		COPY_TO_BUF(SMon_P_BattChargeVoltageCompGain);
+		idx += 4; /* unused legacy slot */
+		idx += 4; /* unused legacy slot */
+		idx += 4; /* unused legacy slot */
 		COPY_TO_BUF(SMon_P_BattRestDetectCurrent_A);
 
 		Nvm_ParamFlashBlock[291u] = 0xAAu;
@@ -399,7 +379,6 @@ void Nvm_WriteBlock(uint16_t blockId, void *data)
 	}
 	else
 	{
-		Nvm_SectorSwitchActivated = 1u;
 		/* page full -> compact (erase + rewrite all) */
 		Nvm_SectorSwitch();
 
@@ -420,22 +399,6 @@ void Nvm_WriteBlock(uint16_t blockId, void *data)
 		address += 8u;
 
 		Nvm_CurrentAddress = address;
-
-		Nvm_SectorSwitchActivated = 2u;
-	}
-
-	if(0x0800fbffu >= Nvm_CurrentAddress)
-	{
-		Nvm_CurrentSector = 1;
-	}
-	else if(0x0800fbffu < Nvm_CurrentAddress &&
-			0x0800ffffu >= Nvm_CurrentAddress)
-	{
-		Nvm_CurrentSector = 2;
-	}
-	else
-	{
-		/* Do nothing. */
 	}
 
 	__enable_irq();
@@ -601,8 +564,6 @@ void Nvm_ReadAll(void)
 		}
 	}
 
-	Nvm_ReadAllFinished = 2u;
-
 	__enable_irq();
 }
 
@@ -621,8 +582,6 @@ void Nvm_WriteAll(void)
 			/* Do nothing. */
 		}
 	}
-
-	Nvm_WriteAllFinished = 2u;
 
 	__enable_irq();
 }

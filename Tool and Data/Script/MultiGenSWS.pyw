@@ -486,9 +486,6 @@ def run_diag_export(blf_dir, out_path):
                     name = DID_NAME_MAP.get(did_int, "UNKNOWN")
                     f.write(f"{did:<6} {name:<30} {val}\n")
 
-                f.write("\n[OBD]\n" + "-" * 80 + "\n")
-                for t, typ, ident, val in filter(lambda x: x[0] == trace, obd_lines):
-                    f.write(f"{typ:<8} {ident:<16} {val}\n")
 
                 f.write("\n[MIN/MAX/AVG]\n" + "-" * 80 + "\n")
                 for t, values in filter(lambda x: x[0] == trace, routine_lines):

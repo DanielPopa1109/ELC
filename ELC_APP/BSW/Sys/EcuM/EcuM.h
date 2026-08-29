@@ -10,12 +10,6 @@
 #include "adc.h"
 #include <string.h>
 
-typedef struct
-{
-    uint32_t reset;
-    uint32_t info;
-} FaultInfo_t;
-
 extern uint8_t EcuM_SWState;
 extern uint8_t EcuM_WUPLine;
 extern uint32_t EcuM_RunTimer;
@@ -26,12 +20,9 @@ extern uint8_t EcuM_ResetReason;
 extern uint8_t EcuM_ResetInfo;
 extern uint32_t EcuM_TimeActive;
 extern uint32_t EcuM_TimeWithoutReset;
-extern uint32_t EcuM_ResetCounter;
 extern uint32_t EcuM_TotalResetCounter;
 
 extern void EcuM_main(void);
-extern void EcuM_GoSleep(void);
 extern void EcuM_PerformReset(uint8_t reason, uint8_t info);
-extern void EcuM_CyclicActivity(void);
 
 #endif /* ECUM_H */

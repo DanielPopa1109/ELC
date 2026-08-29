@@ -1,8 +1,8 @@
-﻿[TSMaster]
+[TSMaster]
 DebugMode=0
 DisableResize=0
 LogVerbose=6
-Bounds=1920,0,3856,1048
+Bounds=0,0,1936,1048
 Maximized=1
 AutoGenConstDef=0
 AutoGenDBConstDef=0
@@ -67,7 +67,7 @@ TfrmLINTrace=0
 TfrmLINTransmit=0
 TfrmLINDatabase=0
 TfrmChannelMapping=0
-TfrmCCodeEditor=4
+TfrmCCodeEditor=3
 TfrmSettings=0
 TfrmCANRBS=1
 TfrmMPLibrary=0
@@ -141,7 +141,7 @@ TfrmLINTrace_GUIDs=
 TfrmLINTransmit_GUIDs=
 TfrmLINDatabase_GUIDs=
 TfrmChannelMapping_GUIDs=
-TfrmCCodeEditor_GUIDs=1646347185747603525,4505007066452424418,5441474283909822556,3844949029240589717
+TfrmCCodeEditor_GUIDs=4505007066452424418,5441474283909822556,3844949029240589717
 TfrmSettings_GUIDs=
 TfrmCANRBS_GUIDs=2793639168384550544
 TfrmMPLibrary_GUIDs=
@@ -217,59 +217,36 @@ TfrmMapMulti_GUIDs=
 TfrmToolboxBuilder_GUIDs=
 TfrmTSForm_GUIDs=
 TfrmPythonCodeEditor_GUIDs=
-TfrmBasePluginSingle.TfrmSecurity=0
-TfrmBasePluginSingle.TfrmSecurity_GUIDs=
-
-[Pg0]
-Count=4
-HiddenCount=11
-f0=TfrmCANRBS,0,1126,6,786,459,429,372,1131,566,1
-f1=TfrmCANFDTrace,0,0,6,725,459,0,0,1107,398,1
-f2=TfrmGraphics,0,0,465,1912,355,0,0,1088,606,1
-f3=TfrmPanel,0,725,6,401,459,0,0,950,488,1
-h0=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
-h1=TfrmSystemVarMgmt,0,511,79,802,747,260,260,802,747,1
-h2=TfrmCCodeEditor,0,245,250,1030,685,260,260,1030,685,1
-h3=TfrmCANFDTrace,1,1275,474,625,343,1275,474,625,343,1
-f4=TfrmPanel,0,650,6,638,462,0,0,950,488,1
-h4=TfrmDiagnostics,0,0,0,1358,817,4,2,1358,815,1
-h5=TfrmCCodeEditor,1,26,26,1030,685,26,26,1030,685,1
-h6=TfrmGraphics,1,4,466,1271,343,4,482,1271,343,1
-h7=TfrmCANFDTransmit,0,398,177,1061,564,0,0,1061,564,1
-h8=TfrmPanel,0,281,31,765,601,0,0,950,488,1
-h9=TfrmGraphics,0,0,419,1912,401,0,0,1088,606,1
-h10=TfrmCCodeEditor,3,1201,0,702,820,1201,0,702,820,1
-h11=TfrmVideoRecord,0,234,0,1296,826,234,234,1296,859,1
 
 [RTL_Form_Position_MDI]
-TfrmSystemMsgs=0,0,1294,328
-TfrmCANDatabase=0,0,1016,631
+TfrmSystemMsgs=220,1,952,820
+TfrmCANDatabase=952,370,1891,820
 CANFDTraceOptions=0,6,725,465
 Graphics=0,465,1912,820
 PanelOptions=725,6,1126,465
 TfrmCANRBS=1126,6,1912,465
-TfrmSystemVarMgmt=234,234,1036,981
-CCodeEditor=0,0,1030,685
-TfrmCANStatistics=0,0,284,401
-ThexEditorContainer=78,78,1744,653
-TfrmMeasurementSetup=0,0,836,524
-TfrmBasePluginSingle.TfrmA2LEditor=2050,130,3212,804
-TfrmCalibration=130,130,1049,759
-Graphics1=0,0,1088,606
+TfrmSystemVarMgmt=182,182,984,929
+CCodeEditor=0,0,577,820
+TfrmCANStatistics=952,1,1236,370
+ThexEditorContainer=1236,1,1891,370
+TfrmMeasurementSetup=4,1,220,820
+TfrmBasePluginSingle.TfrmA2LEditor=208,208,1370,882
+TfrmCalibration=4,7,1289,474
+Graphics1=4,474,1912,817
 TfrmLogging=0,0,794,467
 TfrmPlayback=0,0,985,627
 TfrmVideoReplay=182,182,898,560
-CCodeEditor1=52,52,1082,737
-CANFDTraceOptions1=0,0,1107,398
+CCodeEditor1=577,0,1201,820
+CANFDTraceOptions1=1289,7,1912,474
 CANFDTraceOptions2=0,0,1107,398
-TfrmDiagnostics=182,182,1848,757
-TfrmDiagnosticsDTCAnalysis=208,208,1874,783
+TfrmDiagnostics=130,130,1796,705
+TfrmDiagnosticsDTCAnalysis=156,156,1822,731
 TfrmTSAppHost=0,0,616,360
 TfrmTSWebServer=260,260,886,920
 TfrmTsRPC=0,0,747,613
 TfrmBasePluginSingle.TfrmAutomatedTest=157,122,1316,780
 CANFDTransmit=0,0,1061,564
-CCodeEditor2=104,104,1134,789
+CCodeEditor2=1201,0,1903,820
 PythonCodeEditor=651,0,1699,705
 TfrmJavaAPIManager=208,0,1174,826
 TfrmDiagnosticsDTCAnalysis1=208,208,1860,768
@@ -277,7 +254,7 @@ TfrmAudioRecord=234,234,1530,1093
 TfrmVideoRecord=182,182,1478,1041
 TfrmAutoSARE2EViewer=0,0,1171,640
 TfrmCANoeController=78,78,962,585
-TfrmSerialPort=234,234,1900,809
+TfrmSerialPort=182,182,1848,757
 TInstrumentManager=156,152,1214,826
 TfrmScopeUI=234,234,1886,794
 CalibrationCurve=447,178,1317,712
@@ -285,12 +262,11 @@ TfrmDataProcessor=260,260,1095,802
 TfrmPDXOdxEditor=0,0,1666,575
 TfrmMapMulti=78,78,1730,638
 TfrmToolboxBuilder=104,70,1050,826
-TfrmBasePluginSingle.TfrmSecurity=0,0,1164,659
 CCodeEditor3=156,156,1186,841
 
 [RTL_Form_Position]
-TfrmTSMaster_0=1912,-8,3848,1040
-TfrmHardware=2478,215,3282,816
+TfrmTSMaster_0=-8,-8,1928,1040
+TfrmHardware=558,215,1362,816
 TfrmCANDatabase1=2372,255,3388,886
 TfrmSystemVarMgmt1=559,197,1361,944
 TfrmAutomotiveFileConverter=521,210,1398,822
@@ -298,27 +274,8 @@ TfrmChannelMapping=2478,290,3281,742
 TfrmCANDatabase=2372,255,3388,886
 TfrmProjectSettings=2480,207,3279,825
 
-[PageLayouts]
-DisableResize=0
-Tabbed=0
-PageCnt=7
-ActiveIdx=0
-Pg0=Analysis
-ScreenWidth=1920
-ScreenHeight=1080
-MainBounds=1912,-8,3848,1040
-PixelsPerInch=96
-AppLeftP=1912
-AppTopP=-8
-Pg1=Automation
-Pg2=Diagnostic
-Pg3=XCP
-Pg4=A2L Editor
-Pg5=Logging
-Pg6=System
-
 [MeasurementController]
-MCount=25
+MCount=24
 M0=0,1,217,-1,0,TfrmSystemMsgs,System Messages
 M1=0,1,62,-1,1,TfrmCANDatabase,CAN Database
 M2=0,1,209,-1,2,TfrmCANFDTrace,CAN / CAN FD Trace
@@ -326,30 +283,30 @@ M3=0,1,177,-1,3,TfrmGraphics,Graphics
 M4=0,1,241,-1,4,TfrmPanel,Panel 2301
 M5=0,1,79,-1,5,TfrmCANRBS,CAN Remaining Bus Simulation
 M6=0,1,3,-1,6,TfrmSystemVarMgmt,System Variable Management
-M7=0,1,165,-1,7,TfrmCCodeEditor,C Code Editor [crc]
-M8=0,1,214,-1,8,TfrmCANStatistics,CAN Statistics
-M9=0,1,107,-1,9,ThexEditorContainer,Hex Editor
-M10=0,1,245,-1,10,TfrmMeasurementSetup,Measurement Setup
-M11=0,1,573,-1,11,TfrmBasePluginSingle.TfrmA2LEditor,A2L Editor
-M12=0,1,262,-1,12,TfrmCalibration,Calibration
-M13=1,1,177,-1,13,TfrmGraphics,Graphics [#2]
-M14=0,1,213,-1,14,TfrmLogging,Bus Logging
-M15=0,1,215,-1,15,TfrmPlayback,Bus Playback
-M16=1,1,165,-1,16,TfrmCCodeEditor,C Code Editor [CCode2360]
-M17=1,1,209,-1,17,TfrmCANFDTrace,CAN / CAN FD Trace [#2]
-M18=0,1,405,-1,18,TfrmDiagnostics,Diagnostic
-M19=2,1,209,-1,19,TfrmCANFDTrace,CAN / CAN FD Trace [#3]
-M20=0,1,58,-1,20,TfrmCANFDTransmit,CAN / CAN FD Transmit
-M21=0,1,478,-1,21,TfrmSerialPort,TS Serial Port
-M22=2,1,165,-1,22,TfrmCCodeEditor,C Code Editor [CCode7237]
-M23=0,1,405,-1,23,TfrmDiagnosticsDTCAnalysis,DTC Analysis
+M7=0,1,214,-1,7,TfrmCANStatistics,CAN Statistics
+M8=0,1,107,-1,8,ThexEditorContainer,Hex Editor
+M9=0,1,245,-1,9,TfrmMeasurementSetup,Measurement Setup
+M10=0,1,573,-1,10,TfrmBasePluginSingle.TfrmA2LEditor,A2L Editor (beta version)
+M11=0,1,262,-1,11,TfrmCalibration,Calibration
+M12=1,1,177,-1,12,TfrmGraphics,Graphics [#2]
+M13=0,1,213,-1,13,TfrmLogging,Bus Logging
+M14=0,1,215,-1,14,TfrmPlayback,Bus Playback
+M15=0,1,165,-1,15,TfrmCCodeEditor,C Code Editor [CCode2360]
+M16=1,1,209,-1,16,TfrmCANFDTrace,CAN / CAN FD Trace [#2]
+M17=0,1,405,-1,17,TfrmDiagnostics,Diagnostic
+M18=2,1,209,-1,18,TfrmCANFDTrace,CAN / CAN FD Trace [#3]
+M19=0,1,58,-1,19,TfrmCANFDTransmit,CAN / CAN FD Transmit
+M20=0,1,478,-1,20,TfrmSerialPort,TS Serial Port
+M21=1,1,165,-1,21,TfrmCCodeEditor,C Code Editor [CCode7237]
+M22=0,1,405,-1,22,TfrmDiagnosticsDTCAnalysis,DTC Analysis
+M23=2,1,165,-1,23,TfrmCCodeEditor,C Code Editor [CCode209]
 M24=3,1,165,-1,24,TfrmCCodeEditor,C Code Editor [CCode209]
 M25=0,1,405,-1,25,TfrmDiagnosticsDTCAnalysis,DTC Analysis
 M26=0,1,405,-1,26,TfrmPDXOdxEditor,PDX/ODX Editor
 
 [SystemMsgOptions]
 MaxLines=100000
-UICommon=0,-1,0,0,U3lzdGVtIE1lc3NhZ2Vz,100,141,1879126966080841848,0
+UICommon=0,-1,0,0,U3lzdGVtIE1lc3NhZ2Vz,100,159,1879126966080841848,0
 UIFilter=
 
 [ChannelMappings]
@@ -363,9 +320,11 @@ AOChnCount=0
 DIChnCount=0
 DOChnCount=0
 GPSChnCount=0
+DAPChnCount=0
+A429ChnCount=0
 
 [UserVariables]
-Count=21
+Count=22
 u0=LoadRequestStatus,,,User,1,0,0,255,0,,-1,,,-1,-1,MA__
 u1=NM3RSPN1,,,User,1,0,0,255,18,,-1,,,-1,-1,MA__
 u2=Var0,,,User,0,0,0,100,22,,-1,,,0,-1,MjI_
@@ -377,7 +336,7 @@ u7=CWT_WUP,,,User,1,0,0,1,0,,-1,,,0,-1,MA__
 u8=CWT_NM3,,,User,1,0,0,100,0,,-1,,,0,-1,MA__
 u9=CWT_WUP_NM3,,,User,1,0,0,100,0,,-1,,,0,-1,MA__
 u10=Trigger3FFRelayBusy,Test,Sequence active,MP,0,0,0,100,0,,-1,,,0,-1,MA__
-u11=Trigger3FFRelayError,Test,0=OK 1=COM open fail 2=relay I/O fail,MP,0,0,0,100,1,,-1,,,0,-1,MA__
+u11=Trigger3FFRelayError,Test,0=OK 1=COM open fail 2=relay I/O fail,MP,0,0,0,100,0,,-1,,,0,-1,MA__
 u12=WUP_STAT,,,User,0,0,0,1,0,,-1,,,0,-1,MA__
 u13=CWT_WUP_STATE,,,User,0,0,0,1,0,,-1,,,0,-1,MA__
 u14=CWT_NM3_STATE,,,User,0,0,0,1,0,,-1,,,0,-1,MA__
@@ -387,6 +346,7 @@ u17=CWP_WUP_STATE,,0=idle  1=ongoing  2=finished,MP,0,0,0,100,0,,-1,,,0,-1,MA__
 u18=CWP_WUP_NM3_STATE,,0=idle  1=ongoing  2=finished,MP,0,0,0,100,0,,-1,,,0,-1,MA__
 u20=NM3_TX_STAT,,,User,0,0,0,100,0,,-1,,,0,-1,MA__
 u19=Var1,,,User,0,0,0,100,0,,-1,,,0,-1,MA__
+u21=AbsoluteTimeStartNs,Measurement,Absolute measurement start time in nanoseconds,TSMaster,2,0,0,100,1787781109008999680,,-1,,,0,-1,
 
 [PluginManager]
 ExternalCount=0
@@ -412,6 +372,7 @@ Bus Replay=1
 CAN / CAN FD Trace 2=100
 CAN / CAN FD Trace 3=100
 TTsRPCServerIPImpl=100
+Diagnostic Protocol 0=100
 
 [app_conn_callback_after_connect]
 J1939 TP=100
@@ -427,6 +388,7 @@ LIN RBS=100
 Graphics=100
 Measurement Setup=100
 TTsRPCServerIPImpl=100
+Signal Mapping composition connection revision=100
 
 [app_conn_callback_before_disconnect]
 Signal Server=100
@@ -434,6 +396,9 @@ MDI Manager=100
 LIN RBS=100
 J1939 TP=100
 Bus Replay=100
+CAN RBS=100
+Ethernet RBS=100
+FlexRay RBS=100
 
 [app_conn_callback_after_disconnect]
 CoSimController=100
@@ -453,11 +418,10 @@ CAN / CAN FD Trace 2=100
 CAN / CAN FD Trace 3=100
 TTsRPCServerIPImpl=100
 CAN Transmit=100
+Signal Mapping composition connection revision=100
 
 [app_hw_selector_conf]
 FEnableTSync=0
-FActiveWirelessOBD=
-FEnableTSWirelessOBD=0
 DeviceCount=0
 FEnableEthernetInterfaceDevice=0
 FNetIfNum=0
@@ -509,7 +473,7 @@ ChnCAN0=0
 PropertyHeight=190
 PropertyVisible=1
 HWChnCount=2
-UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,306,7352970838949619574,0
+UICommon=0,-1,0,0,Q0FOIERhdGFiYXNl,100,371,7352970838949619574,0
 UIFilter=
 
 [TfrmSystemVarMgmt1]
@@ -518,58 +482,17 @@ AutoDecideTree=1
 
 [MPLibraryMgmt]
 crc=
-MPsCount=3
+MPsCount=4
 rtlHexEditor=
 rtlUIDiagnostics=
+Instr_SerialPort=
 MPs0=rtlHexEditor.bpl
 MPs1=rtlUIDiagnostics.bpl
-MPs2=crc.mp64
-
-[Pg1]
-Count=3
-HiddenCount=2
-f0=TfrmCCodeEditor,1,0,0,577,820,4,1,948,488,1
-f1=TfrmCCodeEditor,2,577,0,624,820,182,182,1030,685,1
-f2=TfrmCCodeEditor,3,1201,0,702,820,26,26,1030,685,1
-h0=TfrmSystemVarMgmt,0,260,79,1071,747,260,79,802,747,1
-h1=TfrmSerialPort,0,217,141,1652,560,156,156,1652,560,1
-
-[Pg2]
-Count=3
-HiddenCount=3
-f0=TfrmCANFDTrace,2,1521,2,373,815,0,0,1107,398,1
-f1=TfrmDiagnosticsDTCAnalysis,0,908,2,613,815,0,0,1652,560,1
-h0=TfrmGraphics,0,249,304,1517,423,0,380,1899,422,1
-f2=TfrmDiagnostics,0,4,2,904,815,260,260,1652,560,1
-f3=TfrmCalibration,0,4,7,877,467,208,208,919,629,1
-h1=TfrmSystemVarMgmt,0,130,79,802,747,130,130,802,747,1
-h2=TfrmDiagnosticsDTCAnalysis,0,159,92,1651,560,0,0,1652,560,1
-
-[Pg3]
-Count=3
-HiddenCount=3
-f0=TfrmCANFDTrace,1,1289,7,623,467,0,0,1107,398,1
-f1=TfrmGraphics,1,4,474,1908,343,0,0,1088,606,1
-f2=TfrmCalibration,0,4,7,1285,467,208,208,919,629,1
-f3=TfrmCalibration,0,4,7,877,467,208,208,919,629,1
-h0=TfrmCANFDTrace,2,1362,2,532,815,1362,2,532,815,1
-h1=TfrmGraphics,0,0,398,1899,422,0,398,1899,422,1
-h2=TfrmBasePluginSingle.TfrmA2LEditor,0,881,7,1019,467,234,234,1162,674,1
-
-[Pg4]
-Count=1
-f0=TfrmBasePluginSingle.TfrmA2LEditor,0,4,7,1908,813,881,7,1019,467,1
-f1=ThexEditorContainer,0,1236,1,655,369,104,104,1652,560,1
-f2=TfrmCANDatabase,0,952,370,939,450,32,8,1016,631,1
-f3=TfrmCANStatistics,0,952,1,284,369,0,0,284,401,1
-f4=TfrmCCodeEditor,1,4,1,948,488,156,156,1030,685,1
-HiddenCount=0
-f5=TfrmSystemMsgs,0,220,489,732,331,8,0,1294,328,1
-f6=TfrmCCodeEditor,0,4,1,948,488,260,260,1030,685,1
-h0=TfrmCCodeEditor,0,4,1,948,488,260,260,1030,685,1
+MPs2=Instr_SerialPort.bpl
+MPs3=crc.mp64
 
 [CANRBS]
-UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,94,2793639168384550544,0
+UICommon=0,-1,0,0,Q0FOIFJlbWFpbmluZyBCdXMgU2ltdWxhdGlvbg__,100,107,2793639168384550544,0
 UIFilter=
 ShowTopology=1
 TopoWidth=257
@@ -578,7 +501,7 @@ DisplayRxSignals=1
 GridWidth=282
 
 [SysVarMgmt]
-UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,103,1621577371471386990,0
+UICommon=0,-1,0,0,U3lzdGVtIFZhcmlhYmxlIE1hbmFnZW1lbnQ_,100,123,1621577371471386990,0
 UIFilter=
 
 [TfrmSystemVarMgmt]
@@ -586,24 +509,24 @@ TreeView=0
 AutoDecideTree=1
 
 [CANStat]
-UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,34,6606780705989833972,0
+UICommon=0,-1,0,0,Q0FOIFN0YXRpc3RpY3M_,100,55,6606780705989833972,0
 UIFilter=
 
 [TFrmHexEditor]
-UICommon=0,-1,0,0,SGV4IEVkaXRvcg__,100,66,7215048130884758808,0
+UICommon=0,-1,0,0,SGV4IEVkaXRvcg__,100,74,7215048130884758808,0
 UIFilter=
 
 [MeasSetup]
-UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,48,8384576659546956502,0
+UICommon=0,-1,0,0,TWVhc3VyZW1lbnQgU2V0dXA_,100,64,8384576659546956502,0
 UIFilter=
 Zoom=1
 
 [TfrmBasePluginSingle.TfrmA2LEditor]
-UICommon=0,-1,0,0,QTJMIEVkaXRvcg__,100,0,3668181950294837507,0
+UICommon=0,-1,0,0,QTJMIEVkaXRvciAoYmV0YSB2ZXJzaW9uKQ__,100,0,3668181950294837507,0
 UIFilter=
 
 [Calibration]
-UICommon=0,-1,0,0,Q2FsaWJyYXRpb24_,100,2028,1146166159079141881,0
+UICommon=0,-1,0,0,Q2FsaWJyYXRpb24_,100,1031,1146166159079141881,0
 UIFilter=
 Debug=1
 LogsCount=0
@@ -611,9 +534,9 @@ DebugChecksum=0
 LastLog=.\Logging\Signals\2026_04_08\TSMaster_2026_04_08_13_58_23.mf4
 
 [CANLogger0]
-UICommon=0,-1,0,0,QnVzIExvZ2dpbmc_,100,198,5564478871720170550,0
+UICommon=0,-1,0,0,QnVzIExvZ2dpbmc_,100,227,5564478871720170550,0
 UIFilter=
-LogName=ZGW_CAN_3_2026_04_25_13_07_51.blf
+LogName=ZGW_CAN_3_2026_08_26_21_47_10.blf
 AddTime=1
 FollowConf=1
 DefaultDir=0
@@ -631,7 +554,7 @@ ChnMapping=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,
 ReplayConfig=3,0,0,-1,-1,0,0,0,1,1000,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,,C:\Users\Daniel\Desktop\GitHub Repositories\ZGW_CAN_3\Logging\Bus\ZGW_CAN_3_2026_01_19_22_38_21_3.blf,0,,0,1,MSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzEsMzIsMzMsMzQsMzUsMzYsMzcsMzgsMzksNDAsNDEsNDIsNDMsNDQsNDUsNDYsNDcsNDgsNDksNTAsNTEsNTIsNTMsNTQsNTUsNTYsNTcsNTgsNTksNjAsNjEsNjIsNjMsNjQ_
 
 [Playback]
-UICommon=0,-1,0,0,QnVzIFBsYXliYWNr,100,85,1230608655684214516,0
+UICommon=0,-1,0,0,QnVzIFBsYXliYWNr,100,122,1230608655684214516,0
 UIFilter=
 PostHeight=237
 trtype=1
@@ -651,15 +574,6 @@ TfrmAddCommentsToLogTemplate=Author;Division;Project;Subject;Comment
 Zoom=1
 AutoShowDir=1
 ExportANSI=1
-
-[Pg5]
-Count=2
-f0=TfrmLogging,0,4,524,1901,296,0,0,794,467,1
-HiddenCount=1
-h0=TfrmLogging,0,4,524,1901,296,0,0,794,467,1
-f1=TfrmPlayback,0,4,0,985,524,0,0,985,627,1
-h1=TfrmGraphics,0,0,433,1899,387,0,398,1899,422,1
-f2=TfrmPlayback,0,4,0,985,524,0,0,985,627,1
 
 [TfrmTSWebServer]
 UICommon=0,-1,0,0,VFNNYXN0ZXIgV2ViIFNlcnZlcg__,100,64,1244402723090346326,0
@@ -753,10 +667,6 @@ c40=eyJtZXRob2QiOiJjb250cm9sbGVyLmJpbmQiLCJwYXJhbXMiOnsicGlkIjoxMjN9LCJpZCI6InJl
 c41=YXBwLmNyZWF0ZV9zeXN0ZW1fdmFyfEBAfHZhcjFAQHN2dFN0cmluZ0BAZGVmYXVsdEBAY29tbWVudA__
 c42=bXAxLmZ1bmNfYWRkfEBAfDFAQDI_
 
-[AppVarsLogging]
-Count=1
-AppName0=AppVarsLogging0
-
 [hw_app_chn_1]
 CANFD_1_LIN_1_TS_FD_ControllerType=0
 CANFD_1_LIN_1_TS_FD_ControllerMode=0
@@ -779,22 +689,6 @@ CANFD_1_LIN_1_TS_FD_Clock=40
 [TfrmBasePluginSingle.TfrmAutomatedTest]
 UICommon=0,-1,0,0,QXV0b21hdGVkIFRlc3Q_,100,0,331014607425629147,0
 UIFilter=
-
-[Pg6]
-Count=5
-f0=ThexEditorContainer,0,1236,1,655,369,104,104,1652,560,1
-f1=TfrmCANDatabase,0,952,370,939,450,32,8,1016,631,1
-f2=TfrmCANStatistics,0,952,1,284,369,0,0,284,401,1
-f3=TfrmMeasurementSetup,0,4,1,216,819,130,130,836,524,1
-f4=TfrmSystemMsgs,0,220,1,732,819,8,0,1294,328,1
-f5=TfrmCCodeEditor,3,26,26,1030,685,26,26,1030,685,1
-HiddenCount=6
-h0=TfrmCCodeEditor,0,4,1,948,488,260,260,1030,685,1
-h1=TfrmCCodeEditor,1,4,1,948,488,156,156,1030,685,1
-h2=TfrmCalibration,0,4,7,877,467,4,7,877,467,1
-h3=TfrmDiagnosticsDTCAnalysis,0,159,92,1651,560,159,92,1651,560,1
-h4=TfrmCCodeEditor,2,577,0,976,820,577,0,624,820,1
-h5=TfrmCCodeEditor,3,26,26,1030,685,26,26,1030,685,1
 
 [TfrmJavaAPIManager]
 UICommon=0,-1,0,0,SmF2YSBFbnZpcm9ubWVudA__,100,116,5697053631171244689,0
@@ -830,7 +724,7 @@ UICommon=0,-1,0,0,Q0FOb2UgQ29udHJvbGxlcg__,100,173,6837029624177306775,0
 UIFilter=
 
 [TfrmSerialPort]
-UICommon=0,-1,0,0,VFMgU2VyaWFsIFBvcnQ_,100,56,6143756778106103532,0
+UICommon=0,-1,0,0,VFMgU2VyaWFsIFBvcnQ_,100,78,6143756778106103532,0
 UIFilter=
 FComPort=COM3
 FBaudrate=7
@@ -865,10 +759,6 @@ ExportsCount=0
 [ToolboxConf]
 FormTypeCount=0
 
-[TfrmBasePluginSingle.TfrmSecurity]
-UICommon=0,-1,0,0,U2VjdXJpdHkgTWFuYWdlcg__,100,0,1300979814569009433,0
-UIFilter=
-
 [AutomationScriptEditor]
 SearchFromCaret=0
 SearchBackwards=0
@@ -882,12 +772,124 @@ SearchDirectory=0
 SearchInSub=0
 SearchListMax=6
 
-[InternalVarsLogging]
-Count=0
+[MPLibraryMgmtUserOrder]
+Version=1
+Count=4
+o0=rtlhexeditor
+o1=rtluidiagnostics
+o2=instr_serialport
+o3=crc
+
+[HighPrecisionBusLoad]
+Enabled=0
+WindowMs=10
+
+[Pg0]
+Count=4
+f0=TfrmCANRBS,0,1126,6,786,459,429,372,1131,566,1
+f1=TfrmGraphics,0,0,465,1912,355,0,0,1088,606,1
+f2=TfrmCANFDTrace,0,0,6,725,459,0,0,1107,398,1
+f3=TfrmPanel,0,725,6,401,459,0,0,950,488,1
+HiddenCount=10
+h0=TfrmCANDatabase,0,0,0,1016,631,0,0,1016,631,1
+h1=TfrmSystemVarMgmt,0,511,79,802,747,260,260,802,747,1
+h2=TfrmCANFDTrace,1,1275,474,625,343,1275,474,625,343,1
+h3=TfrmDiagnostics,0,0,0,1358,817,4,2,1358,815,1
+h4=TfrmCCodeEditor,1,26,26,1030,685,26,26,1030,685,1
+h5=TfrmGraphics,1,4,466,1271,343,4,482,1271,343,1
+h6=TfrmCANFDTransmit,0,398,177,1061,564,0,0,1061,564,1
+h7=TfrmPanel,0,281,31,765,601,0,0,950,488,1
+h8=TfrmGraphics,0,0,419,1912,401,0,0,1088,606,1
+h9=TfrmCCodeEditor,3,1201,0,702,820,1201,0,702,820,1
+
+[PageLayouts]
+Pg0=Analysis
+Pg1=Automation
+Pg2=Diagnostic
+Pg3=XCP
+Pg4=A2L Editor
+Pg5=Logging
+Pg6=System
+MainBounds=-8,-8,1928,1040
+AppLeftP=-8
+AppTopP=-8
+ScreenWidth=1920
+ScreenHeight=1080
+PixelsPerInch=96
+DisableResize=0
+Tabbed=0
+PageCnt=7
+ActiveIdx=1
+
+[Pg1]
+Count=3
+f0=TfrmCCodeEditor,0,0,0,577,820,4,1,948,488,1
+f1=TfrmCCodeEditor,2,1201,0,702,820,26,26,1030,685,1
+f2=TfrmCCodeEditor,1,577,0,624,820,182,182,1030,685,1
+HiddenCount=2
+h0=TfrmSystemVarMgmt,0,260,79,1071,747,260,79,802,747,1
+h1=TfrmSerialPort,0,217,141,1652,560,156,156,1652,560,1
+
+[Pg2]
+Count=3
+f0=TfrmCANFDTrace,2,1521,2,373,815,0,0,1107,398,1
+f1=TfrmDiagnosticsDTCAnalysis,0,908,2,613,815,0,0,1652,560,1
+f2=TfrmDiagnostics,0,4,2,904,815,260,260,1652,560,1
+HiddenCount=3
+h0=TfrmGraphics,0,249,304,1517,423,0,380,1899,422,1
+h1=TfrmSystemVarMgmt,0,130,79,802,747,130,130,802,747,1
+h2=TfrmDiagnosticsDTCAnalysis,0,159,92,1651,560,0,0,1652,560,1
+
+[Pg3]
+Count=3
+f0=TfrmCANFDTrace,1,1289,7,623,467,0,0,1107,398,1
+f1=TfrmGraphics,1,4,474,1908,343,0,0,1088,606,1
+f2=TfrmCalibration,0,4,7,1285,467,208,208,919,629,1
+HiddenCount=3
+h0=TfrmCANFDTrace,2,1362,2,532,815,1362,2,532,815,1
+h1=TfrmGraphics,0,0,398,1899,422,0,398,1899,422,1
+h2=TfrmBasePluginSingle.TfrmA2LEditor,0,881,7,1019,467,234,234,1162,674,1
+
+[Pg4]
+Count=1
+f0=TfrmBasePluginSingle.TfrmA2LEditor,0,4,7,1908,813,881,7,1019,467,1
+HiddenCount=0
+
+[Pg5]
+Count=2
+f0=TfrmLogging,0,4,524,1901,296,0,0,794,467,1
+f1=TfrmPlayback,0,4,0,985,524,0,0,985,627,1
+HiddenCount=1
+h0=TfrmLogging,0,4,524,1901,296,0,0,794,467,1
+
+[Pg6]
+Count=5
+f0=ThexEditorContainer,0,1236,1,655,369,104,104,1652,560,1
+f1=TfrmCANDatabase,0,952,370,939,450,32,8,1016,631,1
+f2=TfrmMeasurementSetup,0,4,1,216,819,130,130,836,524,1
+f3=TfrmCANStatistics,0,952,1,284,369,0,0,284,401,1
+f4=TfrmSystemMsgs,0,220,1,732,819,8,0,1294,328,1
+HiddenCount=5
+h0=TfrmCCodeEditor,1,4,1,948,488,156,156,1030,685,1
+h1=TfrmCalibration,0,4,7,877,467,4,7,877,467,1
+h2=TfrmDiagnosticsDTCAnalysis,0,159,92,1651,560,159,92,1651,560,1
+h3=TfrmCCodeEditor,2,577,0,976,820,577,0,624,820,1
+h4=TfrmCCodeEditor,3,26,26,1030,685,26,26,1030,685,1
+
+[CalibrationReplayFileState]
+ItemsCount=0
+
+[AppVarsLogging]
+Count=1
+AppName0=Calibration_Variables
 
 [AppVarsLogging0]
+Count=0
+
+[InternalVarsLogging]
 Count=0
 
 [MDIFormUserOrder]
 Version=1
 Count=0
+

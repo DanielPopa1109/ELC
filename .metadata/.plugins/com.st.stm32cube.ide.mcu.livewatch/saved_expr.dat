@@ -13,3 +13,7 @@ SMon_BattInt.restTicks
 SMon_P_BattRestVoltDelta_V
 SMon_P_BattRestTimeTicks
 SMon_BattInt.restTicks
+SMon_ISenseL1_ExtChISense
+SMon_ISenseL1
+SMon_ISenseL1_Float
+SMon_NTC_Temperature_L1

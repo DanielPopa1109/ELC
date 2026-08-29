@@ -26,8 +26,6 @@ const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC] =
 		0x5F, // SHORT TO BATT L1 P2
 		0x60, // SHORT TO BATT L1 P3
 		0x61, // XCP USED
-		0x62, // SA USED
-		0x64u, // OBD READINESS SIGNAL INVALID
 };
 
 uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
@@ -48,14 +46,8 @@ uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC] = {
 		0x50u,
 		0x50u,
 		0x50u,
-		0x50u,
-		0x50u,
 		0x50u
 };
-
-uint8_t Dem_InternalObdStatus = 0u;
-uint8_t Dem_ELC_OBD_ObdReadiness = 0u;
-uint32_t Dem_MainCounter = 0u;
 
 void Dem_SetDtc(uint32_t id, uint8_t stat);
 void Dem_CaptureFreezeFrame(uint8_t idx);
@@ -64,108 +56,6 @@ void Dem_main(void);
 
 void Dem_main(void)
 {
-	static uint32_t localCnt = 0u;
-	static uint8_t flag = 0u;
-
-	switch(CanH_OBD_ObdReadiness)
-	{
-
-	case 0u:
-
-		Dem_ELC_OBD_ObdReadiness = 0u;
-		localCnt = 0u;
-
-		if(0u == flag)
-		{
-
-			for(uint8_t i = 0u; i < DEM_MAX_FF_DTC; i++)
-			{
-				if(0x2Fu == Dem_GetDtcStatus(Dem_PreDefined_DTC_Table[i]))
-				{
-					Dem_SetDtc(Dem_PreDefined_DTC_Table[i], 0x2E);
-				}
-				else
-				{
-					// do nothing.
-				}
-			}
-
-			flag = 1u;
-		}
-		else
-		{
-			// do nothing.
-		}
-
-		Dem_InternalObdStatus = 0u;
-
-		break;
-
-	case 1u:
-
-		localCnt = 0u;
-
-		Dem_InternalObdStatus = 1u;
-
-		break;
-
-	case 2u:
-
-		localCnt = 0u;
-		Dem_InternalObdStatus = 2u;
-
-		break;
-
-	case 3u:
-
-		localCnt = 0u;
-		Dem_ELC_OBD_ObdReadiness = 3u;
-		Dem_InternalObdStatus = 3u;
-
-		break;
-
-	case 4u:
-
-		localCnt = 0u;
-		Dem_ELC_OBD_ObdReadiness = 4u;
-		Dem_InternalObdStatus = 4u;
-		flag = 0u;
-
-		break;
-
-	case 15u:
-
-		if(0u == localCnt && 2000u < Dem_MainCounter)
-		{
-			localCnt = Dem_MainCounter;
-		}
-		else
-		{
-			// do nothing.
-		}
-
-		if(2000u > Dem_MainCounter - localCnt)
-		{
-			Dem_SetDtc(0x64u, 0x2F);
-			localCnt = 0u;
-		}
-		else
-		{
-			// do nothing.
-		}
-
-		Dem_InternalObdStatus = 15u;
-		Dem_ELC_OBD_ObdReadiness = 12u;
-
-		break;
-
-	default:
-
-		break;
-
-	}
-
-	Dem_MainCounter++;
 }
 
 void Dem_CaptureFreezeFrame(uint8_t idx)
@@ -268,7 +158,7 @@ void Dem_SetDtc(uint32_t id, uint8_t stat)
 			CAN_TxHeaderTypeDef TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 			uint32_t TxMailbox = 0u;
 
-			uint32_t dtc = Dem_PreDefined_DTC_Table[aux_index];   /* or OBD table */
+			uint32_t dtc = Dem_PreDefined_DTC_Table[aux_index];
 
 			arrtx[0u] = (uint8_t)(dtc);
 			arrtx[1u] = (uint8_t)(dtc >> 8u);

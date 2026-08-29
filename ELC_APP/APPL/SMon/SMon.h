@@ -8,14 +8,6 @@
 #include "adc.h"
 #include "tim.h"
 
-typedef enum
-{
-    SMON_BATT_STATE_UNKNOWN   = 0u,
-    SMON_BATT_STATE_REST      = 1u,
-    SMON_BATT_STATE_CHARGE    = 2u,
-    SMON_BATT_STATE_DISCHARGE = 3u
-} SMon_BattState_t;
-
 typedef struct
 {
 	float Voltage_V;
@@ -73,38 +65,20 @@ typedef struct
 	uint32_t chargePathOnTicks;
 	uint32_t chargePathOffTicks;
 	uint32_t restTicks;
-	uint32_t chargeSessionTicks;
-	uint32_t dischargeSessionTicks;
 	uint32_t chargeCurrentCnt;
 	uint32_t dischargeCurrentCnt;
 	float restReferenceV;
-	float prevSoc_pct;
 	float chargeCurrentSum_A;
 	float dischargeCurrentSum_A;
 	float lastRestVoltage_V;
 } SMon_BatteryInternal_t;
-
-typedef uint32_t i2t_t;
 
 #define SMON_BATT_DT_S                (0.005f)
 #define SMON_BATT_DT_H                (SMON_BATT_DT_S / 3600.0f)
 #define SMON_BATT_STATE_REST          (0u)
 #define SMON_BATT_STATE_DISCHARGE     (1u)
 #define SMON_BATT_STATE_CHARGE        (2u)
-#define SMON_BATT_OCV_MIN_V           (10.50f)
-#define SMON_BATT_OCV_MAX_V           (12.75f)
 
-#define I2T_SCALE_DIV          (1000u)   /* mA²·ms → A²·s */
-#define I2T_DECAY_PERCENT      (85u)
-#define I2T_DECAY_DIV          (100u)
-#define I2T_MAX_LIMIT          (4000000000u) /* saturation */
-/* calibrated in A²·s → convert once to internal unit */
-#define I2T_RATING_INTERNAL \
-    ((uint32_t)(SMon_P_I2TRating * 1000.0f))  /* A²s → mA²·ms */
-#define SMON_REARM_DWELL_TICKS     (40u)   /* e.g. 50 ms */
-#define SMON_REARM_VOLT_MARGIN     (200u)  /* mV above threshold */
-
-extern volatile uint8_t SMon_CheckForVoltageFlag;
 extern uint8_t SMon_NtcError;
 extern uint8_t SMon_ExternalChargerDetected;
 extern uint8_t SMon_RequestPhysicalStatus;
@@ -122,54 +96,21 @@ extern uint8_t SMon_CalculatedCommand;
 extern uint8_t SMon_L1ST;
 extern uint8_t SMon_RetryCnt;
 extern uint8_t SMon_LockSupply;
-extern uint8_t SMon_Stats10s_Active;
-extern uint8_t SMon_StatsSW_Active;
 extern uint16_t SMon_VfbL1;
 extern uint16_t SMon_VfbT30;
 extern uint32_t SMon_I2TCounter;
 extern uint32_t SMon_ISenseL1;
-extern uint32_t SMon_Stats10s_Timer;
-extern uint32_t SMon_SW_SampleCnt;
-extern uint32_t SMon_10s_SampleCnt;
-extern float SMon_10s_T30_Min;
-extern float SMon_10s_T30_Max;
-extern float SMon_10s_T30_Avg;
-extern float SMon_10s_T30_Sum;
-extern float SMon_10s_L1_Min;
-extern float SMon_10s_L1_Max;
-extern float SMon_10s_L1_Avg;
-extern float SMon_10s_L1_Sum;
-extern float SMon_SW_T30_Min;
-extern float SMon_SW_T30_Max;
-extern float SMon_SW_T30_Avg;
-extern float SMon_SW_T30_Sum;
-extern float SMon_SW_L1_Min;
-extern float SMon_SW_L1_Max;
-extern float SMon_SW_L1_Avg;
-extern float SMon_SW_L1_Sum;
-extern float SMon_10s_L1I_Min;
-extern float SMon_10s_L1I_Max;
-extern float SMon_10s_L1I_Avg;
-extern float SMon_10s_L1I_Sum;
-extern float SMon_SW_L1I_Min;
-extern float SMon_SW_L1I_Max;
-extern float SMon_SW_L1I_Avg;
-extern float SMon_SW_L1I_Sum;
 extern float SMon_NTC_Temperature_L1;
 extern float SMon_ISenseL1_Float;
 extern float SMon_PeakCurrent;
 extern float SMon_ISenseL1_ExtChISense;
 extern float SMon_McuTempValue;
-extern float SMon_DataMinMaxAvg[18u];
 extern SMon_BatteryData_t SMon_Battery;
-extern uint32_t SMon_P_10sCycles;
-extern uint32_t SMon_P_RetryCntS2bTestOn;
 extern uint32_t SMon_P_StatusVoltageL1Filter;
 extern uint32_t SMon_P_I2TDebounceTime;
 extern uint32_t SMon_P_Rtcntmax;
 extern uint32_t SMon_P_CLSTime;
 extern uint32_t SMon_P_WaitTimeOVUV;
-extern uint32_t SMon_P_WaitTimeCPC;
 extern uint32_t SMon_P_I2TDecrementPercentFactor;
 extern uint32_t SMon_P_ClsFailureWaitTime;
 extern uint32_t SMon_P_DischargeTimeCycles;
@@ -180,7 +121,6 @@ extern uint32_t SMon_P_UV_CLS;
 extern uint32_t SMon_P_Varef;
 extern uint32_t SMon_P_ADC_MaxValue;
 extern uint32_t SMon_P_NTC_PullUp_ResistorVale;
-extern uint32_t SMon_P_BetaConst;
 extern uint32_t SMon_P_LongDischargeTimeCycles;
 extern uint32_t SMon_P_LowDisTimeCyc;
 extern float SMon_P_VFB_T30_TwoPointCalibration_ParamA;
@@ -196,7 +136,6 @@ extern float SMon_P_VoltsAt25;
 extern float SMon_P_AvgSlope;
 extern float SMon_P_RoomTemperature;
 extern float SMon_P_Kelvin;
-extern float SMon_P_VoltageDivider;
 extern float SMon_P_AlphaFilter;
 extern float SMon_P_AlphaFilterExtChIsense;
 extern float SMon_P_TwoPointCalib_ConvFacISense;
@@ -205,10 +144,8 @@ extern float SMon_P_ExternalChargerThreshold;
 extern float SMon_P_NTCTemperatureMax;
 extern float SMon_P_NTCTemperatureRelease;
 extern float SMon_P_BattNominalCapacity_Ah      ;
-extern float SMon_P_BattInitialSoC_pct          ;
 extern float SMon_P_BattMinSoC_pct              ;
 extern float SMon_P_BattMaxSoC_pct              ;
-extern float SMon_P_BattRestCurrent_A           ;
 extern float SMon_P_BattRestVoltDelta_V         ;
 extern uint32_t SMon_P_BattRestTimeTicks        ;
 extern float SMon_P_BattWeakVolt_V              ;
@@ -223,16 +160,11 @@ extern float SMon_P_BattSoHMin_pct              ;
 extern float SMon_P_BattSoHMax_pct              ;
 extern float SMon_P_BattNominalRint_Ohm         ;
 extern float SMon_P_BattBadRint_Ohm             ;
-extern float SMon_P_BattCurrentAlpha;
 extern float SMon_P_BattCurrentDeadband_A;
-extern float SMon_P_ISenseZeroOffset_A;
 extern float SMon_P_BattCurrentHys_A            ;
 extern float SMon_P_BattChargePathDeltaOn_V     ;
 extern float SMon_P_BattChargePathDeltaOff_V    ;
 extern float SMon_P_BattRintMinStep_A           ;
-extern float SMon_P_BattAvgCurrentAlpha         ;
-extern float SMon_P_BattHybridBlendLowLoad      ;
-extern float SMon_P_BattChargeVoltageCompGain;
 extern float SMon_P_BattRestDetectCurrent_A;
 
 extern void SMon_main(void);

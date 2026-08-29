@@ -139,7 +139,7 @@ typedef s32 (__stdcall* TRegTSMasterFunction)(const void* AObj, const char* AFun
 extern void step(void);
 extern void on_can_rx_NewOn_CAN_Rx1(const TCAN* ACAN);
 DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMasterFunction AReg) {
-  #define TSMASTER_VERSION "2026.4.16.1939"
+  #define TSMASTER_VERSION "2026.8.15.2106"
   if (!AReg(AObj, "check_mp_internal", "version", TSMASTER_VERSION, 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_app", (void *)sizeof(TTSMasterConfiguration), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_tcan", (void *)sizeof(TCAN), "")) return -1;
@@ -158,7 +158,7 @@ DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMast
   if (!AReg(AObj, "check_mp_internal", "auto_start", "1", 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "addr_conf", "app", &app, "")) return -1;
   if (!AReg(AObj, "step_function", "step", "0.5", reinterpret_cast<const void*>(&step), "")) return -1;
-  if (!AReg(AObj, "on_can_rx_callback", "on_can_rx_NewOn_CAN_Rx1", "1775,-1,0", reinterpret_cast<const void*>(&on_can_rx_NewOn_CAN_Rx1), "")) return -1;
+  if (!AReg(AObj, "on_can_rx_callback", "on_can_rx_NewOn_CAN_Rx1", "1775,True,False", reinterpret_cast<const void*>(&on_can_rx_NewOn_CAN_Rx1), "")) return -1;
   // MP library functions
 
   return 2;

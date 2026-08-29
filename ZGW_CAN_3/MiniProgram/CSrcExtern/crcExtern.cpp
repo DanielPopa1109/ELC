@@ -160,7 +160,7 @@ extern s32 CRC32(pu8 data, s32 datalen);
 extern s32 CRC32_MPEG(pu8 data, s32 datalen);
 extern s32 CRC8_E2E_P11(pu8 data, s32 datalen);
 DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMasterFunction AReg) {
-  #define TSMASTER_VERSION "2026.1.17.1821"
+  #define TSMASTER_VERSION "2026.6.2.2012"
   if (!AReg(AObj, "check_mp_internal", "version", TSMASTER_VERSION, 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_app", (void *)sizeof(TTSMasterConfiguration), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_tcan", (void *)sizeof(TCAN), "")) return -1;
@@ -176,7 +176,7 @@ DLLEXPORT s32 __stdcall retrieve_mp_abilities(const void* AObj, const TRegTSMast
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TMPVarLIN", (void *)sizeof(TMPVarLIN), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TLIBTSMapping", (void *)sizeof(TLIBTSMapping), "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "struct_size", "struct_size_TLIBSystemVarDef", (void *)sizeof(TLIBSystemVarDef), "")) return -1;
-  if (!AReg(AObj, "check_mp_internal", "auto_start", "0", 0, "")) return -1;
+  if (!AReg(AObj, "check_mp_internal", "auto_start", "1", 0, "")) return -1;
   if (!AReg(AObj, "check_mp_internal", "addr_conf", "app", &app, "")) return -1;
   if (!AReg(AObj, "step_function", "step", "1", reinterpret_cast<const void*>(&step), "")) return -1;
   if (!AReg(AObj, "on_custom_callback", "CRC4_ITU", "pu8 data, s32 datalen", reinterpret_cast<const void*>(&CRC4_ITU), "")) return -1;

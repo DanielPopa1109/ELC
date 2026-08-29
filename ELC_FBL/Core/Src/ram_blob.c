@@ -47,13 +47,8 @@
 #define SCB_MMFAR  (*(volatile uint32_t*)0xE000ED34UL)
 #define FAULT_DUMP_ADDR   ((volatile uint32_t*)0x20000100UL)
 #define CAN1_BASE          (APB1PERIPH_BASE + 0x00006400UL)
-#define CAN_MCR            (*(volatile uint32_t *)(CAN1_BASE + 0x000))
-#define CAN_MSR            (*(volatile uint32_t *)(CAN1_BASE + 0x004))
 #define CAN_TSR            (*(volatile uint32_t *)(CAN1_BASE + 0x008))
 #define CAN_RF0R           (*(volatile uint32_t *)(CAN1_BASE + 0x00C))
-#define CAN_IER            (*(volatile uint32_t *)(CAN1_BASE + 0x014))
-#define CAN_ESR            (*(volatile uint32_t *)(CAN1_BASE + 0x018))
-#define CAN_BTR            (*(volatile uint32_t *)(CAN1_BASE + 0x01C))
 #define CAN_TI0R           (*(volatile uint32_t *)(CAN1_BASE + 0x180)) // TIR
 #define CAN_TDT0R          (*(volatile uint32_t *)(CAN1_BASE + 0x184)) // TDTR
 #define CAN_TDL0R          (*(volatile uint32_t *)(CAN1_BASE + 0x188))
@@ -62,13 +57,6 @@
 #define CAN_RDT0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1B4)) // RDTR
 #define CAN_RDL0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1B8))
 #define CAN_RDH0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1BC))
-#define CAN_FMR            (*(volatile uint32_t *)(CAN1_BASE + 0x200))
-#define CAN_FM1R           (*(volatile uint32_t *)(CAN1_BASE + 0x204))
-#define CAN_FS1R           (*(volatile uint32_t *)(CAN1_BASE + 0x20C))
-#define CAN_FFA1R          (*(volatile uint32_t *)(CAN1_BASE + 0x214))
-#define CAN_FA1R           (*(volatile uint32_t *)(CAN1_BASE + 0x21C))
-#define CAN_FiR1(i)        (*(volatile uint32_t *)(CAN1_BASE + 0x240 + (i)*0x08))
-#define CAN_FiR2(i)        (*(volatile uint32_t *)(CAN1_BASE + 0x244 + (i)*0x08))
 
 typedef enum
 {

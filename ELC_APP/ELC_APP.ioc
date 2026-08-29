@@ -357,3 +357,4 @@ VP_TIM3_VS_ClockSourceINT.Signal=TIM3_VS_ClockSourceINT
 board=custom
 rtos.0.ip=FREERTOS
 isbadioc=false
+isbadioc=false

@@ -70,15 +70,7 @@ BO_ 1777 BattChargeDischarge: 8 ELC
  SG_ DischargeAh : 32|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
  SG_ ChargeAh : 0|32@1- (1,0) [-3.4E+38|3.4E+38] ""  ZGW
 
-BO_ 1728 ELC_OBD: 8 ELC
- SG_ ELC_OBD_OutputVoltage : 8|8@1+ (1,0) [0|255] ""  ZGW
- SG_ ELC_OBD_ObdReadiness : 32|8@1+ (1,0) [0|255] ""  ZGW
- SG_ ELC_OBD_LoadTemperature : 24|8@1+ (1,0) [-40|145] ""  ZGW
- SG_ ELC_OBD_InputVoltage : 0|8@1+ (1,0) [0|255] ""  ZGW
- SG_ ELC_OBD_CurrentConsumption : 16|8@1+ (1,0) [0|255] ""  ZGW
 
-BO_ 1744 ZGW_CAN_3_OBD: 1 ZGW
- SG_ OBD_ObdReadiness : 0|8@1+ (1,0) [0|255] ""  ELC
 
 BO_ 151 VehicleData: 1 ZGW
  SG_ VehicleStatus : 0|8@1+ (1,0) [0|15] ""  ELC

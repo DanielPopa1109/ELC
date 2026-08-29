@@ -26,8 +26,6 @@
 #define APPL_END_ADDRESS     0x0800F7FFu    /* same as erase end */
 #define APPL_CRC_ADDRESS     (APPL_END_ADDRESS - 3u) /* last 4 bytes */
 #define RESET_COUNTER_ADDR					0x20004FC8
-#define FBL_APP_START_ADDR     APPL_START_ADDRESS   /* 0x08004000 */
-#define FBL_APP_END_ADDR       0x0800F7FFu          /* Last byte of application area */
 #define APPL_PARAMFLASH_START_ADDRESS 0x08003800u
 #define APPL_PARAMFLASH_END_ADDRESS 0x08003BFFu
 
@@ -36,10 +34,7 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef enum
 {
-	DEFAULT = 0U,
-	EXTENDED = 1U,
 	PROGRAMMING = 2U,
-	CALIBRATION = 4U,
 	HARDRESET = 5U,
 	JUMPTOAPPL = 7U
 }FBL_DSC_t;
@@ -69,8 +64,6 @@ CAN_TxHeaderTypeDef FBL_TxHeader = {0, 0, 0, 0, 0, 0};
 uint32 FBL_TxMailbox = 0;
 uint32* FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
 uint32* FBL_ResetCounterFBL = (uint32*)(RESET_COUNTER_ADDR);
-uint32 FBL_ProgrammingData = 0;
-uint32 FBL_ProgrammingIndex = 0;
 uint32 FBL_ProgrammingAddress = 0;
 uint32 ROM_APPL_START_ADDR_storedValue = 0;
 uint32 ROM_APPL_START_ADDR = APPL_START_ADDRESS;
@@ -92,7 +85,6 @@ void FBL_NvM_FlashReadData(uint32 StartSectorAddress, uint32 *RxBuf, uint16 numb
 uint32 FBL_NvM_FlashWriteData(uint32 StartSectorAddress, uint32 *Data, uint16 numberofwords);
 uint32 FBL_NvM_EraseFlash_APPL(void);
 uint32 Nvm_GetPage(uint32 Address);
-uint32 Nvm_FlashWriteData(uint32 StartPageAddress, uint32 *Data, uint16 numberofwords);
 uint32 FBL_NvM_EraseFlash_PARAM(void);
 /* USER CODE END Includes */
 
@@ -161,37 +153,37 @@ static void MX_NVIC_Init(void);
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
-	/* USER CODE BEGIN 1 */
-	/* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
-	/* USER CODE END Init */
+  /* USER CODE BEGIN Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
-	/* USER CODE END SysInit */
+  /* USER CODE BEGIN SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_CAN_Init();
-	MX_CRC_Init();
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_CAN_Init();
+  MX_CRC_Init();
 
-	/* Initialize interrupts */
-	MX_NVIC_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize interrupts */
+  MX_NVIC_Init();
+  /* USER CODE BEGIN 2 */
 
 	PWR_PVDTypeDef sConfigPVD;
 
@@ -245,16 +237,16 @@ int main(void)
 		FBL_JumpToAppl();
 	}
 
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 
 	while (1)
 	{
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 
 		if (g_run_ram_updater)
 		{
@@ -268,75 +260,75 @@ int main(void)
 		}
 	}
 
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief NVIC Configuration.
- * @retval None
- */
+  * @brief NVIC Configuration.
+  * @retval None
+  */
 static void MX_NVIC_Init(void)
 {
-	/* RCC_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(RCC_IRQn);
-	/* FLASH_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(FLASH_IRQn);
-	/* PVD_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(PVD_IRQn);
-	/* CAN1_SCE_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
-	/* CAN1_RX1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
-	/* USB_LP_CAN1_RX0_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-	/* USB_HP_CAN1_TX_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+  /* RCC_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(RCC_IRQn);
+  /* FLASH_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(FLASH_IRQn);
+  /* PVD_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(PVD_IRQn);
+  /* CAN1_SCE_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+  /* CAN1_RX1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+  /* USB_LP_CAN1_RX0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+  /* USB_HP_CAN1_TX_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -453,7 +445,6 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 
 				FBL_NvM_FlashWriteData(FBL_ProgrammingAddress, &word, 1u);
 				FBL_ProgrammingAddress += 4u;
-				FBL_ProgrammingIndex++;
 				FBL_PendingLen = 0u;
 			}
 			else
@@ -556,7 +547,6 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 			FBL_BlockStartAddr     = addr;
 			FBL_BlockLength        = size;
 			FBL_ProgrammingAddress = addr;
-			FBL_ProgrammingIndex   = 0u;
 			FBL_PendingLen         = 0u;
 			FBL_BytesReceived      = 0u;      /* NEW: track real data length */
 
@@ -650,7 +640,6 @@ static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
 					FBL_NvM_FlashWriteData(FBL_ProgrammingAddress, &word, 1);
 
 					FBL_ProgrammingAddress += 4;
-					FBL_ProgrammingIndex++;
 					FBL_PendingLen = 0;
 				}
 				else
@@ -1110,29 +1099,29 @@ void FBL_DiagService_ER_HardReset(void)
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 
 	NVIC_SystemReset();
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
-	/* USER CODE END 6 */
+  /* USER CODE BEGIN 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

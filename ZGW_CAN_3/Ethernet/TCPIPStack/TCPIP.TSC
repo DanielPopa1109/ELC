@@ -2,3 +2,6 @@
 ChnCount=0
 vMaintainEthConfigurationCreateDynamically=0
 vSocketStackIndex=0
+
+[EthernetDynamicDeletedConfig]
+Count=0

@@ -4,7 +4,6 @@
 #include "EcuM.h"
 #include "Dcm.h"
 
-Xcp_Security_t Xcp_Security;
 Xcp_State_t Xcp_State = {0u, 0u, 0u, 0u};
 uint8_t Xcp_TxData[8u];
 CAN_TxHeaderTypeDef Xcp_TxHeader;
@@ -18,12 +17,9 @@ uint8_t CSBSDAT_Day = 0u;
 uint8_t CSBSDAT_Hour = 0u;
 uint8_t CSBSDAT_Minute = 0u;
 uint8_t CSBSDAT_Second = 0u;
-uint8_t CSBSDAT_Millisecond = 0u;
-uint8_t CanH_RequestBusSleep = 0u;
 volatile uint8_t CanH_VehicleStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadRequest = 0u;
-volatile uint32_t CanH_CRC_LoadRequest = 0u;
 CAN_RxHeaderTypeDef CanH_RxHeader = {0u, 0u, 0u, 0u, 0u, 0u, 0u};
 CAN_TxHeaderTypeDef CanH_TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 uint32_t CanH_MainCounter = 0u;
@@ -32,25 +28,14 @@ uint32_t CanH_NoCommCounter = 0u;
 uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
 uint32_t CanH_E2eErrCnt = 0u;
-static uint32_t CanH_LoadReq_LastRxTs = 0u;
-uint8_t CanH_OBD_ObdReadiness = 15u;
 const uint32_t CanH_P_DelayTxParam = 1200u;
 
 void CanH_MainFunction(void);
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-void HAL_CAN_RxFifo0MsgFullCallback(CAN_HandleTypeDef *hcan);
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
-void HAL_CAN_RxFifo1MsgFullCallback(CAN_HandleTypeDef *hcan);
 static void Xcp_HandleCommand(const uint8_t *data, uint8_t len);
 static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
-
-static uint32_t Xcp_CalcKey(uint32_t seed)
-{
-	uint32_t x = seed ^ 0xA5A5A5A5u;
-	x = (x << 5) | (x >> (32u - 5u));
-	return x + 0x13572468u;
-}
 
 static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 {
@@ -127,68 +112,6 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 
 	switch (pid)
 	{
-
-	case XCP_CMD_UNLOCK:
-	{
-
-		if (len < 5u)
-		{
-			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
-
-			break;
-		}
-
-		uint32_t rxKey =
-				((uint32_t)data[1] << 24) |
-				((uint32_t)data[2] << 16) |
-				((uint32_t)data[3] << 8)  |
-				((uint32_t)data[4]);
-
-		uint32_t seed =
-				((uint32_t)Xcp_Security.seed[0] << 24) |
-				((uint32_t)Xcp_Security.seed[1] << 16) |
-				((uint32_t)Xcp_Security.seed[2] << 8)  |
-				((uint32_t)Xcp_Security.seed[3]);
-
-		if (rxKey == Xcp_CalcKey(seed))
-		{
-			Xcp_Security.locked = 0u;
-
-			Xcp_TxData[0] = XCP_PID_RES;
-			for (uint8_t i = 1u; i < 8u; i++) Xcp_TxData[i] = 0u;
-			Xcp_Send(8u);
-		}
-		else
-		{
-			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
-		}
-
-		break;
-	}
-
-	case XCP_CMD_GET_SEED:
-	{
-
-		uint32_t s = HAL_GetTick() ^ 0xA5A55A5Au;
-
-		Xcp_Security.seed[0] = (uint8_t)(s >> 24);
-		Xcp_Security.seed[1] = (uint8_t)(s >> 16);
-		Xcp_Security.seed[2] = (uint8_t)(s >> 8);
-		Xcp_Security.seed[3] = (uint8_t)(s >> 0);
-
-		Xcp_TxData[0] = XCP_PID_RES;
-		Xcp_TxData[1] = Xcp_Security.seed[0];
-		Xcp_TxData[2] = Xcp_Security.seed[1];
-		Xcp_TxData[3] = Xcp_Security.seed[2];
-		Xcp_TxData[4] = Xcp_Security.seed[3];
-		Xcp_TxData[5] = 0u;
-		Xcp_TxData[6] = 0u;
-		Xcp_TxData[7] = 0u;
-
-		Xcp_Send(8u);
-
-		break;
-	}
 
 	case XCP_CMD_CONNECT:
 	{
@@ -351,17 +274,6 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 			// do nothing.
 		}
 
-		if (Xcp_Security.locked)
-		{
-			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
-
-			break;
-		}
-		else
-		{
-			// do nothing.
-		}
-
 		if ((n == 0u) || (n > 7u))
 		{
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
@@ -431,17 +343,6 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		if (len < 8u)
 		{
 			Xcp_SendError(XCP_ERR_OUT_OF_RANGE);
-
-			break;
-		}
-		else
-		{
-			// do nothing.
-		}
-
-		if (Xcp_Security.locked)
-		{
-			Xcp_SendError(XCP_ERR_ACCESS_LOCKED);
 
 			break;
 		}
@@ -868,52 +769,6 @@ void CanH_MainFunction(void)
 			/* Do nothing. */
 		}
 
-		if(CanH_MainCounter % 20u == 0u && CanH_MainCounter != 0)
-		{
-			CanH_TxData[0] = (SMon_VfbT30 * 255u) / 32000u;
-			CanH_TxData[1] = (SMon_VfbL1 * 255u) / 32000u;
-			CanH_TxData[2] = (SMon_ISenseL1 * 255u) / 50000u;
-
-			int32_t tmp = (uint32_t)((SMon_NTC_Temperature_L1 * 255.0f) / 145.0f);
-
-			if (tmp > 255u)
-			{
-				tmp = 255u;
-			}
-			else
-			{
-				// do nothing.
-			}
-
-			CanH_TxData[3] = (uint8_t)tmp;
-
-			CanH_TxData[4] = Dem_ELC_OBD_ObdReadiness;
-			CanH_TxHeader.DLC = 5;
-			CanH_TxHeader.StdId = 0x6c0u;
-
-			HAL_StatusTypeDef st;
-			uint32_t cnt = 0u;
-
-			do
-			{
-				st = HAL_CAN_AddTxMessage(&hcan, &CanH_TxHeader, CanH_TxData, &CanH_TxMailbox);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
 	}
 	else
 	{
@@ -1001,7 +856,6 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				0x3eu == CanH_RxData[1u] &&
 				0x00u == CanH_RxData[2u])
 		{
-			CanH_RequestBusSleep = 0u;
 			CanH_CommunicationState = FULL_COMMUNICATION;
 			CanH_NoCommCounter = 0u;
 		}
@@ -1072,20 +926,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanH_RxHeader, CanH_RxData);
 
-	if(0x6d0u == CanH_RxHeader.StdId)
-	{
-		CanH_OBD_ObdReadiness = CanH_RxData[0u];
-
-		if(15u <= CanH_RxData[6u])
-		{
-			CanH_OBD_ObdReadiness = 15u;
-		}
-	}
-	else
-	{
-		// do nothing.
-	}
-
 	if(0x202u == CanH_RxHeader.StdId)
 	{
 		uint32_t t =
@@ -1100,8 +940,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		CSBSDAT_Hour   = (t >> 15) & 0x1F;
 		CSBSDAT_Minute = (t >> 20) & 0x3F;
 		CSBSDAT_Second = (t >> 26) & 0x3F;
-
-		CSBSDAT_Millisecond = CanH_RxData[4];
 	}
 	else
 	{
@@ -1144,7 +982,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 		if ( CanH_RxData[0u] & ((1u << 5) | (1u << 6)) )
 		{
-			CanH_RequestBusSleep = 0u;
 			CanH_CommunicationState = FULL_COMMUNICATION;
 			CanH_NoCommCounter = 0u;
 		}
@@ -1212,7 +1049,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			SMon_CmdStat = loadRequest;
 
 			CanH_AliveCounter_LoadRequest = aliveCounter;
-			CanH_LoadReq_LastRxTs = CanH_MainCounter;
 
 			CanH_E2eErrCnt = 0u;
 		}

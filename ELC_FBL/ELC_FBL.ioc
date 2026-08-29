@@ -129,6 +129,7 @@ PB6.Signal=GPIO_Analog
 PB7.Signal=GPIO_Analog
 PB8.Signal=GPIO_Analog
 PB9.Signal=GPIO_Analog
+PC13-TAMPER-RTC.Locked=true
 PC13-TAMPER-RTC.Signal=GPIO_Analog
 PC14-OSC32_IN.Signal=GPIO_Analog
 PC15-OSC32_OUT.Signal=GPIO_Analog

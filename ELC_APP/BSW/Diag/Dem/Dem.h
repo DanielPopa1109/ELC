@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "can.h"
 
-#define DEM_MAX_FF_DTC        20u
+#define DEM_MAX_FF_DTC        18u
 
 typedef struct __attribute__((packed))
 {
@@ -27,9 +27,6 @@ typedef struct __attribute__((packed))
 extern Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
 extern const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC];
 extern uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC];
-extern uint8_t Dem_InternalObdStatus;
-extern uint8_t Dem_ELC_OBD_ObdReadiness;
-extern uint32_t Dem_MainCounter;
 
 extern void Dem_SetDtc(uint32_t id, uint8_t stat);
 extern void Dem_CaptureFreezeFrame(uint8_t idx);

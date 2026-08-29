@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="SMon_P_WaitTimeOVUV"/>
+		<item key="selection" value="g_sec_unlocked"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="g_sec_unlocked"/>
 			<item value="SMon_P_WaitTimeOVUV"/>
 			<item value="0x58"/>
 			<item value="uvov"/>
@@ -22,7 +23,6 @@
 			<item value="SMon_P_BattRestTimeTicks"/>
 			<item value="SMon_P_BattRestDetectCurrent_A"/>
 			<item value="SMon_P_ISenseZeroOffset_A"/>
-			<item value="SMon_P_AlphaFilter"/>
 		</list>
 		<list key="replacehistory">
 			<item value="rd_f32_swap"/>

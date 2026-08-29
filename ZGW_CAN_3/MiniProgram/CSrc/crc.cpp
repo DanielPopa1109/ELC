@@ -818,12 +818,12 @@ void step(void) { try { // interval = 1 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,228,1646347185747603525,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbY3JjXQ__,100,338,1646347185747603525,0
 ScriptName=crc
 DisplayName=crc
 IsMPLib=1
 DBDeps=ZGW_CAN_3
-LastBuildTime=2026-01-18 14:08:36
+LastBuildTime=2026-06-26 23:10:12
 VarListClose=1
 CompileListClose=1
 APICnt=22*/

@@ -12,10 +12,6 @@ static iso_tx_ctx_t g =
 		.stmin_ms_default = 0u, .timeout_ms = 100u
 };
 volatile uint8_t Dcm_RequestPending;
-volatile uint8_t Dcm_IsoTp_TxActive = 0u;
-uint8_t g_sec_seed[4u];
-volatile uint8_t g_sec_level = 0u;
-volatile uint8_t g_sec_unlocked = 0;
 uint8_t rx[8u];
 uint8_t Dcm_RxData[8u];
 uint8_t Dcm_TxData[8u];
@@ -26,18 +22,9 @@ uint8_t Dcm_CDTCS = 0u;
 uint32_t Dcm_SessionCounter = 2000u;
 uint32_t Dcm_ActiveSessionState __attribute((section(".ncr")));
 uint32_t Dcm_MainCounter = 0u;
-uint32_t Dcm_TxMailbox = 0;
 CAN_TxHeaderTypeDef Dcm_DiagTxHeader;
 CAN_RxHeaderTypeDef Dcm_DiagRxHeader = {0, 0, 0, 0, 0, 0, 0};
 uint32_t Dcm_LoadTimer = 0u;
-uint8_t Dcm_OBD_VIN[17u] =
-{
-    0x57u, 0x42u, 0x41u, 0x35u, 0x41u, 0x37u, 0x43u, 0x35u, 0x30u,
-    0x45u, 0x44u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u
-};
-uint8_t Dcm_OBD_CALID[4u] = {0u};
-uint8_t Dcm_OBD_ECU_NAME[3u] = {69u, 76u, 67u};
-
 bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, uint8_t pad, uint8_t force_pad);
 void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms);
@@ -49,7 +36,6 @@ void Dcm_main();
 void Dcm_ProgrammingSession();
 void Dcm_HardReset();
 void Dcm_ReadSWV();
-void Dcm_RDBI_SecureAccess(void);
 void Dcm_RC_HealSupply();
 void Dcm_ReadLoadStatus();
 void Dcm_SendNrc(uint8_t nrc);
@@ -62,461 +48,10 @@ void Dcm_CommunicationControl();
 void Dcm_ControlDTCSetting();
 void Dcm_CDTCI();
 void Dcm_RDTCI();
-void Dcm_RequestSeed();
-void Dcm_SendKey();
 void Dcm_RDBI_ReadActiveDiagnosticSession();
 void Dcm_RDBI_ReadActiveSoftwareBlock();
-void Dcm_RDBI_T30Min10s(void);
-void Dcm_RDBI_T30Max10s(void);
-void Dcm_RDBI_T30Avg10s(void);
-void Dcm_RDBI_L1Min10s(void);
-void Dcm_RDBI_L1Max10s(void);
-void Dcm_RDBI_L1Avg10s(void);
-void Dcm_RDBI_L1_Current_Min10s(void);
-void Dcm_RDBI_L1_Current_Max10s(void);
-void Dcm_RDBI_L1_Current_Avg10s(void);
-void Dcm_RDBI_T30MinSW(void);
-void Dcm_RDBI_T30MaxSW(void);
-void Dcm_RDBI_T30AvgSW(void);
-void Dcm_RDBI_L1MinSW(void);
-void Dcm_RDBI_L1MaxSW(void);
-void Dcm_RDBI_L1AvgSW(void);
-void Dcm_RDBI_L1_Current_MinSW(void);
-void Dcm_RDBI_L1_Current_MaxSW(void);
-void Dcm_RDBI_L1_Current_AvgSW(void);
-void Dcm_RC_ReadMinMaxAvg(void);
-uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level);
-void SecCalcKeyFromSeed(const uint8_t *seedBytes, uint8_t *keyBytes, uint8_t seedLen, uint8_t level);
 HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId,uint8_t *data,uint8_t len);
 
-void Dcm_RC_ReadMinMaxAvg(void)
-{
-	uint8_t payload[84u];
-	uint16_t len = 0u;
-
-	/* Positive response: 0x71 */
-	payload[len++] = 0x71u;
-	payload[len++] = rx[2u];   /* subfunction echo */
-	payload[len++] = rx[3u];   /* routine ID */
-	payload[len++] = rx[4u];   // Routine ID low
-
-	/* Pack 18 floats */
-	for(uint8_t i = 0u; i < 18u; i++)
-	{
-		memcpy(&payload[len], &SMon_DataMinMaxAvg[i], sizeof(float));
-		len += sizeof(float);
-	}
-
-	(void)Dcm_IsoTp_Send(
-			Dcm_DiagRxHeader.StdId,
-			payload,
-			len,
-			0x00u,
-			0u
-	);
-
-	memset(rx, 0, 8);
-}
-
-void Dcm_RDBI_T30Min10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_T30_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_T30Max10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_T30_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_T30Avg10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_T30_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1Min10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1Max10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1Avg10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_Min10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1I_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_Max10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1I_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_Avg10s(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_10s_L1I_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_T30MinSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_T30_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_T30MaxSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_T30_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_T30AvgSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_T30_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1MinSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1MaxSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1AvgSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_MinSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1I_Min, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_MaxSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1I_Max, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_L1_Current_AvgSW(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 4;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-
-	memcpy(&Dcm_TxData[4u], &SMon_SW_L1I_Avg, sizeof(float));
-
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
-
-void Dcm_RDBI_SecureAccess(void)
-{
-	Dcm_TxData[0u] = rx[0u] + 1;
-	Dcm_TxData[1u] = rx[1u] + 0x40u;
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = rx[3u];
-	Dcm_TxData[4u] = g_sec_unlocked;
-	Dcm_TxData[5u] = rx[5u];
-	Dcm_TxData[6u] = rx[6u];
-	Dcm_TxData[7u] = rx[7u];
-	Dcm_DiagTxHeader.DLC = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagRxHeader.StdId + 0x01u, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for(uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i] = 0u;
-	}
-}
 
 void Dcm_RDBI_ReadActiveSoftwareBlock()
 {
@@ -562,60 +97,6 @@ void Dcm_RDBI_ReadActiveDiagnosticSession()
 	}
 }
 
-uint32_t GenKeyFromSeed32(uint32_t seed32, uint32_t level)
-{
-	uint32_t x = seed32 ^ 0xA5A5A5A5u;
-
-	x += 0x13572468u + (level * 0x1F3D5B79u);
-	x = (x << 3) | (x >> (32u - 3u));  // ROL3
-
-	uint32_t rev =
-			((seed32 & 0x000000FFu) << 24) |
-			((seed32 & 0x0000FF00u) << 8)  |
-			((seed32 & 0x00FF0000u) >> 8)  |
-			((seed32 & 0xFF000000u) >> 24);
-
-	return x ^ rev;
-}
-
-void SecCalcKeyFromSeed(const uint8_t *seedBytes,
-                        uint8_t *keyBytes,
-                        uint8_t seedLen,
-                        uint8_t level)
-{
-    uint32_t seed32;
-    uint32_t key32;
-
-    /* Defensive checks */
-    if ((seedBytes == NULL) || (keyBytes == NULL))
-    {
-        return;
-    }
-
-    if (seedLen < 4u)
-    {
-        /* Reject: invalid seed length */
-        keyBytes[0] = 0u;
-        keyBytes[1] = 0u;
-        keyBytes[2] = 0u;
-        keyBytes[3] = 0u;
-        return;
-    }
-
-    seed32 =
-        ((uint32_t)seedBytes[0] << 24) |
-        ((uint32_t)seedBytes[1] << 16) |
-        ((uint32_t)seedBytes[2] << 8)  |
-        ((uint32_t)seedBytes[3]);
-
-    key32 = GenKeyFromSeed32(seed32, level);
-
-    keyBytes[0] = (uint8_t)(key32 >> 24);
-    keyBytes[1] = (uint8_t)(key32 >> 16);
-    keyBytes[2] = (uint8_t)(key32 >> 8);
-    keyBytes[3] = (uint8_t)(key32);
-}
-
 HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId, uint8_t *data, uint8_t len)
 {
 	CAN_TxHeaderTypeDef th = {0};
@@ -634,85 +115,6 @@ HAL_StatusTypeDef Dcm_CanSendSF(uint32_t stdId, uint8_t *data, uint8_t len)
 	} while (st != HAL_OK);
 
 	return st;
-}
-
-void Dcm_RequestSeed()
-{
-	uint32_t s = HAL_GetTick();
-
-	g_sec_level    = rx[2u];
-	g_sec_unlocked = 0u;
-	s ^= 0xA5A55A5Au;
-	g_sec_seed[0] = (uint8_t)(s >> 24);
-	g_sec_seed[1] = (uint8_t)(s >> 16);
-	g_sec_seed[2] = (uint8_t)(s >> 8);
-	g_sec_seed[3] = (uint8_t)(s >> 0);
-	Dcm_TxData[0u] = (uint8_t)(rx[0u] + 4u);
-	Dcm_TxData[1u] = (uint8_t)(rx[1u] + 0x40u);
-	Dcm_TxData[2u] = rx[2u];
-	Dcm_TxData[3u] = g_sec_seed[0];
-	Dcm_TxData[4u] = g_sec_seed[1];
-	Dcm_TxData[5u] = g_sec_seed[2];
-	Dcm_TxData[6u] = g_sec_seed[3];
-	Dcm_TxData[7u] = 0x00u;
-	Dcm_DiagTxHeader.DLC   = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagTxHeader.StdId, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for (uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i]         = 0u;
-	}
-}
-
-void Dcm_SendKey()
-{
-	uint8_t rxKey[4];
-	uint8_t expKey[4];
-
-	rxKey[0] = rx[3u];
-	rxKey[1] = rx[4u];
-	rxKey[2] = rx[5u];
-	rxKey[3] = rx[6u];
-
-	SecCalcKeyFromSeed(g_sec_seed, expKey, 4u, g_sec_level);
-
-	if(rxKey[0] == expKey[0] && rxKey[1] == expKey[1] && rxKey[2] == expKey[2] && rxKey[3] == expKey[3])
-	{
-		g_sec_unlocked = 1u;
-		Dcm_TxData[0u] = 0x02u;
-		Dcm_TxData[1u] = (uint8_t)(rx[1u] + 0x40u);
-		Dcm_TxData[2u] = rx[2u];
-		Dcm_TxData[3u] = 0x00u;
-		Dcm_TxData[4u] = 0x00u;
-		Dcm_TxData[5u] = 0x00u;
-		Dcm_TxData[6u] = 0x00u;
-		Dcm_TxData[7u] = 0x00u;
-	}
-	else
-	{
-		Dcm_TxData[0u] = 0x03u;
-		Dcm_TxData[1u] = 0x7Fu;
-		Dcm_TxData[2u] = rx[1u];
-		Dcm_TxData[3u] = 0x35u;
-		Dcm_TxData[4u] = 0x00u;
-		Dcm_TxData[5u] = 0x00u;
-		Dcm_TxData[6u] = 0x00u;
-		Dcm_TxData[7u] = 0x00u;
-	}
-
-	Dcm_DiagTxHeader.DLC   = Dcm_DiagRxHeader.DLC;
-	Dcm_DiagTxHeader.StdId = Dcm_DiagRxHeader.StdId + 0x01u;
-
-	(void)Dcm_CanSendSF(Dcm_DiagTxHeader.StdId, Dcm_TxData, Dcm_DiagTxHeader.DLC);
-
-	for (uint8_t i = 0u; i < 8u; i++)
-	{
-		Dcm_TxData[i] = 0u;
-		rx[i]         = 0u;
-	}
 }
 
 void Dcm_CDTCI()
@@ -1298,14 +700,6 @@ void Dcm_ReadLoadStatus()
 	}
 }
 
-static inline void le32(uint8_t *p, uint32_t v)
-{
-	p[0]= (uint8_t) v;
-	p[1]= (uint8_t)(v>>8);
-	p[2]= (uint8_t)(v>>16);
-	p[3]= (uint8_t)(v>>24);
-}
-
 void Dcm_IsoTp_Config(uint8_t stmin_default_ms, uint32_t timeout_ms)
 {
 	g.stmin_ms_default = stmin_default_ms;
@@ -1460,8 +854,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 	uint32_t resp_id = req_canid + DCM_RESP_ID_DELTA;
 	uint8_t f[8];
 
-	Dcm_IsoTp_TxActive = 1u;   /* block normal CAN TX while we stream */
-
 	if (len <= 7u)
 	{
 		f[0] = (uint8_t)(0x00u | (len & 0x0Fu));
@@ -1469,8 +861,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 		memcpy(&f[1], payload, len);
 
 		bool ok = (can_tx8(resp_id, f, (uint8_t)(1u + len), pad, force_pad) == HAL_OK);
-
-		Dcm_IsoTp_TxActive = 0u;
 
 		return ok;
 	}
@@ -1493,7 +883,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 	if (can_tx8(resp_id, f, 8u, pad, force_pad) != HAL_OK)
 	{
 		g.active = 0;
-		Dcm_IsoTp_TxActive = 0u;
 
 		return false;
 	}
@@ -1509,7 +898,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 	if (fc <= 0)
 	{
 		g.active = 0;
-		Dcm_IsoTp_TxActive = 0u;
 
 		return false;
 	}
@@ -1530,7 +918,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 			if (fc <= 0)
 			{
 				g.active = 0;
-				Dcm_IsoTp_TxActive = 0u;
 
 				return false;
 			}
@@ -1556,7 +943,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 		if (can_tx8(resp_id, f, (uint8_t)(1u + chunk), pad, force_pad) != HAL_OK)
 		{
 			g.active = 0;
-			Dcm_IsoTp_TxActive = 0u;
 
 			return false;
 		}
@@ -1588,7 +974,6 @@ bool Dcm_IsoTp_Send(uint32_t req_canid, const uint8_t *payload, uint16_t len, ui
 	}
 
 	g.active = 0;
-	Dcm_IsoTp_TxActive = 0u;
 
 	return true;
 }
@@ -1899,120 +1284,6 @@ void Dcm_main()
 
 			break;
 
-		case 0x07u:
-
-			Dcm_RDBI_SecureAccess();
-
-			break;
-
-		case 11u:
-
-			Dcm_RDBI_T30Min10s();
-
-			break;
-
-		case 12u:
-
-			Dcm_RDBI_T30Max10s();
-
-			break;
-
-		case 13u:
-
-			Dcm_RDBI_T30Avg10s();
-
-			break;
-
-		case 14u:
-
-			Dcm_RDBI_L1Min10s();
-
-			break;
-
-		case 15u:
-
-			Dcm_RDBI_L1Max10s();
-
-			break;
-
-		case 16u:
-
-			Dcm_RDBI_L1Avg10s();
-
-			break;
-
-		case 17u:
-
-			Dcm_RDBI_L1_Current_Min10s();
-
-			break;
-
-		case 18u:
-
-			Dcm_RDBI_L1_Current_Max10s();
-
-			break;
-
-		case 19u:
-
-			Dcm_RDBI_L1_Current_Avg10s();
-
-			break;
-
-		case 20u:
-
-			Dcm_RDBI_T30MinSW();
-
-			break;
-
-		case 21u:
-
-			Dcm_RDBI_T30MaxSW();
-
-			break;
-
-		case 22u:
-
-			Dcm_RDBI_T30AvgSW();
-
-			break;
-
-		case 23u:
-
-			Dcm_RDBI_L1MinSW();
-
-			break;
-
-		case 24u:
-
-			Dcm_RDBI_L1MaxSW();
-
-			break;
-
-		case 25u:
-
-			Dcm_RDBI_L1AvgSW();
-
-			break;
-
-		case 26u:
-
-			Dcm_RDBI_L1_Current_MinSW();
-
-			break;
-
-		case 27u:
-
-			Dcm_RDBI_L1_Current_MaxSW();
-
-			break;
-
-		case 28u:
-
-			Dcm_RDBI_L1_Current_AvgSW();
-
-			break;
-
 		case 29u:
 
 			Dcm_ReadLoadStatus();
@@ -2050,53 +1321,15 @@ void Dcm_main()
 		/* Do nothing. */
 	}
 
-	if(0x27u == rx[1u] && 0x01u == rx[2u])
-	{
-		Dcm_RequestSeed();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(0x27u == rx[1u] && 0x02u == rx[2u])
-	{
-		Dcm_SendKey();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(1u == g_sec_unlocked)
-	{
-		Dem_SetDtc(0x62u, 0x2fu);
-	}
-	else
-	{
-		if(0x2fu == Dem_GetDtcStatus(0x62u))
-		{
-			Dem_SetDtc(0x62u, 0x2eu);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	if(0x02 == rx[2u] && 3u == Dcm_ActiveSessionState && (1u == g_sec_unlocked) && 6u == CanH_VehicleStatus)
+	if(0x02 == rx[2u] && 3u == Dcm_ActiveSessionState  && 6u == CanH_VehicleStatus)
 	{
 		Dcm_ProgrammingSession();
 	}
-	else if(0x02 == rx[2u] && (3u != Dcm_ActiveSessionState || 0u == g_sec_unlocked || 6u != CanH_VehicleStatus))
+	else if(0x02 == rx[2u] && (3u != Dcm_ActiveSessionState || 6u != CanH_VehicleStatus))
 	{
 		if(3u != Dcm_ActiveSessionState)
 		{
 			Dcm_SendNrc(DCM_NRC_SERVICE_NOT_SUPPORTED_IN_SESSION);
-		}
-		else if(0u == g_sec_unlocked)
-		{
-			Dcm_SendNrc(DCM_NRC_SECURITY_ACCESS_DENIED);
 		}
 		else if(6u != CanH_VehicleStatus)
 		{
@@ -2124,15 +1357,6 @@ void Dcm_main()
 	if(0x40u == rx[4u] && 0x31u == rx[1u])
 	{
 		Dcm_RC_HealSupply();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	if(0x31u == rx[1u] && 0x43u == rx[4u])   /* choose routine ID = 0x50 */
-	{
-		Dcm_RC_ReadMinMaxAvg();
 	}
 	else
 	{
