@@ -1,4 +1,4 @@
-[PanelSettings]
+﻿[PanelSettings]
 PanelLayout=2
 PanelName=Panel 2301
 PanelStyleFile=
@@ -166,12 +166,14 @@ ScaleY=1
 RAngle=0
 Enabled=1
 VarType=1
+VarLink=
 VarId=-1
 PageIdx=0
 ChildObjs=0
 Min=0
 Max=15
 Freq=1
+Text=VarName
 FontSize=12
 FontType=Segoe UI
 FontStyle=0
