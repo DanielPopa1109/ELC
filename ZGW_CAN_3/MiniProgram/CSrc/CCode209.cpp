@@ -665,11 +665,10 @@ void step(void) { try { // interval = 0.5 ms
 // CODE BLOCK BEGIN Configuration
 /* 
 [UI]
-UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMDld,100,199,3844949029240589717,0
+UICommon=-1,-1,-1,0,QyBDb2RlIEVkaXRvciBbQ0NvZGUyMDld,100,174,3844949029240589717,0
 ScriptName=CCode209
 DisplayName=CCode209
 InclDBs=1
-DBDeps=ZGW_CAN_3
-LastBuildTime=2026-09-04 20:35:31*/
+DBDeps=ZGW_CAN_3*/
 // CODE BLOCK END Configuration
 

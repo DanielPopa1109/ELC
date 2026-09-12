@@ -9,13 +9,6 @@
       "REG":"False"    
     },
     {
-      "Name":"Diagnostic Export",
-      "Type":      1,
-      "GUID":"s432338282156380228923305779",
-      "SEL":"Checked",
-      "REG":"False"    
-    },
-    {
       "Name":"Diagnostics SWV31",
       "Type":      0,
       "GUID":"s52128754314729970131124779",

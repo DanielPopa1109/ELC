@@ -1,0 +1,142 @@
+{
+  "Header": {
+    "GenerationSoftware": {
+      "Vendor": "OpenAI",
+      "Application": "ELC Native Writer",
+      "Version": "1.0"
+    },
+    "CreationDate": "2026-09-11T00:00:00Z"
+  },
+  "GeneralSpecs": {
+    "ProjectId": {
+      "Name": "LoadController",
+      "GUID": "a836986d-5ed3-4120-b96c-576ffe77f9bd",
+      "Revision": "RevFin - PROVISIONAL"
+    },
+    "Size": {
+      "X": 140,
+      "Y": 85
+    },
+    "LayerNumber": 4,
+    "BoardThickness": 2,
+    "Finish": "ENIG"
+  },
+  "FilesAttributes": [
+    {
+      "Path": "LoadController-F_Cu.gbr",
+      "FileFunction": "Copper,1,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-In1_Cu.gbr",
+      "FileFunction": "Copper,2,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-In2_Cu.gbr",
+      "FileFunction": "Copper,3,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-B_Cu.gbr",
+      "FileFunction": "Copper,4,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-F_Mask.gbr",
+      "FileFunction": "Soldermask,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-B_Mask.gbr",
+      "FileFunction": "Soldermask,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-F_Paste.gbr",
+      "FileFunction": "Paste,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-Edge_Cuts.gbr",
+      "FileFunction": "Profile,NP",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-F_Silkscreen.gbr",
+      "FileFunction": "Legend,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-Fabrication.gbr",
+      "FileFunction": "Other,FabricationDrawing",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "LoadController-PTH.drl",
+      "FileFunction": "Plated,1,4,PTH",
+      "FilePolarity": "Positive"
+    }
+  ],
+  "MaterialStackup": [
+    {
+      "Type": "SolderMask",
+      "Name": "F.Mask",
+      "Thickness": 0.02
+    },
+    {
+      "Type": "Copper",
+      "Name": "F.Cu",
+      "Thickness": 0.14
+    },
+    {
+      "Type": "Dielectric",
+      "Name": "Prepreg",
+      "Thickness": 0.2,
+      "Material": "FR4 Tg170"
+    },
+    {
+      "Type": "Copper",
+      "Name": "In1.Cu",
+      "Thickness": 0.035
+    },
+    {
+      "Type": "Dielectric",
+      "Name": "Core",
+      "Thickness": 1.21,
+      "Material": "FR4 Tg170"
+    },
+    {
+      "Type": "Copper",
+      "Name": "In2.Cu",
+      "Thickness": 0.035
+    },
+    {
+      "Type": "Dielectric",
+      "Name": "Prepreg",
+      "Thickness": 0.2,
+      "Material": "FR4 Tg170"
+    },
+    {
+      "Type": "Copper",
+      "Name": "B.Cu",
+      "Thickness": 0.14
+    },
+    {
+      "Type": "SolderMask",
+      "Name": "B.Mask",
+      "Thickness": 0.02
+    }
+  ],
+  "Notes": [
+    "PROVISIONAL FABRICATION DATA: module footprints are user-approved estimates.",
+    "4 layers; 2.00 mm finished; FR4 Tg >=170 C; ENIG; green LPI mask.",
+    "Copper: F.Cu/B.Cu 140 um (4 oz) minimum FINISHED; inner layers 35 um (1 oz).",
+    "All 0.30/0.40 mm vias: IPC-4761 Type VII filled and copper capped, including via-in-pad.",
+    "Minimum finished via barrel copper 35 um. Finished drill sizes shown in Excellon files.",
+    "8.50 mm holes J1/J2 plated; ONE per terminal. 18 mm annular contact lands both sides.",
+    "Do not substitute lighter copper or thermal-relief connections in the power path.",
+    "Replace M1-M4 estimated footprints and regenerate all fabrication files before release.",
+    "100 A continuous at 85 C ambient is NOT thermally qualified; airflow remains unspecified."
+  ]
+}

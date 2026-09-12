@@ -1,0 +1,20 @@
+{
+  "records": {
+    "{35DF4461-FF29-4520-B912-6AF6760E51F4}": {
+      "autoloop": true,
+      "bindkey": "",
+      "channel": 0,
+      "description": "a StandardIPv4 packet",
+      "dstaddr": "192.168.1.10",
+      "dstport": "-",
+      "lasttime": "2026-09-10 08:59:32",
+      "looptime": 1000,
+      "name": "StandardIPv4",
+      "protocol": "StandardIPv4",
+      "scapytext": "Ether(type=\"IPv4\") / IP(version=\"IPv4\", tos=\"Default\", id=0, flags=\"None\", frag=\"0\", ttl=64, src=\"192.168.1.135\", dst=\"192.168.1.10\")",
+      "sortindex": 1,
+      "srcaddr": "192.168.1.135",
+      "srcport": "-"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+file=C:\Users\Daniel\Documents\ELC\ZGW_CAN_3\TSMaster.ini
+section=TfrmBasePluginSingle.TProtoParser
+forceCreate=0
+completed=1
+stage=7

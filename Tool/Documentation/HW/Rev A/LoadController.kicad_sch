@@ -1,0 +1,258 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "a836986d-5ed3-4120-b96c-576ffe77f9bd")
+	(paper "A4")
+	(title_block
+		(title "32 V High-side Load Controller")
+		(rev "RevFin")
+		(comment 1 "PROVISIONAL - module footprints estimated")
+	)
+	(lib_symbols)
+	(text "Five-resistor, MCU-controlled precharge branch bypasses the main pair."
+		(exclude_from_sim no)
+		(at 20 39 0)
+		(effects
+			(font
+				(size 1.4 1.4)
+			)
+			(justify left)
+		)
+		(uuid "478664cf-3673-4395-88e8-04d33d4649ca")
+	)
+	(text "T30 -> reverse blocking pair -> main pair -> ACS758LCB-100B -> OUTPUT"
+		(exclude_from_sim no)
+		(at 20 31 0)
+		(effects
+			(font
+				(size 1.4 1.4)
+			)
+			(justify left)
+		)
+		(uuid "60005917-0a1a-4574-b414-294b9e095493")
+	)
+	(text "100 A / 85 C remains unqualified. This project contains no firmware."
+		(exclude_from_sim no)
+		(at 20 169 0)
+		(effects
+			(font
+				(size 1.05 1.05)
+			)
+			(justify left)
+		)
+		(uuid "8b41dcb8-2a56-4a60-835a-760a4da41c7d")
+	)
+	(text "M1-M4: estimated dimensions and pad patterns explicitly authorized by user; replace before release."
+		(exclude_from_sim no)
+		(at 20 163 0)
+		(effects
+			(font
+				(size 1.05 1.05)
+			)
+			(justify left)
+		)
+		(uuid "93de2d7f-732d-4ee5-81fb-aba9385ea6b4")
+	)
+	(text "HIGH-SIDE LOAD CONTROLLER"
+		(exclude_from_sim no)
+		(at 20 20 0)
+		(effects
+			(font
+				(size 3 3)
+			)
+			(justify left)
+		)
+		(uuid "e4cc448a-4132-41eb-8e09-0338df0d3934")
+	)
+	(sheet
+		(at 155 115)
+		(size 95 32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.254)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "3b2f61ac-0197-4213-9105-dbcfce2f4c66")
+		(property "Sheetname" "Sensing"
+			(at 155 114 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Sensing.kicad_sch"
+			(at 155 148 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "LoadController"
+				(path "/a836986d-5ed3-4120-b96c-576ffe77f9bd"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 155 60)
+		(size 95 32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.254)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "5b3ad700-b91b-41c9-906e-3c2a5623834d")
+		(property "Sheetname" "Drivers"
+			(at 155 59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Drivers.kicad_sch"
+			(at 155 93 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "LoadController"
+				(path "/a836986d-5ed3-4120-b96c-576ffe77f9bd"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 30 115)
+		(size 95 32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.254)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "691ce996-3c67-4fca-87a0-2c9a92ecca7b")
+		(property "Sheetname" "Modules"
+			(at 30 114 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Modules.kicad_sch"
+			(at 30 148 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "LoadController"
+				(path "/a836986d-5ed3-4120-b96c-576ffe77f9bd"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 30 60)
+		(size 95 32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.254)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "9cb5e6ae-2668-49e2-a9a0-22d91535c67b")
+		(property "Sheetname" "Power"
+			(at 30 59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Power.kicad_sch"
+			(at 30 93 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "LoadController"
+				(path "/a836986d-5ed3-4120-b96c-576ffe77f9bd"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)

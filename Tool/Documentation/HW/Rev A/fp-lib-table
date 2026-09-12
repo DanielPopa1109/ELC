@@ -1,0 +1,1 @@
+(fp_lib_table (lib (name "ELC")(type "KiCad")(uri "${KIPRJMOD}/ELC.pretty")(options "")(descr "Project footprints; module carriers are estimates")))
