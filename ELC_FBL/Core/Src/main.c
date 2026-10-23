@@ -11,13 +11,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define BOOT_ISOTP_RX_ID   0x702u
-#define BOOT_ISOTP_TX_ID   0x703u
-#define ISOTP_MAX_RX_LEN   4095u
-#define ISOTP_PCI_SF       0x0u
-#define ISOTP_PCI_FF       0x1u
-#define ISOTP_PCI_CF       0x2u
-#define ISOTP_PCI_FC       0x3u
 #define SYST_CSR  (*(volatile uint32_t*)0xE000E010)
 #define SYST_RVR  (*(volatile uint32_t*)0xE000E014)
 #define SYST_CVR  (*(volatile uint32_t*)0xE000E018)
@@ -25,7 +18,6 @@
 #define APPL_START_ADDRESS 					0x08003C00
 #define APPL_END_ADDRESS     0x0800F7FFu    /* same as erase end */
 #define APPL_CRC_ADDRESS     (APPL_END_ADDRESS - 3u) /* last 4 bytes */
-#define RESET_COUNTER_ADDR					0x20004FC8
 #define APPL_PARAMFLASH_START_ADDRESS 0x08003800u
 #define APPL_PARAMFLASH_END_ADDRESS 0x08003BFFu
 
@@ -39,45 +31,22 @@ typedef enum
 	JUMPTOAPPL = 7U
 }FBL_DSC_t;
 
-typedef enum
-{
-	ISOTP_RX_IDLE = 0u,
-	ISOTP_RX_IN_PROGRESS
-} isotp_rx_state_t;
-
-uint32_t FBL_BytesReceived = 0u;   /* actual data bytes from 0x36 */
-volatile uint8_t g_run_ram_updater = 0;
-uint8_t  isotp_rx_buf[ISOTP_MAX_RX_LEN];
-uint16_t isotp_rx_len      = 0u;
-uint16_t isotp_rx_expected = 0u;
-uint8_t  isotp_rx_sn       = 0u;
-volatile isotp_rx_state_t isotp_rx_state = ISOTP_RX_IDLE;
-volatile uint32 FBL_BlockStartAddr = 0u;
-uint32 FBL_BlockLength    = 0u;
-uint8_t FBL_PendingBytes[4];
-uint8_t FBL_PendingLen = 0u;
-uint8_t FBL_Dcm_SWV[4u] = {33u, 33u, 33u, 0xFFu};
-uint8 FBL_RxFrame[8] = {0};
+volatile uint8_t g_run_ram_updater;
 FBL_DSC_t FBL_DSC_State = JUMPTOAPPL;
-CAN_RxHeaderTypeDef FBL_RxHeader = {0, 0, 0, 0, 0, 0, 0};
-CAN_TxHeaderTypeDef FBL_TxHeader = {0, 0, 0, 0, 0, 0};
-uint32 FBL_TxMailbox = 0;
-uint32* FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
-uint32* FBL_ResetCounterFBL = (uint32*)(RESET_COUNTER_ADDR);
-uint32 FBL_ProgrammingAddress = 0;
-uint32 ROM_APPL_START_ADDR_storedValue = 0;
-uint32 ROM_APPL_START_ADDR = APPL_START_ADDRESS;
-uint32 FBL_DSC_Status = 0;
+uint32* FBL_DSC_Pointer = (uint32*)SESSIONSTATUS_ADDR;
+uint32 FBL_DSC_Status;
 extern uint8_t __ram_blob_load_start[];
 extern uint8_t __ram_blob_load_end[];
 extern uint8_t __ram_blob_vma_start[];
+extern uint8_t __ram_blob_vma_end[];
 
-static uint32_t FBL_CalcCrc32Flash(uint32_t startAddr, uint32_t length);
-static void IsoTp_OnCanRx(const CAN_RxHeaderTypeDef *rxHeader, const uint8_t *data);
-static void IsoTp_SendFlowControl(void);
-static void FBL_ProcessUds(const uint8_t *uds, uint16_t len);
-static void FBL_SendUdsSingleFrame(const uint8_t *uds, uint16_t len);
-static void memcopy8(uint8_t *dst, const uint8_t *src, uint32_t n){ while (n--) *dst++ = *src++; }
+#define BOOT_START APPL_START_ADDRESS
+#define BOOT_END APPL_CRC_ADDRESS
+#define BOOT_BLOCK 1
+#define BOOT_LEGACY_ERASE 4
+#include "boot_protocol.h"
+static Boot_Context boot;
+static uint8_t FBL_AppVectorsValid(void);
 void FBL_RunRamUpdater(void);
 void FBL_JumpToAppl(void);
 void FBL_DiagService_ER_HardReset(void);
@@ -92,6 +61,7 @@ uint32 FBL_NvM_EraseFlash_PARAM(void);
 /* USER CODE BEGIN PTD */
 void FBL_RunRamUpdater(void)
 {
+    uint32_t previousMask=__get_PRIMASK();
 	__disable_irq();
 
 	SYST_CSR = 0; SYST_RVR = 0; SYST_CVR = 0;
@@ -101,31 +71,51 @@ void FBL_RunRamUpdater(void)
 	uint8_t *dst = __ram_blob_vma_start;
 
 	size_t size = (size_t)(end - src);
+	/* Leave at least 1 KiB below the updater MSP at 0x20004F80. */
+	if (((uintptr_t)dst < 0x20000000u) ||
+		((uintptr_t)__ram_blob_vma_end > 0x20004B80u) ||
+		(((uintptr_t)dst & 0x7Fu) != 0u) ||
+		(size < 8u) ||
+		(size != (size_t)(__ram_blob_vma_end - dst)))
+	{
+		__set_PRIMASK(previousMask);
+		return;
+	}
 	memcpy(dst, src, size);
 
 	uint32_t vtor     = (uint32_t)dst;
 	uint32_t new_msp  = *(uint32_t *)(vtor + 0);
 	uint32_t reset_pc = *(uint32_t *)(vtor + 4);
+	if ((new_msp != 0x20004F80u) ||
+		((reset_pc & 1u) == 0u) ||
+		((reset_pc & ~1u) < vtor) ||
+		((reset_pc & ~1u) >= (vtor + size)))
+	{
+		__set_PRIMASK(previousMask);
+		return;
+	}
 
 	SCB->VTOR = vtor;
+	__DSB();
+	__ISB();
 
-	__set_MSP(new_msp);
-
-	((void (*)(void))reset_pc)();             /* never returns */
+	__asm volatile("msr msp, %0\n bx %1"::"r"(new_msp),"r"(reset_pc):"memory");
+	__builtin_unreachable();
 }
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+typedef struct {uint8_t data[8],len;} BootRxFrame;
+static BootRxFrame bootQueue[16];
+static volatile uint8_t bootHead,bootTail;
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *handle)
 {
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &FBL_RxHeader, FBL_RxFrame);
-
-	if (FBL_RxHeader.StdId == BOOT_ISOTP_RX_ID)
-	{
-		IsoTp_OnCanRx(&FBL_RxHeader, FBL_RxFrame);
-	}
-	else
-	{
-		/* Do nothing. */
-	}
+    CAN_RxHeaderTypeDef h;uint8_t d[8];
+    while(HAL_CAN_GetRxFifoFillLevel(handle,CAN_RX_FIFO0)){
+        if(HAL_CAN_GetRxMessage(handle,CAN_RX_FIFO0,&h,d)!=HAL_OK)break;
+        if(h.IDE!=CAN_ID_STD||h.RTR!=CAN_RTR_DATA||h.StdId!=BOOT_RX_ID||h.DLC>8)continue;
+        uint8_t next=(bootHead+1u)%16u;if(next==bootTail)continue;
+        for(unsigned i=0;i<h.DLC;++i)bootQueue[bootHead].data[i]=d[i];
+        bootQueue[bootHead].len=(uint8_t)h.DLC;bootHead=next;
+    }
 }
 /* USER CODE END PTD */
 
@@ -177,6 +167,7 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  Boot_Init(&boot);
   MX_GPIO_Init();
   MX_CAN_Init();
   MX_CRC_Init();
@@ -209,26 +200,11 @@ int main(void)
 		/* Do nothing. */
 	}
 
-	if(*FBL_ResetCounterFBL >= 50 && *FBL_ResetCounterFBL <= 52)
-	{
-		FBL_DSC_Status = PROGRAMMING;
-	}
-	else
-	{
-		FBL_NvM_FlashReadData(ROM_APPL_START_ADDR, &ROM_APPL_START_ADDR_storedValue, 1);
+    /* A single explicit retained session word is shared with APP. The old
+       0x20004FC8 heuristic aliases APP active-time data and is not a boot request. */
+    FBL_DSC_Status=*FBL_DSC_Pointer;
 
-		if(ROM_APPL_START_ADDR_storedValue != 0xFFFFFFFF)
-		{
-			FBL_DSC_Pointer = (uint32*)(SESSIONSTATUS_ADDR);
-			FBL_DSC_Status = *FBL_DSC_Pointer;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	if (FBL_DSC_Status == PROGRAMMING)
+	if ((FBL_DSC_Status == PROGRAMMING) || (FBL_AppVectorsValid() == 0u))
 	{
 		FBL_DSC_State = PROGRAMMING;
 	}
@@ -248,6 +224,11 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+        Boot_MainFunction(&boot,HAL_GetTick());
+        if(bootTail!=bootHead){
+            BootRxFrame frame=bootQueue[bootTail];bootTail=(bootTail+1u)%16u;
+            Boot_Rx(&boot,frame.data,frame.len,HAL_GetTick());
+        }
 		if (g_run_ram_updater)
 		{
 			g_run_ram_updater = 0;
@@ -332,729 +313,72 @@ static void MX_NVIC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static uint32_t FBL_CalcCrc32Flash(uint32_t startAddr, uint32_t length)
+static uint8_t FBL_AppVectorsValid(void)
 {
-	uint32_t crc = 0xFFFFFFFFu;
-	const uint8_t *p = (const uint8_t *)startAddr;
+    uint32_t msp=*(const uint32_t*)APPL_START_ADDRESS,pc=*(const uint32_t*)(APPL_START_ADDRESS+4u);
+    return msp>=0x20000000u && msp<=0x20004FC0u && !(msp&7u) && (pc&1u) &&
+        (pc&~1u)>=APPL_START_ADDRESS && (pc&~1u)<APPL_CRC_ADDRESS &&
+        *(const uint32_t*)APPL_CRC_ADDRESS==Boot_Crc((const uint8_t*)APPL_START_ADDRESS,APPL_CRC_ADDRESS-APPL_START_ADDRESS);
+}
+static int BootPort_Send(const uint8_t frame[8])
+{
+    CAN_TxHeaderTypeDef h={0};uint32_t mailbox,start=HAL_GetTick();
+    h.StdId=BOOT_TX_ID;h.IDE=CAN_ID_STD;h.RTR=CAN_RTR_DATA;h.DLC=8;
+    if(HAL_CAN_AddTxMessage(&hcan,&h,(uint8_t*)frame,&mailbox)!=HAL_OK)return -1;
+    while(HAL_CAN_IsTxMessagePending(&hcan,mailbox))if((uint32_t)(HAL_GetTick()-start)>=100u){HAL_CAN_AbortTxRequest(&hcan,mailbox);return -1;}
+    unsigned shift=mailbox==CAN_TX_MAILBOX0?0u:mailbox==CAN_TX_MAILBOX1?8u:16u;
+    return (hcan.Instance->TSR&(CAN_TSR_TXOK0<<shift))?0:-1;
+}
+static int BootPort_Program(uint32_t address,uint32_t word)
+{return FBL_NvM_FlashWriteData(address,&word,1)?-1:0;}
+static int BootPort_Erase(uint32_t address,uint32_t size)
+{
+    FLASH_EraseInitTypeDef e={0};uint32_t error,mask=__get_PRIMASK();int rc=-1;
+    if(!size || !((address>=APPL_START_ADDRESS && address<APPL_CRC_ADDRESS && size<=APPL_CRC_ADDRESS-address)||
+       (address==APPL_PARAMFLASH_START_ADDRESS && size==1024u)))return -1;
+    uint32_t end=(address+size+1023u)&~1023u;address&=~1023u;
+    e.TypeErase=FLASH_TYPEERASE_PAGES;e.PageAddress=address;e.NbPages=(end-address)/1024u;
+    __disable_irq();
+    if(HAL_FLASH_Unlock()==HAL_OK && HAL_FLASHEx_Erase(&e,&error)==HAL_OK){
+        rc=0;for(uint32_t a=address;a<end;a+=4u)if(*(volatile uint32_t*)a!=0xFFFFFFFFu)rc=-1;
+    }
+    HAL_FLASH_Lock();__set_PRIMASK(mask);return rc;
+}
+static uint32_t BootPort_Crc(uint32_t address,uint32_t size){return Boot_Crc((const uint8_t*)address,size);}
+static int BootPort_Finalize(uint32_t address,uint32_t size)
+{
+    (void)address;(void)size;
+    uint32_t sp=*(volatile uint32_t*)APPL_START_ADDRESS,pc=*(volatile uint32_t*)(APPL_START_ADDRESS+4u);
+    if(sp<0x20000000u||sp>0x20004FC0u||(sp&7u)||!(pc&1u)||(pc&~1u)<APPL_START_ADDRESS||(pc&~1u)>=APPL_CRC_ADDRESS)return -1;
+    uint32_t crc=BootPort_Crc(APPL_START_ADDRESS,APPL_CRC_ADDRESS-APPL_START_ADDRESS);
+    if(*(volatile uint32_t*)APPL_CRC_ADDRESS==crc)return 0;
+    return BootPort_Program(APPL_CRC_ADDRESS,crc);
+}
+static int BootPort_Reset(void)
+{
+    if(!FBL_AppVectorsValid())return -1;
+    FBL_DiagService_ER_HardReset();return 0;
+}
+static void BootPort_Updater(void){g_run_ram_updater=1;}
 
-	for (uint32_t i = 0; i < length; i++)
-	{
-		crc ^= (uint32_t)p[i];
-		for (uint8_t bit = 0u; bit < 8u; bit++)
-		{
-			if (crc & 1u)
-			{
-				crc = (crc >> 1) ^ 0xEDB88320u;
-			}
-			else
-			{
-				crc >>= 1;
-			}
-		}
-	}
-
-	return ~crc;
+uint32 FBL_NvM_EraseFlash_PARAM(void){return BootPort_Erase(APPL_PARAMFLASH_START_ADDRESS,1024u)?1u:0u;}
+uint32 FBL_NvM_EraseFlash_APPL(void){return BootPort_Erase(APPL_START_ADDRESS,APPL_CRC_ADDRESS-APPL_START_ADDRESS)?1u:0u;}
+uint32 Nvm_GetPage(uint32 address){return address>=0x08000000u && address<0x08010000u?address&~1023u:0u;}
+uint32 FBL_NvM_FlashWriteData(uint32 address,uint32 *data,uint16 words)
+{
+    if(!data||!words||(address&3u)||address<APPL_START_ADDRESS||address>APPL_CRC_ADDRESS||4u*words>APPL_CRC_ADDRESS+4u-address)return 1;
+    uint32_t mask=__get_PRIMASK(),result=0;__disable_irq();
+    if(HAL_FLASH_Unlock()!=HAL_OK)result=1;
+    for(unsigned i=0;i<words && !result;++i){
+        if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,address+4u*i,data[i])!=HAL_OK || *(volatile uint32_t*)(address+4u*i)!=data[i])result=1;
+    }
+    HAL_FLASH_Lock();__set_PRIMASK(mask);return result;
 }
 
-static void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
+void FBL_NvM_FlashReadData(uint32 address,uint32 *dst,uint16 words)
 {
-	uint32_t crcTester = 0u;
-	uint32_t crcCalc = 0u;
-	uint16_t data_len = 0u;
-	uint8_t sid = 0u;
-	uint32_t word = 0u;
-	uint16_t indexxx = 0u;
-
-	sid = uds[0];
-
-	switch (FBL_DSC_State)
-	{
-	case PROGRAMMING:
-	{
-		if((sid == 0x22u) && (len == 3u) && (uds[1u] == 0xf1u) && (uds[2u] == 0x7eu))
-		{
-			uint8_t tx[8] = {0};
-
-			tx[0] = 4;
-			tx[1] = 0x62u;
-			tx[2] = 0xf1u;
-			tx[3] = 0x7e;
-			tx[4] = FBL_DSC_State;
-			FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
-			FBL_TxHeader.IDE   = CAN_ID_STD;
-			FBL_TxHeader.RTR   = CAN_RTR_DATA;
-			FBL_TxHeader.DLC   = 5u;
-
-			HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if((sid == 0x22u) && (len == 3u) && (uds[1u] == 0xf1u) && (uds[2u] == 0x7fu))
-		{
-			uint8_t tx[8] = {0};
-
-			tx[0] = 4;
-			tx[1] = 0x62u;
-			tx[2] = 0xf1u;
-			tx[3] = 0x7f;
-			tx[4] = 0x02u;
-			FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
-			FBL_TxHeader.IDE   = CAN_ID_STD;
-			FBL_TxHeader.RTR   = CAN_RTR_DATA;
-			FBL_TxHeader.DLC   = 5u;
-
-			HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if ((sid == 0x31u) &&
-				(len >= 4u) &&                // at least SID + sub + RID
-				(uds[1] == 0x01u) &&          // startRoutine
-				(uds[2] == 0x00u) &&
-				(uds[3] == 0x00u))
-		{
-			if ((FBL_BlockLength == 0u) || (FBL_BytesReceived == 0u))
-			{
-				uint8 nrc[3] = {0x7Fu, 0x31u, 0x22u};
-
-				FBL_SendUdsSingleFrame(nrc, sizeof(nrc));
-
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (FBL_PendingLen > 0u)
-			{
-				word = 0xFFFFFFFFu;
-
-				uint8_t *w    = (uint8_t *)&word;
-
-				for (uint8_t i = 0u; i < FBL_PendingLen; i++)
-				{
-					w[i] = FBL_PendingBytes[i];
-				}
-
-				FBL_NvM_FlashWriteData(FBL_ProgrammingAddress, &word, 1u);
-				FBL_ProgrammingAddress += 4u;
-				FBL_PendingLen = 0u;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (len < 5)
-			{
-				uint8 nrc[3] = {0x7Fu, 0x31u, 0x22u};
-
-				FBL_SendUdsSingleFrame(nrc, sizeof(nrc));
-
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			crcTester =
-					(uint32)uds[len-4] |
-					((uint32)uds[len-3] << 8) |
-					((uint32)uds[len-2] << 16) |
-					((uint32)uds[len-1] << 24);
-			crcCalc = FBL_CalcCrc32Flash(FBL_BlockStartAddr, FBL_BlockLength);
-
-			if (crcCalc == crcTester)
-			{
-				uint8_t tx[8] = {0};
-
-				tx[0] = 4;
-				tx[1] = 0x71;
-				tx[2] = 0x01;
-				tx[3] = 0x00;
-				tx[4] = 0x00;
-				FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
-				FBL_TxHeader.IDE   = CAN_ID_STD;
-				FBL_TxHeader.RTR   = CAN_RTR_DATA;
-				FBL_TxHeader.DLC   = 5u;
-
-				FBL_NvM_FlashWriteData(APPL_CRC_ADDRESS, &crcCalc, 1u);
-
-				HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
-			}
-			else
-			{
-				uint8 nrc[3] = {0x7Fu, 0x31u, 0x22u};
-
-				FBL_SendUdsSingleFrame(nrc, sizeof(nrc));
-			}
-		}
-
-		if ((sid == 0x22u) && (len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x80u))
-		{
-			uint8_t resp[7];
-
-			resp[0] = 0x62u;
-			resp[1] = uds[1];
-			resp[2] = uds[2];
-			resp[3] = FBL_Dcm_SWV[0];
-			resp[4] = FBL_Dcm_SWV[1];
-			resp[5] = FBL_Dcm_SWV[2];
-			resp[6] = FBL_Dcm_SWV[3];
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if (uds[0] == 0x31 && (uds[1] == 0x01u) && (uds[2] == 0x00u) && (uds[3] == 0x07u))
-		{
-			g_run_ram_updater = 1u;
-
-			uint8_t resp[4];
-
-			resp[0] = 0x71u;
-			resp[1] = uds[1];
-			resp[2] = uds[2];
-			resp[3] = uds[3];
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if (sid == 0x34u)
-		{
-			uint8_t alfi = uds[2]; /* 0x44 => 4-byte addr, 4-byte length */
-			uint8_t addrLen = (uint8_t)((alfi >> 4) & 0x0Fu);
-			const uint8_t *pAddr = &uds[3];
-			const uint8_t *pSize = &uds[3 + addrLen];
-			uint32 addr = ((uint32)pAddr[0] << 24) | ((uint32)pAddr[1] << 16) | ((uint32)pAddr[2] << 8)  | (uint32)pAddr[3];
-			uint32 size = ((uint32)pSize[0] << 24) | ((uint32)pSize[1] << 16) | ((uint32)pSize[2] << 8)  | (uint32)pSize[3];
-
-			FBL_BlockStartAddr     = addr;
-			FBL_BlockLength        = size;
-			FBL_ProgrammingAddress = addr;
-			FBL_PendingLen         = 0u;
-			FBL_BytesReceived      = 0u;      /* NEW: track real data length */
-
-			uint8_t resp[3];
-
-			resp[0] = 0x74;
-			resp[1] = 0x10;
-			resp[2] = 0xf0;
-
-			FBL_SendUdsSingleFrame(resp, 3);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if ((sid == 0x31u) && (uds[1] == 0x01u))
-		{
-			uint16 rid = (uint16)(((uint16)uds[2] << 8) | uds[3]);
-
-			if (rid == 0x0004u)
-			{
-				(void)FBL_NvM_EraseFlash_APPL();
-
-				uint8 resp[7];
-
-				resp[0] = 0x71u;
-				resp[1] = 0x01u;
-				resp[2] = uds[2]; /* 0x00 */
-				resp[3] = uds[3]; /* 0x04 */
-				resp[4] = 0;
-				resp[5] = 0;
-				resp[6] = 0;
-
-				FBL_SendUdsSingleFrame(resp, sizeof(resp));
-			}
-			else if(rid == 0x0005u)
-			{
-				(void)FBL_NvM_EraseFlash_PARAM();
-
-				uint8 resp[7];
-
-				resp[0] = 0x71u;
-				resp[1] = 0x01u;
-				resp[2] = uds[2]; /* 0x00 */
-				resp[3] = uds[3]; /* 0x04 */
-				resp[4] = 0;
-				resp[5] = 0;
-				resp[6] = 0;
-
-				FBL_SendUdsSingleFrame(resp, sizeof(resp));
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if (sid == 0x36u)
-		{
-			if (len <= 2u)
-			{
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			uint8_t block_no      = uds[1];
-			const uint8_t *data_p = &uds[2];
-			data_len     = (uint16_t)(len - 2u);
-
-			FBL_BytesReceived += (uint32_t)data_len;
-			indexxx = 0u;
-
-			while (indexxx < data_len)
-			{
-				FBL_PendingBytes[FBL_PendingLen] = data_p[indexxx];
-				indexxx++;
-				FBL_PendingLen++;
-
-				if (FBL_PendingLen == 4)
-				{
-					word =(uint32_t)FBL_PendingBytes[0] | ((uint32_t)FBL_PendingBytes[1] << 8) | ((uint32_t)FBL_PendingBytes[2] << 16) | ((uint32_t)FBL_PendingBytes[3] << 24);
-
-					FBL_NvM_FlashWriteData(FBL_ProgrammingAddress, &word, 1);
-
-					FBL_ProgrammingAddress += 4;
-					FBL_PendingLen = 0;
-				}
-				else
-				{
-					/* Do nothing. */
-				}
-			}
-
-			uint8_t resp[2];
-
-			resp[0] = 0x76u;
-			resp[1] = block_no;
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-		}
-
-		if ((sid == 0x37u) && (len == 1u))
-		{
-			uint8_t resp[1];
-
-			resp[0] = 0x77u;
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if ((sid == 0x11u) && (len >= 2u) && (uds[1] == 0x01u))
-		{
-			uint8_t resp[2];
-
-			resp[0] = 0x51u;
-			resp[1] = uds[1];
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-
-			for (volatile uint32_t i = 0u; i < 90000u; i++) { }
-
-			FBL_DiagService_ER_HardReset();
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-		break;
-	}
-
-	case HARDRESET:
-	default:
-	{
-		/* Default session: look for 0x10 02 to enter programming */
-
-		if ((sid == 0x10u) && (len >= 2u) && (uds[1] == 0x02u))
-		{
-			FBL_DSC_State = PROGRAMMING;
-
-			uint8_t resp[2];
-			resp[0] = 0x50u; /* positive resp to 0x10 */
-			resp[1] = uds[1];
-
-			FBL_SendUdsSingleFrame(resp, sizeof(resp));
-		}
-		/* else ignore */
-		break;
-	}
-	}
-}
-
-static void FBL_SendUdsSingleFrame(const uint8_t *uds, uint16_t len)
-{
-	uint8_t tx[8] = {0};
-
-	tx[0] = (uint8_t)((ISOTP_PCI_SF << 4) | (len & 0x0Fu));
-
-	memcopy8(&tx[1], uds, len);
-
-	FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
-	FBL_TxHeader.IDE   = CAN_ID_STD;
-	FBL_TxHeader.RTR   = CAN_RTR_DATA;
-	FBL_TxHeader.DLC   = 8u;
-
-	HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, tx, &FBL_TxMailbox);
-}
-
-static void IsoTp_SendFlowControl(void)
-{
-	uint8_t fc[8] = {0};
-
-	fc[0] = (uint8_t)((ISOTP_PCI_FC << 4) | 0x0u);
-	fc[1] = 0x00u; /* BlockSize = 0 => sender may send all CFs */
-	fc[2] = 5; /* STmin = 5 ms */
-	/* fc[3..7] remain 0 */
-
-	FBL_TxHeader.StdId = BOOT_ISOTP_TX_ID;
-	FBL_TxHeader.IDE   = CAN_ID_STD;
-	FBL_TxHeader.RTR   = CAN_RTR_DATA;
-	FBL_TxHeader.DLC   = 8u;
-
-	HAL_CAN_AddTxMessage(&hcan, &FBL_TxHeader, fc, &FBL_TxMailbox);
-}
-
-static void IsoTp_OnCanRx(const CAN_RxHeaderTypeDef *rxHeader, const uint8_t *data)
-{
-	uint8_t pci_type = (uint8_t)(data[0] >> 4);
-	uint8_t pci_low  = (uint8_t)(data[0] & 0x0Fu);
-	uint8_t dlc      = rxHeader->DLC;
-
-	switch (pci_type)
-	{
-	case ISOTP_PCI_SF: /* Single Frame */
-	{
-		uint8_t payload_len = pci_low;
-
-		if (payload_len == 0u || payload_len > (uint8_t)(dlc - 1u))
-		{
-			return; /* invalid */
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		FBL_ProcessUds(&data[1], payload_len);
-
-		break;
-	}
-
-	case ISOTP_PCI_FF: /* First Frame */
-	{
-		uint16_t total_len;
-		uint8_t  payload_offset;
-
-		if ((pci_low == 0u) && (data[1] == 0u))
-		{
-			if (dlc < 6u)
-			{
-				isotp_rx_state    = ISOTP_RX_IDLE;
-				isotp_rx_expected = 0;
-				isotp_rx_len      = 0;
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			uint32_t len32 = ((uint32_t)data[2] << 24) | ((uint32_t)data[3] << 16) | ((uint32_t)data[4] << 8) | (uint32_t)data[5];
-
-			if (len32 == 0u)
-			{
-				isotp_rx_state    = ISOTP_RX_IDLE;
-				isotp_rx_expected = 0;
-				isotp_rx_len      = 0;
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (len32 > ISOTP_MAX_RX_LEN)
-			{
-				total_len = ISOTP_MAX_RX_LEN; /* clamp, e.g. 0x4095 -> 4095 */
-			}
-			else
-			{
-				total_len = (uint16_t)len32;
-			}
-
-			payload_offset = 6u;  /* data[6..] is payload (SID, etc.) */
-		}
-		else
-		{
-			/* Normal 12-bit FF_DL */
-			if (dlc < 2u)
-			{
-				isotp_rx_state    = ISOTP_RX_IDLE;
-				isotp_rx_expected = 0;
-				isotp_rx_len      = 0;
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			uint16_t len12 = (uint16_t)(((uint16_t)pci_low << 8) | data[1]);
-
-			if ((len12 == 0u) || (len12 > ISOTP_MAX_RX_LEN))
-			{
-				isotp_rx_state    = ISOTP_RX_IDLE;
-				isotp_rx_expected = 0;
-				isotp_rx_len      = 0;
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			total_len      = len12;
-			payload_offset = 2u;
-		}
-
-		isotp_rx_len      = 0u;
-		isotp_rx_expected = total_len;
-
-		if (dlc > payload_offset)
-		{
-			uint8_t first_chunk_len = (uint8_t)(dlc - payload_offset);
-
-			if (first_chunk_len > isotp_rx_expected)
-			{
-				first_chunk_len = (uint8_t)isotp_rx_expected;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			memcopy8(isotp_rx_buf, &data[payload_offset], first_chunk_len);
-			isotp_rx_len = first_chunk_len;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		isotp_rx_sn    = 1u;                     /* first CF must be 0x21 */
-		isotp_rx_state = ISOTP_RX_IN_PROGRESS;
-
-		IsoTp_SendFlowControl();
-
-		break;
-	}
-
-	case ISOTP_PCI_CF: /* Consecutive Frame */
-	{
-		if (isotp_rx_state != ISOTP_RX_IN_PROGRESS)
-		{
-			return;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		uint16_t remaining = (uint16_t)(isotp_rx_expected - isotp_rx_len);
-		uint8_t  chunk_len = (uint8_t)(dlc - 1u);
-
-		if (chunk_len > remaining)
-		{
-			chunk_len = (uint8_t)remaining;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if (chunk_len > 0u)
-		{
-			memcopy8(&isotp_rx_buf[isotp_rx_len], &data[1], chunk_len);
-			isotp_rx_len += chunk_len;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		isotp_rx_sn = (uint8_t)((isotp_rx_sn + 1u) & 0x0Fu);
-
-		if (isotp_rx_len >= isotp_rx_expected)
-		{
-			isotp_rx_state = ISOTP_RX_IDLE;
-			FBL_ProcessUds(isotp_rx_buf, isotp_rx_expected);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-	case ISOTP_PCI_FC:
-	default:
-		break;
-	}
-}
-
-uint32 FBL_NvM_EraseFlash_PARAM(void)
-{
-	__disable_irq();
-
-	FLASH_EraseInitTypeDef EraseInitStruct;
-
-	uint32 PAGEError;
-	uint32 StartPage = APPL_PARAMFLASH_START_ADDRESS;
-	uint32 EndPageAdress = APPL_PARAMFLASH_END_ADDRESS;
-	uint32 EndPage = Nvm_GetPage(EndPageAdress);
-
-	HAL_FLASH_Unlock();
-
-	EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
-	EraseInitStruct.PageAddress = StartPage;
-	EraseInitStruct.NbPages     = ((EndPage - StartPage)/FLASH_PAGE_SIZE) +1;
-
-	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK)
-	{
-		__enable_irq();
-		return HAL_FLASH_GetError ();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	HAL_FLASH_Lock();
-
-	__enable_irq();
-
-	return 0;
-}
-
-uint32 FBL_NvM_EraseFlash_APPL(void)
-{
-	__disable_irq();
-
-	FLASH_EraseInitTypeDef EraseInitStruct;
-
-	uint32 PAGEError;
-	uint32 StartPage = APPL_START_ADDRESS;
-	uint32 EndPageAdress = APPL_END_ADDRESS;
-	uint32 EndPage = Nvm_GetPage(EndPageAdress);
-
-	HAL_FLASH_Unlock();
-
-	EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
-	EraseInitStruct.PageAddress = StartPage;
-	EraseInitStruct.NbPages     = ((EndPage - StartPage)/FLASH_PAGE_SIZE) +1;
-
-	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK)
-	{
-		__enable_irq();
-		return HAL_FLASH_GetError ();
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	HAL_FLASH_Lock();
-
-	__enable_irq();
-
-	return 0;
-}
-
-uint32 Nvm_GetPage(uint32 Address)
-{
-	for (uint8 indx = 0; indx < 128; indx++)
-	{
-		if((Address < (0x08000000 + (FLASH_PAGE_SIZE *(indx + 1))) ) && (Address >= (0x08000000 + FLASH_PAGE_SIZE * indx)))
-		{
-			return (0x08000000 + FLASH_PAGE_SIZE * indx);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	return 0;
-}
-
-uint32 FBL_NvM_FlashWriteData(uint32 StartPageAddress, uint32 *Data, uint16 numberofwords)
-{
-	__disable_irq();
-
-	uint32 sofar = 0;
-
-	HAL_FLASH_Unlock();
-
-	while (sofar<numberofwords)
-	{
-		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, StartPageAddress, Data[sofar]) == HAL_OK)
-		{
-			StartPageAddress += 4;
-			sofar++;
-		}
-		else
-		{
-			__enable_irq();
-			return HAL_FLASH_GetError ();
-		}
-	}
-
-	HAL_FLASH_Lock();
-
-	__enable_irq();
-
-	return 0;
-}
-
-void FBL_NvM_FlashReadData(uint32 StartPageAddress, uint32 *RxBuf, uint16 numberofwords)
-{
-	__disable_irq();
-
-	for (uint16 i = 0u; i < numberofwords; i++)
-	{
-		RxBuf[i] = *(__IO uint32 *)(StartPageAddress + (i * 4));
-	}
-
-	__enable_irq();
+    if(!dst||address<0x08000000u||address>0x08010000u||4u*words>0x08010000u-address)return;
+    for(unsigned i=0;i<words;++i)dst[i]=*(const uint32_t*)(address+4u*i);
 }
 
 void FBL_JumpToAppl(void)
@@ -1080,11 +404,10 @@ void FBL_JumpToAppl(void)
 	SysTick->VAL = 0;
 	SCB->VTOR = app_address;
 
-	__set_MSP(msp_value);
-
 	app_entry = (pFunction)(*((uint32*)(app_address + 4)));
-
-	app_entry();
+	__DSB();__ISB();
+	__asm volatile("msr msp, %0\n bx %1"::"r"(msp_value),"r"(app_entry):"memory");
+	__builtin_unreachable();
 }
 
 void FBL_DiagService_ER_HardReset(void)
@@ -1092,7 +415,7 @@ void FBL_DiagService_ER_HardReset(void)
 	__disable_irq();
 
 	*FBL_DSC_Pointer = 0u;
-	*FBL_ResetCounterFBL = 0u;
+
 
 	__NVIC_SystemReset();
 }

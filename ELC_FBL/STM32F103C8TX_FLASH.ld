@@ -140,3 +140,7 @@ SECTIONS
   /DISCARD/ : { libc.a(*); libm.a(*); libgcc.a(*) }
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
+ASSERT(__ram_blob_vma_start == 0x20000000, "SRAM vector base must be 128-byte aligned")
+ASSERT(__ram_blob_vma_end <= 0x20004B80, "updater stack margin below 0x20004F80")
+ASSERT(__ram_blob_load_end <= 0x08003800, "updater load image overlaps parameters")
+ASSERT(_ebss + _Min_Heap_Size + _Min_Stack_Size <= 0x20004FC0, "resident SRAM overlaps retention")

@@ -1,0 +1,806 @@
+[
+  {
+    "path": "ELC_APP/APPL/SMon/Dem_App.c",
+    "lines": 10,
+    "sha256": "b0750550e5bf60a33517c6d390261b9b6dceb74831fc41d3935fba3726109a54",
+    "functions": [
+      "Dem_AppCapture"
+    ]
+  },
+  {
+    "path": "ELC_APP/APPL/SMon/SMon.c",
+    "lines": 1776,
+    "sha256": "1ee8f8d85118e8b118f8c112ab886e36622eed33beb3fbc7751b19710cd6b144",
+    "functions": [
+      "SMon_I2TAccumulation",
+      "SMon_Batt_AbsF",
+      "SMon_Batt_ClampF",
+      "SMon_Batt_OcvToSoc",
+      "SMon_Batt_RintToSoh",
+      "SMon_Batt_RestedVoltageToSohCap",
+      "SMon_Batt_InitIfNeeded",
+      "SMon_Batt_UpdateChargePath",
+      "SMon_Batt_CalcRawState",
+      "SMon_Batt_OnStateEntry",
+      "SMon_Batt_UpdateState",
+      "SMon_Batt_HandleChargePathEdge",
+      "SMon_Batt_UpdateRestState",
+      "SMon_Batt_UpdateRintFromRestStep",
+      "SMon_BatteryData",
+      "SMon_ProcessShortToPlusTest",
+      "SMon_ProcessLoadCurrentState",
+      "SMon_ProcessEcuVoltageState",
+      "SMon_ProcessLoadErrorStatus",
+      "SMon_LoadSwitchingDiagnosis",
+      "SMon_LoadSwitchingLogic",
+      "SMon_LoadCurrentErrorState",
+      "SMon_LoadSwitchState",
+      "SMon_main"
+    ]
+  },
+  {
+    "path": "ELC_APP/APPL/SMon/SMon.h",
+    "lines": 172,
+    "sha256": "4c4d875460da8f5e0c13cf917db22f496c61bef56fe08b44468f885e5fca8457",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/Can/Can.c",
+    "lines": 52,
+    "sha256": "a5c6c69d7f3665f765befbbabd90970fa7fcdcfe4d4aeaffe7302ed4e2db0f56",
+    "functions": [
+      "Can_Init",
+      "Can_IsControllerOnline",
+      "Can_Write",
+      "Can_QueueRx",
+      "Can_MainFunction"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/Can/Can.h",
+    "lines": 14,
+    "sha256": "324aa5c7f56612c60f364da3a3e6d854c85f1fc6b91e34d165343eddc37501d0",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanH/CanH.c",
+    "lines": 882,
+    "sha256": "4144bf75696277d42c97838dffbbcfa8420a34bc23d7e8bed0ccc519c205fac2",
+    "functions": [
+      "CanH_PublishMeasurements",
+      "Xcp_AddrAllowed",
+      "Xcp_Send",
+      "Xcp_SendError",
+      "Xcp_HandleCommand",
+      "Xcp_CanRx",
+      "CanH_MainFunction",
+      "CanH_Receive",
+      "HAL_CAN_RxFifo0MsgPendingCallback",
+      "HAL_CAN_RxFifo1MsgPendingCallback",
+      "CanH_RxIndication"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanH/CanH.h",
+    "lines": 75,
+    "sha256": "a8fc7ae4febc2ea27047abe5eb86fda807b7de7a2b246621dc844739e9522c83",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanIf/CanIf.c",
+    "lines": 75,
+    "sha256": "929a1f7a39718a7ddf690106bd1462be7c26fb9733908d31b7a55caec7908e8a",
+    "functions": [
+      "CanIf_Init",
+      "CanIf_SetCommunicationControl",
+      "CanIf_MainFunction",
+      "CanIf_SetApplicationTxEnabled",
+      "CanIf_Transmit",
+      "CanIf_TransmitTelemetry",
+      "CanIf_RxIndication",
+      "CanIf_TransmitDiagnostic",
+      "CanIf_TransmitFault",
+      "CanIf_TransmitXcp",
+      "CanIf_TxConfirmation"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanIf/CanIf.h",
+    "lines": 21,
+    "sha256": "ee1f5cd28e53e9ba0905825b71fac218f61dfce3ff07916fc9ca36223049cef7",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanNm/CanNm.c",
+    "lines": 42,
+    "sha256": "fe959bacdbd5a6e31231a5f08e3a23e7b6721fa7323e1a6293076fc800dee0d2",
+    "functions": [
+      "CanNm_Init",
+      "CanNm_RxIndication",
+      "CanNm_MainFunction",
+      "CanNm_GetPn1",
+      "CanNm_IsNetworkActive",
+      "CanNm_GetInactiveTicks",
+      "CanNm_GetState"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanNm/CanNm.h",
+    "lines": 21,
+    "sha256": "d03283f356cac816df16fdfd67e3e16724ecf3a8018d73bfbf8b47eea2e14202",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanSM/CanSM.c",
+    "lines": 34,
+    "sha256": "721e68e85d68c73498fad817fc33cbc20bd491933861fe63fdc8811071cc3102",
+    "functions": [
+      "CanSM_Init",
+      "CanSM_RequestComMode",
+      "CanSM_MainFunction",
+      "CanSM_GetCurrentComMode"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanSM/CanSM.h",
+    "lines": 13,
+    "sha256": "5c2f6ae41e3684ba590ceb8d906f2e7e1dd059ea658836a9266206a851e40af0",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanTp/CanTp.c",
+    "lines": 102,
+    "sha256": "1153ac125226e62f6278be43d47bec4277c701866b6d99fbd151d42303140f10",
+    "functions": [
+      "rxAbort",
+      "txDone",
+      "CanTp_Init",
+      "CanTp_IsIdle",
+      "CanTp_Cancel",
+      "CanTp_Transmit",
+      "flow",
+      "CanTp_RxIndication",
+      "CanTp_TxConfirmation",
+      "CanTp_MainFunction"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/CanTp/CanTp.h",
+    "lines": 16,
+    "sha256": "52733174d66379629648a565b06f1df2ee700bdc09623f2431dde59838c55470",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/Com/Com.c",
+    "lines": 216,
+    "sha256": "ad92c90af3d826ef6d07af541cba6a443a60c0c8b9a277f151408a3e49a59e0e",
+    "functions": [
+      "Com_Init",
+      "Com_RxIndication",
+      "Com_MainFunctionRx",
+      "Com_SetLoadStatus",
+      "Com_QueueTelemetry",
+      "Com_MainFunctionTx",
+      "Com_GetLoadRequest",
+      "Com_GetInvalidFrameCount",
+      "Com_LoadRequestTimedOut",
+      "Com_VehicleStatusTimedOut",
+      "Com_GetVehicleStatus",
+      "Com_HasInvalidVehicleStatus",
+      "Com_QueueFault",
+      "Com_TxConfirmation"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/Com/Com.h",
+    "lines": 23,
+    "sha256": "3423ecc84d614360029877ea504ca1918a076ebd78c5c0da9e4cefd129e96e53",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/ComM/ComM.c",
+    "lines": 22,
+    "sha256": "21bf6d4b825fd6c8d4e4bd1d5d8c744b148813094be06e4289f968b51d2d0873",
+    "functions": [
+      "ComM_Init",
+      "ComM_MainFunction",
+      "ComM_IsApplicationCommunicationAllowed"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/ComM/ComM.h",
+    "lines": 10,
+    "sha256": "e44a52d848bd0cf890bd81501de6f42f97cef94e1a28f5586f016c05ff017acb",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Com/PduR/PduR.c",
+    "lines": 36,
+    "sha256": "e9493fc8a922ee4195ddeb6a78db7d505b5ddea670ec69712a687347271d6eac",
+    "functions": [
+      "PduR_DcmTransmit",
+      "PduR_CanTpRxIndication",
+      "PduR_CanTpTxConfirmation",
+      "PduR_CanIfTxConfirmation",
+      "PduR_ComTransmitFault",
+      "PduR_Init",
+      "PduR_ComTransmit",
+      "PduR_ComTransmitTelemetry",
+      "PduR_CanIfRxIndication"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Com/PduR/PduR.h",
+    "lines": 19,
+    "sha256": "494bc536c849700e10aae4fd02e9f85212942e19f6a84895958116f915ea99c9",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Diag/Dcm/Dcm.c",
+    "lines": 295,
+    "sha256": "a4f73e25d149b0e476e1ac27408b3e91c6654687e26fdf6e2b9ee09549eb40a8",
+    "functions": [
+      "send",
+      "nrc",
+      "Dcm_Init",
+      "Dcm_RxIndication",
+      "Dcm_TxConfirmation",
+      "Dcm_PutU8",
+      "Dcm_PutU16BE",
+      "Dcm_PutU24BE",
+      "Dcm_PutFloatRaw",
+      "Dcm_PutDidU8",
+      "Dcm_PutDidU16",
+      "Dcm_PutDidFloat",
+      "readDid",
+      "readDtc",
+      "dispatch",
+      "Dcm_main"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Diag/Dcm/Dcm.h",
+    "lines": 23,
+    "sha256": "754fff6c6327bcc1ae8392e387f7ec6b613d4e4b66470c0da9971707808bf66f",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Diag/Dem/Dem.c",
+    "lines": 123,
+    "sha256": "5d423d70d6d84192ada70d14ca3b81bbc2725e6e2640d11fb9181756078b7f00",
+    "functions": [
+      "Dem_Init",
+      "indexOf",
+      "Dem_SetDTCSetting",
+      "Dem_CaptureFreezeFrame",
+      "Dem_SetDtc",
+      "Dem_GetDtcStatus",
+      "Dem_GetEvent",
+      "Dem_GetSnapshot",
+      "Dem_SetOperationCycle",
+      "Dem_ClearDTC",
+      "Dem_GetClearResult",
+      "Dem_main"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Diag/Dem/Dem.h",
+    "lines": 44,
+    "sha256": "235cdd5c87d43e33a3c857761e1e6e3772f1f821551678b4b147d60bd18d1bfa",
+    "functions": [
+      "__attribute__"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Nvm/Nvm.c",
+    "lines": 373,
+    "sha256": "8cd728e102f1790890bec2492946cb29986e50407faad1639f2443e4061bb990",
+    "functions": [
+      "copyBlocks",
+      "MemIf_Read",
+      "MemIf_Erase",
+      "MemIf_Program",
+      "Nvm_ReadAll",
+      "Nvm_WriteBlock",
+      "Nvm_WriteAll",
+      "Nvm_ReadBlock",
+      "Nvm_IsWriteAllowed",
+      "Nvm_MainFunction",
+      "Nvm_GetErrorStatus",
+      "Nvm_FlashReadData",
+      "rd_u32",
+      "rd_f32",
+      "Nvm_ParamFormatValid",
+      "Nvm_InitParamFlash"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Nvm/Nvm.h",
+    "lines": 24,
+    "sha256": "8685373a451e25fb5588bd4b0b49d8a88e18c7679bb3419b6fbb9140147cd61a",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Nvm/NvmStore.c",
+    "lines": 93,
+    "sha256": "52e6c4ae69ad942320a7b403e7b26e35daa9ff165dc043304917fcf37525856b",
+    "functions": [
+      "Crc_CalculateCRC32",
+      "valid",
+      "NvmStore_Init",
+      "NvmStore_Read",
+      "NvmStore_AllowMigration",
+      "NvmStore_Write",
+      "NvmStore_MainFunction",
+      "NvmStore_GetResult",
+      "NvmStore_GetBuffer"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Nvm/NvmStore.h",
+    "lines": 19,
+    "sha256": "ee4e163618f2cbf32c1c419c761c69279f1aed571b51f3c6e3eddd3f84ab57e7",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/BSW/Sys/EcuM/EcuM.c",
+    "lines": 170,
+    "sha256": "93de15e47007f02dbd7d5db400a596a866271e26fd48d9b0870aaa5ea3c31266",
+    "functions": [
+      "EcuM_main",
+      "EcuM_PerformReset"
+    ]
+  },
+  {
+    "path": "ELC_APP/BSW/Sys/EcuM/EcuM.h",
+    "lines": 28,
+    "sha256": "30f6f9ceb28489ed5143d5671e083b7114d839dd1dc743d4c518ce568246ba0e",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/adc.h",
+    "lines": 32,
+    "sha256": "ac1df94095a3303569ef003d6d6015b3bd4d389508ee3fe2d4e9b92cb7d18890",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/can.h",
+    "lines": 32,
+    "sha256": "45a11ebf649e1095a283641da2418f0d4c3856dbb221d4d1c28ebc42c28ad7b9",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/crc.h",
+    "lines": 32,
+    "sha256": "5c62237c0b91e9c148ea5b953f29d9285f24a34cfa719a66779b6ff8dbbac1f0",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/dma.h",
+    "lines": 32,
+    "sha256": "4077af75619c5ffe8b5bd8cb1e9c646f2e21fc9df9dfe4c3283247d961c325ce",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/FreeRTOSConfig.h",
+    "lines": 153,
+    "sha256": "4cd3c138db552a2c45b92316b66d0abbeaebf21ff6138783e2e6ffaab89d37e4",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/gpio.h",
+    "lines": 29,
+    "sha256": "76a4670a084cd0940e4fee2ba37077d8ac863ff3d3de4cc7ec673c8d22563a24",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/main.h",
+    "lines": 59,
+    "sha256": "b7af980c1922adb80ccb8767ef37561b8c70a04e15ec80cd32ecf668122f8d67",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/stm32f1xx_hal_conf.h",
+    "lines": 375,
+    "sha256": "7d0f0bfb58eb5d654e38866d5c36492b6f267d48e5d7ca01b4f1bc237567f38b",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/stm32f1xx_it.h",
+    "lines": 57,
+    "sha256": "36de38dbed12195fd572fca81752c8ebdb621d740836415598a8e8634b6ef196",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Inc/tim.h",
+    "lines": 37,
+    "sha256": "69e7642c366f8a6dd11c183d28efbb8662411b9f783933eec10a09e6242e3984",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/Src/adc.c",
+    "lines": 175,
+    "sha256": "4a685dfcb158fb04f9c82dbeb009407571d5cfaa17357156ec2e81eb7cfa9f7e",
+    "functions": [
+      "MX_ADC1_Init",
+      "HAL_ADC_MspInit",
+      "HAL_ADC_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/can.c",
+    "lines": 202,
+    "sha256": "b4cc83a42f3476c312f689cd7b858dd11bcfced09e64601e2287e3ff3c0a0cee",
+    "functions": [
+      "MX_CAN_Init",
+      "HAL_CAN_MspInit",
+      "HAL_CAN_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/crc.c",
+    "lines": 59,
+    "sha256": "483f10ff05bc4cb56166eb45f48a14db39233ad6996e43ea0a1252f5f508ebea",
+    "functions": [
+      "MX_CRC_Init",
+      "HAL_CRC_MspInit",
+      "HAL_CRC_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/dma.c",
+    "lines": 30,
+    "sha256": "198deb87ae6445fdbbb561b28297f0c2e2be4a5499ad371148de1604527e82be",
+    "functions": [
+      "MX_DMA_Init"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/freertos.c",
+    "lines": 368,
+    "sha256": "ce5cac6b7fe7b6746ee0bf9d149ceabd25956919d5c1a0355f72282c3ae9820e",
+    "functions": [
+      "configureTimerForRunTimeStats",
+      "getRunTimeCounterValue",
+      "vApplicationIdleHook",
+      "vApplicationTickHook",
+      "vApplicationStackOverflowHook",
+      "vApplicationMallocFailedHook",
+      "MX_FREERTOS_Init",
+      "QM_BSW_TASK",
+      "QM_APPL_TASK",
+      "QM_DIAG_TASK",
+      "CPULOAD_OS_TASK",
+      "Alarm5ms_Callback"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/gpio.c",
+    "lines": 70,
+    "sha256": "fc7829fb4882c7c19286f6caa663bd0b86fd7d00e841dcd14ea88b2067ddde0c",
+    "functions": [
+      "MX_GPIO_Init"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/main.c",
+    "lines": 453,
+    "sha256": "e3097478a9a2fff33433f7a5d0c4d18d199aaf7dec5446a73c0fcb3b0581d209",
+    "functions": [
+      "HAL_ADC_ConvCpltCallback",
+      "HAL_ADC_ErrorCallback",
+      "main",
+      "SystemClock_Config",
+      "MX_NVIC_Init",
+      "HAL_TIM_PeriodElapsedCallback",
+      "Error_Handler",
+      "assert_failed"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/stm32f1xx_hal_msp.c",
+    "lines": 63,
+    "sha256": "0cb5cdd37c968b195c4f8fdf775d4533aa3f68f6b8b4844bc011831624ba73d0",
+    "functions": [
+      "HAL_MspInit"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/stm32f1xx_hal_timebase_tim.c",
+    "lines": 140,
+    "sha256": "5bcdc4a1fba0382d2cf3cc5690114eddb5d44d4f4ca19255c26de91bf72fa505",
+    "functions": [
+      "HAL_InitTick",
+      "HAL_SuspendTick",
+      "HAL_ResumeTick",
+      "TimeBase_TIM_PeriodElapsedCallback"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/stm32f1xx_it.c",
+    "lines": 344,
+    "sha256": "a96c66920fdde3a74cc992b09803eacda1d9a8b66005d8a640137cd6488d547e",
+    "functions": [
+      "NMI_Handler",
+      "HardFault_Handler",
+      "MemManage_Handler",
+      "BusFault_Handler",
+      "UsageFault_Handler",
+      "DebugMon_Handler",
+      "PVD_IRQHandler",
+      "FLASH_IRQHandler",
+      "RCC_IRQHandler",
+      "DMA1_Channel1_IRQHandler",
+      "ADC1_2_IRQHandler",
+      "USB_HP_CAN1_TX_IRQHandler",
+      "USB_LP_CAN1_RX0_IRQHandler",
+      "CAN1_RX1_IRQHandler",
+      "CAN1_SCE_IRQHandler",
+      "TIM1_BRK_IRQHandler",
+      "TIM1_UP_IRQHandler",
+      "TIM1_TRG_COM_IRQHandler",
+      "TIM1_CC_IRQHandler",
+      "TIM3_IRQHandler",
+      "TIM4_IRQHandler"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/syscalls_dummy.c",
+    "lines": 48,
+    "sha256": "de61648be0409bb09005a12377379d8225eb2ab832904e18f9a01d186bb6c8bf",
+    "functions": [
+      "_write",
+      "_read",
+      "_close",
+      "_lseek",
+      "_fstat",
+      "_isatty"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/system_stm32f1xx.c",
+    "lines": 406,
+    "sha256": "6d73104f1f3c9835f5e1a2b53ef59c98b5015675acdc09124d55ac9fe42dee79",
+    "functions": [
+      "SystemInit_ExtMemCtl"
+    ]
+  },
+  {
+    "path": "ELC_APP/Src/tim.c",
+    "lines": 196,
+    "sha256": "e5169c202efa0c356581b727a100020f76d72fd17de256925ea39fe3c17b745b",
+    "functions": [
+      "MX_TIM1_Init",
+      "MX_TIM3_Init",
+      "HAL_TIM_PWM_MspInit",
+      "HAL_TIM_Base_MspInit",
+      "HAL_TIM_MspPostInit",
+      "HAL_TIM_PWM_MspDeInit",
+      "HAL_TIM_Base_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/boot_protocol.h",
+    "lines": 214,
+    "sha256": "7b84d96c4ccbb744edaba8261e1cf1f9d9a8dbb40d9d309c04b8889a5abd7325",
+    "functions": [
+      "Boot_Read32",
+      "Boot_Crc",
+      "Boot_Init",
+      "Boot_Respond",
+      "Boot_Nrc",
+      "Boot_Range",
+      "Boot_Flush",
+      "Boot_Process",
+      "Boot_MainFunction",
+      "Boot_Rx"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/can.h",
+    "lines": 32,
+    "sha256": "45a11ebf649e1095a283641da2418f0d4c3856dbb221d4d1c28ebc42c28ad7b9",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/crc.h",
+    "lines": 52,
+    "sha256": "2315358bb4c5663706ccbc60d23d90bf0de1e5d23ddb79cc53db1e1a59a54f8c",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/gpio.h",
+    "lines": 29,
+    "sha256": "76a4670a084cd0940e4fee2ba37077d8ac863ff3d3de4cc7ec673c8d22563a24",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/main.h",
+    "lines": 46,
+    "sha256": "aef9276ccb2572cb8fc082596fc9f34aa7245341ac4cf59d5b20d991533d7ebc",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/stm32f1xx_hal_conf.h",
+    "lines": 375,
+    "sha256": "0d424dfe334213086aa98af4e41a766a77339c560215e0030e854c5d86e75e64",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Inc/stm32f1xx_it.h",
+    "lines": 53,
+    "sha256": "ca39364a850e27a8dec553ca532be3d05a57f3498e37a506f5f06a3d3bd8a33c",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/Core/Src/can.c",
+    "lines": 123,
+    "sha256": "4148494fd4f37c36535e0f1012ff33f07cd814d68618719767e9800563d175b5",
+    "functions": [
+      "MX_CAN_Init",
+      "HAL_CAN_MspInit",
+      "HAL_CAN_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/crc.c",
+    "lines": 85,
+    "sha256": "6e9d12dfd3cf7a9f0980e1a65cb046209b6d96cbf3ec5ffea3e4dd9e36a46650",
+    "functions": [
+      "MX_CRC_Init",
+      "HAL_CRC_MspInit",
+      "HAL_CRC_MspDeInit"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/gpio.c",
+    "lines": 62,
+    "sha256": "23b5e3e520debe45b25323f51480db2cbbe6c25ecac8f48fb9ebcbc628316494",
+    "functions": [
+      "MX_GPIO_Init"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/main.c",
+    "lines": 450,
+    "sha256": "6845799c8b2dcae5893a454b155e2997289cb9ec462332daffaebe02816ff808",
+    "functions": [
+      "FBL_RunRamUpdater",
+      "HAL_CAN_RxFifo0MsgPendingCallback",
+      "main",
+      "SystemClock_Config",
+      "MX_NVIC_Init",
+      "FBL_AppVectorsValid",
+      "BootPort_Send",
+      "BootPort_Program",
+      "BootPort_Erase",
+      "BootPort_Crc",
+      "BootPort_Finalize",
+      "BootPort_Reset",
+      "BootPort_Updater",
+      "FBL_NvM_EraseFlash_PARAM",
+      "FBL_NvM_EraseFlash_APPL",
+      "Nvm_GetPage",
+      "FBL_NvM_FlashWriteData",
+      "FBL_NvM_FlashReadData",
+      "FBL_JumpToAppl",
+      "FBL_DiagService_ER_HardReset",
+      "Error_Handler",
+      "assert_failed"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/ram_blob.c",
+    "lines": 368,
+    "sha256": "169488226f9a7a13162731451ef5469e598c3ac3f0ecae6c1ccfefcff5447c58",
+    "functions": [
+      "default_irq",
+      "ram_reset",
+      "flash_wait_ready",
+      "flash_unlock",
+      "flash_lock",
+      "flash_page_erase",
+      "flash_mass_erase_range",
+      "flash_program_hword",
+      "flash_program_word_strict",
+      "can_rx_poll",
+      "BootPort_Send",
+      "BootPort_Program",
+      "BootPort_Erase",
+      "BootPort_Crc",
+      "BootPort_Finalize",
+      "BootPort_Reset",
+      "BootPort_Updater",
+      "ram_updater_start"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/stm32f1xx_hal_msp.c",
+    "lines": 61,
+    "sha256": "f5b39536d962f76031284b01c71b1e9d1520e2ceb92669bcb7e8596cdb1f5837",
+    "functions": [
+      "HAL_MspInit"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/stm32f1xx_it.c",
+    "lines": 263,
+    "sha256": "20baf8141bf0b15cb98b4559a2bbcd7f937767b1933396224664565000d0e29b",
+    "functions": [
+      "NMI_Handler",
+      "HardFault_Handler",
+      "MemManage_Handler",
+      "BusFault_Handler",
+      "UsageFault_Handler",
+      "SVC_Handler",
+      "DebugMon_Handler",
+      "PendSV_Handler",
+      "SysTick_Handler",
+      "PVD_IRQHandler",
+      "FLASH_IRQHandler",
+      "RCC_IRQHandler",
+      "USB_HP_CAN1_TX_IRQHandler",
+      "USB_LP_CAN1_RX0_IRQHandler",
+      "CAN1_RX1_IRQHandler",
+      "CAN1_SCE_IRQHandler"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/syscalls.c",
+    "lines": 176,
+    "sha256": "f3f35ed22e51a878d74b1d476710c77b18c8da3a51e98a484ba237d7ed83101f",
+    "functions": [
+      "initialise_monitor_handles",
+      "_getpid",
+      "_kill",
+      "_read",
+      "_write",
+      "_close",
+      "_fstat",
+      "_isatty",
+      "_lseek",
+      "_open",
+      "_wait",
+      "_unlink",
+      "_times",
+      "_stat",
+      "_link",
+      "_fork",
+      "_execve"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/sysmem.c",
+    "lines": 79,
+    "sha256": "3c6de33ea3cbb6f73eb096ed46fbef52d4f5bd4af17a580b5a18f47db4ecd439",
+    "functions": [
+      "_sbrk"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Src/system_stm32f1xx.c",
+    "lines": 406,
+    "sha256": "6d73104f1f3c9835f5e1a2b53ef59c98b5015675acdc09124d55ac9fe42dee79",
+    "functions": [
+      "SystemInit_ExtMemCtl"
+    ]
+  },
+  {
+    "path": "ELC_FBL/Core/Startup/startup_stm32f103c8tx.s",
+    "lines": 364,
+    "sha256": "420c2b8412c2247bdff38e22d963adcae2e563064b723370facffef552d9caa8",
+    "functions": []
+  },
+  {
+    "path": "ELC_APP/STM32F103C8TX_FLASH.ld",
+    "lines": 201,
+    "sha256": "14db63afc73e2f081391bac7203174437bfc64eb24ae7c83e9cc355ba1f67bf9",
+    "functions": []
+  },
+  {
+    "path": "ELC_FBL/STM32F103C8TX_FLASH.ld",
+    "lines": 146,
+    "sha256": "9282f6fdf1a1b89358abbd44ceac638013b02cbb24e5018ec6bfb11c62e77224",
+    "functions": []
+  }
+]

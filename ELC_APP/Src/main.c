@@ -20,6 +20,15 @@
 #include "SMon.h"
 #include "EcuM.h"
 #include "Dcm.h"
+#include "Dem.h"
+#include "../BSW/Com/Can/Can.h"
+#include "../BSW/Com/CanTp/CanTp.h"
+#include "../BSW/Com/PduR/PduR.h"
+#include "../BSW/Com/CanIf/CanIf.h"
+#include "../BSW/Com/Com/Com.h"
+#include "../BSW/Com/CanNm/CanNm.h"
+#include "../BSW/Com/CanSM/CanSM.h"
+#include "../BSW/Com/ComM/ComM.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -142,9 +151,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	filt_isense2 = filt_isense2 +
 			SMon_P_AlphaFilterExtChIsense * (aux_isense2 - filt_isense2);
 
-	if (SMon_PeakCurrent < abs(aux_isense))
+	if (SMon_PeakCurrent < fabsf(aux_isense))
 	{
-		SMon_PeakCurrent = aux_isense;
+		SMon_PeakCurrent = fabsf(aux_isense);
 	}
 	else
 	{
@@ -225,6 +234,14 @@ int main(void)
   MX_CAN_Init();
   MX_CRC_Init();
   MX_TIM3_Init();
+	Can_Init();
+	CanTp_Init();
+	PduR_Init();
+	CanIf_Init();
+	Com_Init();
+	CanNm_Init();
+	CanSM_Init();
+	ComM_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -260,7 +277,9 @@ int main(void)
 		}
 	}
 
+	Dcm_Init();
 	Nvm_ReadAll();
+	Dem_Init();
 	Nvm_InitParamFlash();
 
 	__enable_irq();

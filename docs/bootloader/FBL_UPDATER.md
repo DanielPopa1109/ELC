@@ -1,0 +1,7 @@
+# SRAM FBL updater - current source baseline
+
+Resident `FBL_RunRamUpdater` validates LMA/VMA extent, 128-byte vector base, fixed MSP20004F80 and Thumb reset target, copies the blob, relocates VTOR with barriers, then tail-branches after setting MSP. It preserves the caller's PRIMASK on a rejected handover. The SRAM instance masks all three NVIC enable banks, disables SysTick, uses DWT cycles at the existing72 MHz clock and runs CAN polling, protocol, CRC and Flash erase/program/readback entirely in SRAM. No HAL or libc dependency is allowed after resident erase.
+
+`boot_protocol.h` is instantiated with RAM_CODE; live context uses RAM_DATA. Compilation disables builtin helpers and switch tables. The vector and fault handler are SRAM-resident; the retained fault record uses20004FE0..20004FF3, clear of APP retained variables. Linker asserts blob end below20004B80, leaving at least1 KiB under the updater MSP. `tools/verify_firmware.py` checks the linked image, vectors and every SRAM-origin relocation;44 pass in the current build.
+
+Both native boot instances test range/BSC/CRC/failure and transport behavior. These tests mock hardware ports and do not execute MSP/VTOR or real Flash. The FBL remains single-copy. Loss of power during erase/programming requires independent SWD/ROM recovery. See [protocol](PROGRAMMING_PROTOCOL.md), [validation](../modernization/ELC_VALIDATION_RESULTS.md) and [coverage](../autosar/BSW_FUNCTIONAL_COVERAGE.md).

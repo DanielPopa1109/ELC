@@ -55,7 +55,6 @@ extern uint8_t CSBSDAT_Hour;
 extern uint8_t CSBSDAT_Minute;
 extern uint8_t CSBSDAT_Second;
 extern volatile uint8_t CanH_VehicleStatus;
-extern volatile uint8_t CanH_AliveCounter_LoadStatus;
 extern volatile uint8_t CanH_AliveCounter_LoadRequest;
 extern CAN_RxHeaderTypeDef CanH_RxHeader;
 extern CAN_TxHeaderTypeDef CanH_TxHeader;
@@ -68,8 +67,9 @@ extern uint32_t CanH_E2eErrCnt;
 extern const uint32_t CanH_P_DelayTxParam;
 
 extern void CanH_MainFunction(void);
-extern bool Dcm_IsoTp_RxHook(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 extern void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 extern void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
+
+void CanH_PublishMeasurements(void);
 
 #endif /* CANH_H */

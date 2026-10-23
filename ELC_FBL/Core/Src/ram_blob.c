@@ -9,13 +9,6 @@
 #define FLASH_START_ADDR   0x08000000UL
 #define FLASH_END_ADDR     0x080037FFUL
 #define FLASH_PAGE_SIZE    1024U
-#define BOOT_ISOTP_RX_ID       0x702u
-#define BOOT_ISOTP_TX_ID       0x703u
-#define ISOTP_MAX_RX_LEN_RAM   0x240
-#define ISOTP_PCI_SF           0x0u
-#define ISOTP_PCI_FF           0x1u
-#define ISOTP_PCI_CF           0x2u
-#define ISOTP_PCI_FC           0x3u
 #define PERIPH_BASE        0x40000000UL
 #define APB1PERIPH_BASE    (PERIPH_BASE + 0x00000000UL)
 #define AHBPERIPH_BASE     (PERIPH_BASE + 0x00020000UL)
@@ -45,7 +38,8 @@
 #define SCB_CFSR   (*(volatile uint32_t*)0xE000ED28UL)
 #define SCB_BFAR   (*(volatile uint32_t*)0xE000ED38UL)
 #define SCB_MMFAR  (*(volatile uint32_t*)0xE000ED34UL)
-#define FAULT_DUMP_ADDR   ((volatile uint32_t*)0x20000100UL)
+/* NCR is 0x20004FC0..0x20004FFF; keep fault words clear of the RAM blob. */
+#define FAULT_DUMP_ADDR   ((volatile uint32_t*)0x20004FE0UL)
 #define CAN1_BASE          (APB1PERIPH_BASE + 0x00006400UL)
 #define CAN_TSR            (*(volatile uint32_t *)(CAN1_BASE + 0x008))
 #define CAN_RF0R           (*(volatile uint32_t *)(CAN1_BASE + 0x00C))
@@ -57,12 +51,6 @@
 #define CAN_RDT0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1B4)) // RDTR
 #define CAN_RDL0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1B8))
 #define CAN_RDH0R          (*(volatile uint32_t *)(CAN1_BASE + 0x1BC))
-
-typedef enum
-{
-	ISOTP_RX_IDLE = 0u,
-	ISOTP_RX_IN_PROGRESS
-} isotp_rx_state_t;
 
 RAM_CODE void ram_updater_start(void);
 
@@ -120,45 +108,19 @@ RAM_VECT const uint32_t ram_vectors[] __attribute__((aligned(128))) =
 		/* 26 */ (uint32_t)default_irq       /* EXTI4 */
 };
 
-static RAM_DATA uint8_t tresp[3] = {0x74u, 0x10u, 0xF0u};
-static RAM_DATA uint32_t crcTester;
-static RAM_DATA uint32_t crcCalc;
-static RAM_DATA uint8_t cresp[5] = {0x71u, 0x01u, 0x00u, 0x00u, 0x00u};
-static volatile uint32_t *const dsc_status_ptr = (uint32_t *)SESSIONSTATUS_ADDR;
-static uint8_t  rx[8];
-static uint8_t  tx[8];
-static uint32_t block_start_addr = 0;
-static uint32_t block_length     = 0;
-static uint32_t prog_addr        = 0;
-static uint32_t bytes_received   = 0;
-static uint8_t  pending_bytes[4];
-static uint8_t  pending_len      = 0;
-static uint8_t  sw_version[4] = {33u, 33u, 33u, 0xFFu};
-static uint8_t  isotp_rx_buf_ram[ISOTP_MAX_RX_LEN_RAM];
-static uint16_t isotp_rx_len      = 0u;
-static uint16_t isotp_rx_expected = 0u;
-static uint8_t  isotp_rx_sn       = 0u;
-static volatile isotp_rx_state_t isotp_rx_state = ISOTP_RX_IDLE;
 
-static RAM_CODE void spin(volatile uint32_t n) { while (n--) { __asm volatile("nop"); } }
 
-static RAM_CODE void flash_wait(void)
+static RAM_CODE int flash_wait_ready(void)
 {
-	while (FLASH_SR & FLASH_SR_BSY) { }
-
-	if (FLASH_SR & FLASH_SR_EOP)
+	uint32_t budget = 10000000u;
+	while ((FLASH_SR & FLASH_SR_BSY) != 0u)
 	{
-		FLASH_SR = FLASH_SR_EOP;
+		if (--budget == 0u) return -1;
 	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	for (volatile int i = 0; i < 2000; i++) { }
+	return 0;
 }
 
-static RAM_CODE void flash_unlock(void)
+static RAM_CODE int flash_unlock(void)
 {
 	if (FLASH_CR & FLASH_CR_LOCK)
 	{
@@ -169,6 +131,7 @@ static RAM_CODE void flash_unlock(void)
 	{
 		/* Do nothing. */
 	}
+	return ((FLASH_CR & FLASH_CR_LOCK) == 0u) ? 0 : -1;
 }
 
 static RAM_CODE void flash_lock(void)
@@ -176,29 +139,42 @@ static RAM_CODE void flash_lock(void)
 	FLASH_CR |= FLASH_CR_LOCK;
 }
 
-static RAM_CODE void flash_page_erase(uint32_t addr)
+static RAM_CODE int flash_page_erase(uint32_t addr)
 {
-	flash_wait();
+	if (flash_wait_ready() != 0) return -1;
+	FLASH_SR = FLASH_SR_PGERR | FLASH_SR_WRPRTERR | FLASH_SR_EOP;
 
 	FLASH_CR |= FLASH_CR_PER;
 	FLASH_AR  = addr;
 	FLASH_CR |= FLASH_CR_STRT;
 
-	flash_wait();
+	int result = flash_wait_ready();
 
 	FLASH_CR &= ~FLASH_CR_PER;
+	if ((result != 0) || ((FLASH_SR & (FLASH_SR_PGERR | FLASH_SR_WRPRTERR)) != 0u)) return -1;
+	FLASH_SR = FLASH_SR_EOP;
+	for (uint32_t offset = 0u; offset < FLASH_PAGE_SIZE; offset += 4u)
+	{
+		if (*(volatile uint32_t *)(addr + offset) != 0xFFFFFFFFu) return -1;
+	}
+	return 0;
 }
 
-static RAM_CODE void flash_mass_erase_range(uint32_t start, uint32_t end)
+static RAM_CODE int flash_mass_erase_range(uint32_t start, uint32_t end)
 {
-	flash_unlock();
+	if (flash_unlock() != 0) return -1;
 
 	for (uint32_t a = start; a < end; a += FLASH_PAGE_SIZE)
 	{
-		flash_page_erase(a);
+		if (flash_page_erase(a) != 0)
+		{
+			flash_lock();
+			return -1;
+		}
 	}
 
 	flash_lock();
+	return 0;
 }
 
 static RAM_CODE int flash_program_hword(uint32_t addr, uint16_t half)
@@ -239,7 +215,7 @@ static RAM_CODE int flash_program_hword(uint32_t addr, uint16_t half)
 		/* Do nothing. */
 	}
 
-	while (FLASH_SR & FLASH_SR_BSY) { }
+	if (flash_wait_ready() != 0) return -9;
 
 	FLASH_SR = FLASH_SR_PGERR | FLASH_SR_WRPRTERR | FLASH_SR_EOP;
 
@@ -247,7 +223,11 @@ static RAM_CODE int flash_program_hword(uint32_t addr, uint16_t half)
 
 	*(volatile uint16_t*)addr = half;
 
-	while (FLASH_SR & FLASH_SR_BSY) { }
+	if (flash_wait_ready() != 0)
+	{
+		FLASH_CR &= ~FLASH_CR_PG;
+		return -9;
+	}
 
 	if (FLASH_SR & FLASH_SR_PGERR)
 	{
@@ -274,12 +254,12 @@ static RAM_CODE int flash_program_hword(uint32_t addr, uint16_t half)
 	FLASH_SR = FLASH_SR_EOP;
 	FLASH_CR &= ~FLASH_CR_PG;
 
-	return 0;
+	return (*(volatile uint16_t *)addr == half) ? 0 : -10;
 }
 
 static RAM_CODE int flash_program_word_strict(uint32_t addr, uint32_t word)
 {
-	flash_unlock();
+	if (flash_unlock() != 0) return -1;
 
 	int r = flash_program_hword(addr,     (uint16_t)(word & 0xFFFFu));
 
@@ -327,655 +307,62 @@ static RAM_CODE int can_rx_poll(uint16_t *stdid, uint8_t *dlc, uint8_t data[8])
 
 	CAN_RF0R |= (1U<<5); /* RFOM0 */
 
-	return 1;
+	return (RIR&6u)==0u;
 }
 
-static RAM_CODE void can_tx_blocking(uint16_t stdid, uint8_t dlc, const uint8_t data[8])
+#define BOOT_CODE RAM_CODE
+#define BOOT_START FLASH_START_ADDR
+#define BOOT_END (FLASH_END_ADDR+1u)
+#define BOOT_BLOCK 2
+#define BOOT_LEGACY_ERASE 6
+#include "boot_protocol.h"
+static RAM_DATA Boot_Context boot;
+static RAM_CODE int BootPort_Send(const uint8_t frame[8])
 {
-	while (!(CAN_TSR & (1U<<26))) { }
-
-	CAN_TDL0R = ((uint32_t)data[3]<<24) | ((uint32_t)data[2]<<16) |
-			((uint32_t)data[1]<<8)  |  (uint32_t)data[0];
-	CAN_TDH0R = ((uint32_t)data[7]<<24) | ((uint32_t)data[6]<<16) |
-			((uint32_t)data[5]<<8)  |  (uint32_t)data[4];
-	CAN_TDT0R = (dlc & 0x0Fu);
-	CAN_TI0R  = ((uint32_t)stdid << 21) | (1U<<0);
-
-	while (!(CAN_TSR & (1U<<0))) { }
-
-	CAN_TSR = (1U<<0);
+    uint32_t count=1000000u;
+    while(!(CAN_TSR&(1u<<26)))if(!--count)return -1;
+    CAN_TSR=1u;
+    CAN_TDL0R=((uint32_t)frame[3]<<24)|((uint32_t)frame[2]<<16)|((uint32_t)frame[1]<<8)|frame[0];
+    CAN_TDH0R=((uint32_t)frame[7]<<24)|((uint32_t)frame[6]<<16)|((uint32_t)frame[5]<<8)|frame[4];
+    CAN_TDT0R=8;CAN_TI0R=((uint32_t)BOOT_TX_ID<<21)|1u;count=1000000u;
+    while(!(CAN_TSR&1u))if(!--count){CAN_TSR=1u<<7;return -1;}
+    int rc=(CAN_TSR&2u)?0:-1;CAN_TSR=1u;return rc;
 }
-
-static RAM_CODE uint32_t FBL_CalcCrc32Flash(uint32_t startAddr, uint32_t length)
+static RAM_CODE int BootPort_Program(uint32_t address,uint32_t word){return flash_program_word_strict(address,word);}
+static RAM_CODE int BootPort_Erase(uint32_t address,uint32_t size)
 {
-	uint32_t crc = 0xFFFFFFFFu;
-	const uint8_t *p = (const uint8_t *)startAddr;
-
-	for (uint32_t i = 0u; i < length; i++)
-	{
-		crc ^= (uint32_t)p[i];
-
-		for (uint8_t bit = 0u; bit < 8u; bit++)
-		{
-			if (crc & 1u)
-			{
-				crc = (crc >> 1) ^ 0xEDB88320u;
-			}
-			else
-			{
-				crc >>= 1;
-			}
-		}
-	}
-
-	return ~crc;
+    if(!Boot_Range(address,size))return -1;
+    return flash_mass_erase_range(address&~1023u,(address+size+1023u)&~1023u);
 }
-
-static RAM_CODE void IsoTp_SendFlowControl(void)
+static RAM_CODE uint32_t BootPort_Crc(uint32_t address,uint32_t size){return Boot_Crc((const uint8_t*)address,size);}
+static RAM_CODE int BootPort_Finalize(uint32_t address,uint32_t size)
 {
-	for (uint8_t i = 0u; i < 8u; i++)
-	{
-		tx[i] = 0u;
-	}
-
-	tx[0] = (uint8_t)((ISOTP_PCI_FC << 4) | 0x0u);
-	tx[1] = 0x00u;
-	tx[2] = 5u;
-
-	can_tx_blocking(BOOT_ISOTP_TX_ID, 8u, tx);
+    uint32_t sp=*(volatile uint32_t*)FLASH_START_ADDR,pc=*(volatile uint32_t*)(FLASH_START_ADDR+4u);
+    return sp>=0x20000000u && sp<=0x20004FC0u && !(sp&7u) && (pc&1u) && (pc&~1u)>=address && (pc&~1u)<address+size?0:-1;
 }
-
-static RAM_CODE void FBL_SendUdsSingleFrame(const uint8_t *uds, uint16_t len)
+static RAM_CODE int BootPort_Reset(void)
 {
-	if (len > 7u)
-	{
-		len = 7u;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	for (uint8_t i = 0u; i < 8u; i++)
-	{
-		tx[i] = 0u;
-	}
-
-	tx[0] = (uint8_t)((ISOTP_PCI_SF << 4) | (len & 0x0Fu));
-
-	for (uint8_t i = 0u; i < len; i++)
-	{
-		tx[1u + i] = uds[i];
-	}
-
-	can_tx_blocking(BOOT_ISOTP_TX_ID, 8u, tx);
+    *(volatile uint32_t*)SESSIONSTATUS_ADDR=0;
+    AIRCR=AIRCR_VECTKEY|AIRCR_SYSRESETREQ;for(;;){}return 0;
 }
-
-static RAM_CODE void FBL_ProcessUds(const uint8_t *uds, uint16_t len)
-{
-	uint8_t sid = uds[0];
-
-	switch (sid)
-	{
-	case 0x10u:
-	{
-		if ((len >= 2u) && (uds[1] == 0x02u))
-		{
-			uint8_t resp[2] = {0x50u, uds[1]};
-			*dsc_status_ptr = 2u;
-			FBL_SendUdsSingleFrame(resp, 2u);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-
-	case 0x34u:
-	{
-		if (len < 3u)
-		{
-			break;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		uint8_t alfi    = uds[2];
-		uint8_t addrLen = (uint8_t)((alfi >> 4) & 0x0Fu);
-
-		if ((addrLen != 4u) || (3u + addrLen + 4u > len))
-		{
-			uint8_t nrc[3] = {0x7Fu, 0x34u, 0x31u};
-			FBL_SendUdsSingleFrame(nrc, 3u);
-			break;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		const uint8_t *pAddr = &uds[3];
-		const uint8_t *pSize = &uds[3 + addrLen];
-		uint32_t addr = ((uint32_t)pAddr[0] << 24) | ((uint32_t)pAddr[1] << 16) | ((uint32_t)pAddr[2] << 8)|  (uint32_t)pAddr[3];
-		uint32_t size = ((uint32_t)pSize[0] << 24)| ((uint32_t)pSize[1] << 16)| ((uint32_t)pSize[2] << 8) |  (uint32_t)pSize[3];
-
-		if ((size == 0u) || (addr < FLASH_START_ADDR) || ((addr + size) > (FLASH_END_ADDR + 1u)))
-		{
-			uint8_t nrc[3] = {0x7Fu, 0x34u, 0x31u};
-
-			FBL_SendUdsSingleFrame(nrc, 3u);
-
-			break;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		block_start_addr = addr;
-		block_length     = size;
-		prog_addr        = addr;
-		bytes_received   = 0u;
-		pending_len      = 0u;
-
-		for (uint8_t i = 0u; i < 4u; i++)
-		{
-			pending_bytes[i] = 0u;
-		}
-
-
-		FBL_SendUdsSingleFrame(tresp, 3u);
-
-		break;
-	}
-
-	case 0x36u:
-	{
-		if (len <= 2u)
-		{
-			break;
-		}
-
-		uint8_t  block_no  = uds[1];
-		const uint8_t *data_p = &uds[2];
-		uint16_t data_len  = (uint16_t)(len - 2u);
-
-		bytes_received += (uint32_t)data_len;
-
-		for (uint16_t i = 0u; i < data_len; i++)
-		{
-			pending_bytes[pending_len] = data_p[i];
-			pending_len++;
-
-			if (pending_len == 4u)
-			{
-				uint32_t word =  (uint32_t)pending_bytes[0] |((uint32_t)pending_bytes[1] << 8) |((uint32_t)pending_bytes[2] << 16) |((uint32_t)pending_bytes[3] << 24);
-
-				(void)flash_program_word_strict(prog_addr, word);
-
-				prog_addr    += 4u;
-				pending_len   = 0u;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-		}
-
-		uint8_t resp[2] = {0x76u, block_no};
-
-		FBL_SendUdsSingleFrame(resp, 2u);
-
-		break;
-	}
-
-	case 0x37u:
-	{
-		if (len == 1u)
-		{
-			uint8_t resp[1] = {0x77u};
-
-			FBL_SendUdsSingleFrame(resp, 1u);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-
-	case 0x31u:
-	{
-		/* CRC check routine: 31 01 00 00 [CRC32] */
-		if ((len == 8u) && (uds[1] == 0x01u) && (uds[2] == 0x00u) && (uds[3] == 0x00u))
-		{
-			if ((block_length == 0u) || (bytes_received == 0u))
-			{
-				uint8_t nrc[3] = {0x7Fu, 0x31u, 0x22u};
-
-				FBL_SendUdsSingleFrame(nrc, 3u);
-
-				break;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (pending_len > 0u)
-			{
-				uint32_t word = 0xFFFFFFFFu;
-				uint8_t *w    = (uint8_t *)&word;
-
-				for (uint32_t i = 0u; i < (uint32_t)pending_len; i++)
-				{
-					w[i] = pending_bytes[i];
-				}
-
-				(void)flash_program_word_strict(prog_addr, word);
-
-				prog_addr   += 4u;
-				pending_len  = 0u;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			crcTester = (uint32_t)uds[4]  |((uint32_t)uds[5] << 8) |((uint32_t)uds[6] << 16)|((uint32_t)uds[7] << 24);
-			crcCalc = FBL_CalcCrc32Flash(block_start_addr, block_length);
-
-			if (crcCalc == crcTester)
-			{
-				FBL_SendUdsSingleFrame(cresp, 5u);
-			}
-			else
-			{
-				uint8_t nrc[3] = {0x7Fu, 0x31u, 0x22u};
-				FBL_SendUdsSingleFrame(nrc, 3u);
-			}
-		}
-		/* Erase routine: 31 01 00 06 ... */
-		else if ((len >= 4u) && (uds[1] == 0x01u))
-		{
-			uint16_t rid = (uint16_t)(((uint16_t)uds[2] << 8) | uds[3]);
-
-			if (rid == 0x0006u)
-			{
-				flash_mass_erase_range(FLASH_START_ADDR, FLASH_END_ADDR + 1u);
-
-				uint8_t resp[7] =
-				{
-						0x71u, 0x01u, uds[2], uds[3], 0u, 0u, 0u
-				};
-
-				FBL_SendUdsSingleFrame(resp, 7u);
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-
-	case 0x11u:
-	{
-		if ((len >= 2u) && (uds[1] == 0x01u))
-		{
-			uint8_t resp[2] = {0x51u, uds[1]};
-			FBL_SendUdsSingleFrame(resp, 2u);
-
-			spin(90000u);
-
-			*dsc_status_ptr = 2u;
-
-			AIRCR = AIRCR_VECTKEY | AIRCR_SYSRESETREQ;
-
-			for (;;) { }
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-
-	case 0x22u:
-	{
-		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x7eu))
-		{
-			uint8_t resp[4] =
-			{
-					0x62u, 0xf1u, 0x7e,
-					0x2u
-			};
-
-			FBL_SendUdsSingleFrame(resp, 4u);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x7fu))
-		{
-			uint8_t resp[4] =
-			{
-					0x62u, 0xf1u, 0x7f,
-					0x3u
-			};
-
-			FBL_SendUdsSingleFrame(resp, 4u);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if ((len == 3u) && (uds[1] == 0xF1u) && (uds[2] == 0x80u))
-		{
-			uint8_t resp[7] =
-			{
-					0x62u, uds[1], uds[2],
-					sw_version[0], sw_version[1], sw_version[2], sw_version[3]
-			};
-
-			FBL_SendUdsSingleFrame(resp, 7u);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		break;
-	}
-
-	default:
-		break;
-	}
-}
-
-/* -------- ISO-TP RX -------- */
-
-static RAM_CODE void IsoTp_OnCanRx_blob(uint16_t rx_id, uint8_t dlc, uint8_t *data)
-{
-	(void)rx_id;
-
-	if (dlc == 0u)
-	{
-		return;
-	}
-	else
-	{
-		/* Do nothing. */
-	}
-
-	uint8_t pci_type = (uint8_t)(data[0] >> 4);
-	uint8_t pci_low  = (uint8_t)(data[0] & 0x0Fu);
-
-	switch (pci_type)
-	{
-	case ISOTP_PCI_SF:
-	{
-		uint8_t payload_len = pci_low;
-
-		if ((payload_len == 0u) || (payload_len > (uint8_t)(dlc - 1u)) ||(payload_len > ISOTP_MAX_RX_LEN_RAM))
-		{
-			return;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		for (uint8_t i = 0u; i < payload_len; i++)
-		{
-			isotp_rx_buf_ram[i] = data[1u + i];
-		}
-
-		isotp_rx_len      = payload_len;
-		isotp_rx_expected = payload_len;
-		isotp_rx_state    = ISOTP_RX_IDLE;
-
-		FBL_ProcessUds(isotp_rx_buf_ram, isotp_rx_len);
-
-		break;
-	}
-
-	case ISOTP_PCI_FF:
-	{
-		uint16_t total_len;
-		uint8_t  payload_offset;
-
-		if ((pci_low == 0u) && (data[1] == 0u))
-		{
-			if (dlc < 6u)
-			{
-				goto ff_abort;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			uint32_t len32 = ((uint32_t)data[2] << 24)|((uint32_t)data[3] << 16)|((uint32_t)data[4] << 8)| (uint32_t)data[5];
-
-			if ((len32 == 0u) || (len32 > ISOTP_MAX_RX_LEN_RAM))
-
-			{
-				goto ff_abort;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			total_len      = (uint16_t)len32;
-			payload_offset = 6u;
-		}
-		else
-		{
-			if (dlc < 2u)
-			{
-				goto ff_abort;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			uint16_t len12 = (uint16_t)(((uint16_t)pci_low << 8) | data[1]);
-
-			if ((len12 == 0u) || (len12 > ISOTP_MAX_RX_LEN_RAM))
-			{
-				goto ff_abort;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			total_len      = len12;
-			payload_offset = 2u;
-		}
-
-		isotp_rx_len      = 0u;
-		isotp_rx_expected = total_len;
-
-		if (dlc > payload_offset)
-		{
-			uint32_t first_chunk_len = (uint8_t)(dlc - payload_offset);
-
-			if (first_chunk_len > isotp_rx_expected)
-			{
-				first_chunk_len = (uint8_t)isotp_rx_expected;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (first_chunk_len > ISOTP_MAX_RX_LEN_RAM)
-			{
-				first_chunk_len = ISOTP_MAX_RX_LEN_RAM;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			if (first_chunk_len == 0u)
-			{
-				isotp_rx_state    = ISOTP_RX_IDLE;
-				isotp_rx_expected = 0u;
-				isotp_rx_len      = 0u;
-				return;
-			}
-			else
-			{
-				/* Do nothing. */
-			}
-
-			for (uint8_t i = 0u; i < first_chunk_len; i++)
-			{
-				isotp_rx_buf_ram[i] = data[payload_offset + i];
-			}
-
-			isotp_rx_len = first_chunk_len;
-		}
-
-		isotp_rx_sn    = 1u;
-		isotp_rx_state = ISOTP_RX_IN_PROGRESS;
-
-		IsoTp_SendFlowControl();
-
-		break;
-
-		ff_abort:
-		isotp_rx_state    = ISOTP_RX_IDLE;
-		isotp_rx_expected = 0u;
-		isotp_rx_len      = 0u;
-		break;
-	}
-
-	case ISOTP_PCI_CF:
-	{
-		if (isotp_rx_state != ISOTP_RX_IN_PROGRESS)
-
-		{
-			return;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		uint16_t remaining = (uint16_t)(isotp_rx_expected - isotp_rx_len);
-		uint8_t  chunk_len = (uint8_t)(dlc - 1u);
-
-		if (chunk_len > remaining)
-		{
-			chunk_len = (uint8_t)remaining;
-		}
-
-		if ((uint16_t)(isotp_rx_len + chunk_len) > ISOTP_MAX_RX_LEN_RAM)
-		{
-			isotp_rx_state    = ISOTP_RX_IDLE;
-			isotp_rx_expected = 0u;
-			isotp_rx_len      = 0u;
-			return;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		for (uint8_t i = 0u; i < chunk_len; i++)
-		{
-			isotp_rx_buf_ram[isotp_rx_len + i] = data[1u + i];
-		}
-
-		isotp_rx_len += chunk_len;
-		isotp_rx_sn = (uint8_t)((isotp_rx_sn + 1u) & 0x0Fu);
-
-		if (isotp_rx_len >= isotp_rx_expected)
-		{
-			isotp_rx_state = ISOTP_RX_IDLE;
-			FBL_ProcessUds(isotp_rx_buf_ram, isotp_rx_expected);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-		break;
-	}
-
-	case ISOTP_PCI_FC:
-	default:
-		break;
-	}
-}
-
+static RAM_CODE void BootPort_Updater(void){__builtin_unreachable();} /* already in updater; protocol rejects re-entry */
 RAM_CODE void ram_updater_start(void)
 {
-	__disable_irq_();
-
-	NVIC_ICER0 = 0xFFFFFFFFu;
-	SYST_CSR   = 0;
-	SYST_RVR   = 0;
-	SYST_CVR   = 0;
-
-	block_start_addr = 0u;
-	block_length     = 0u;
-	prog_addr        = 0u;
-	bytes_received   = 0u;
-	pending_len      = 0u;
-	isotp_rx_state   = ISOTP_RX_IDLE;
-	isotp_rx_len     = 0u;
-	isotp_rx_expected= 0u;
-	isotp_rx_sn      = 0u;
-
-	__enable_irq_(); /* only faults will fire; NVIC IRQs are masked */
-
-	for (;;)
-	{
-		uint8_t  dlc;
-		uint16_t id;
-
-		if (!can_rx_poll(&id, &dlc, rx))
-		{
-			continue;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if (id == BOOT_ISOTP_RX_ID)
-		{
-			IsoTp_OnCanRx_blob(id, dlc, rx);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		for (uint8_t i = 0u; i < 8u; i++)
-		{
-			rx[i] = 0u;
-			tx[i] = 0u;
-		}
-	}
+    __disable_irq_();
+    *(volatile uint32_t*)0xE000E180u=0xFFFFFFFFu;
+    *(volatile uint32_t*)0xE000E184u=0xFFFFFFFFu;
+    *(volatile uint32_t*)0xE000E188u=0xFFFFFFFFu;
+    SYST_CSR=0;SYST_RVR=0;SYST_CVR=0;
+    *(volatile uint32_t*)0xE000EDFCu|=1u<<24; /* DWT cycle time, no Flash dependencies */
+    *(volatile uint32_t*)0xE0001000u|=1u;
+    uint32_t previous=*(volatile uint32_t*)0xE0001004u,now=0;
+    Boot_Init(&boot);
+    for(;;){
+        uint32_t cycles=*(volatile uint32_t*)0xE0001004u;
+        uint32_t elapsed=(uint32_t)(cycles-previous)/72000u;
+        previous+=elapsed*72000u;now+=elapsed;
+        Boot_MainFunction(&boot,now);
+        uint8_t d[8],len;uint16_t id;
+        if(can_rx_poll(&id,&len,d) && id==BOOT_RX_ID && len<=8u)Boot_Rx(&boot,d,len,now);
+    }
 }

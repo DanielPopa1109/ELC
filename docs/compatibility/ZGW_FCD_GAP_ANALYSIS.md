@@ -1,0 +1,11 @@
+# Current ZGW/FCD interoperability dependencies - 2026-10-19
+
+ELC target-side transport is aligned to current ZGW source: extended target58, CAN710 request/response, gateway receive addressF0. ZGW references are `BSW/Com/CanIf/CanIf.c`, `BSW/Com/CanTp/CanTp.c`, `BSW/Diag/Dcm/Dcm_Cfg.h` (ZGW F0/tester41) and `APP/ParallelFlashSwc/ParallelFlashSwc.c` (ELC58). The upstream tester address41 is not ELC's response address; F0 is the gateway receiver for the downstream routed transaction.
+
+ELC now supports generic programming0200/0155/0001/0002 alongside explicit legacy aliases. RequestDownload44, BSC replay/wrap, BE TransferExit CRC and physical response confirmation are connected. [Programming contract](../bootloader/PROGRAMMING_PROTOCOL.md) and [validation](../modernization/ELC_VALIDATION_RESULTS.md) describe the limits.
+
+Read-only inspection of `C:/Users/Daniel/Desktop/VSC/FCD/fcd_settings.json` found ELC selected as Simulated, extended address58, ELC_APP base08000000 instead of08003C00, req710/resp711 and upstream target1001. These settings are not physical target proof. FCD.pyw uses generic version DIDF101, but ELC APP historically dispatches low-byte01 as reset count; that meaning is retained and version remainsF180. Generic F100/F186 have been added as compatible aliases.
+
+External action required: use a real ELC profile, correct APP base and build artifact, select the APP version DID explicitly, and package each image contiguously without the APP boot footer. The FBL computes/writes that footer after verified transfer. Link/route configuration and FC/response correlation must be verified with actual CAN traffic. Current gateway forwarding has an assume-FC path; synthetic forwarding acknowledgement is not proof of a real ECU response. No external repository/configuration was changed.
+
+Fully occupied legacy ELC NvM requires an independent backup and deliberate offline conversion; the two-page new-format journal does not erase legacy active data to force migration. Calibration without an original checksum remains explicitly marked legacy/unverified. Single-copy FBL replacement still needs independent recovery on interruption. No hardware deployment or flashing is authorized by this report.

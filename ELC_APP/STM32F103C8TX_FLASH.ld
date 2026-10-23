@@ -44,7 +44,7 @@ _Min_Stack_Size = 0x190; /* required amount of stack */
 MEMORY
 {
   RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20352
-  FLASH (rx)    : ORIGIN = 0x08003C00,  LENGTH = 48125
+  FLASH (rx)    : ORIGIN = 0x08003C00,  LENGTH = 48124 /* reserve 0x0800F7FC..F7FF for FBL CRC */
   NCR (xrw) : ORIGIN = 0x20004FC0, LENGTH = 64
 }
 /* Sections */ 
@@ -53,6 +53,7 @@ SECTIONS
   .ncrsection (NOLOAD) :
   {
     _sncr = .;
+    KEEP(*(.ncr.session))
     *(.ncr)
     _encr = .;
   } > NCR
@@ -196,3 +197,5 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
+
+ASSERT(_encr <= 0x20004FE0, "retained data overlaps RAM updater fault record")

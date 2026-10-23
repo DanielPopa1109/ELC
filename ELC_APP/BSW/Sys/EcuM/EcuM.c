@@ -21,6 +21,8 @@ uint8_t EcuM_ResetInfo __attribute((section(".ncr")));
 uint32_t EcuM_TimeActive __attribute((section(".ncr")));
 uint32_t EcuM_TimeWithoutReset __attribute((section(".ncr")));
 uint32_t EcuM_TotalResetCounter __attribute((section(".ncr")));
+/* Avoid a flash write just because no NM3 was present after power-up. */
+static uint8_t EcuM_PostRunPersisted = 1u;
 
 void EcuM_main();
 void EcuM_PerformReset(uint8_t reason, uint8_t info);
@@ -39,6 +41,7 @@ void EcuM_main()
 
 	if(0u == EcuM_MainCounter)
 	{
+        Dem_SetOperationCycle(1u);
 		if(EcuM_ResetReason)
 		{
 			Dem_SetDtc(0x57, 0x2f);
@@ -67,6 +70,7 @@ void EcuM_main()
 		EcuM_SWState = 1u;
 		EcuM_RunTimer = 200u;
 		EcuM_PostRunTimer = 200u;
+		EcuM_PostRunPersisted = 0u;
 	}
 	else
 	{
@@ -104,20 +108,13 @@ void EcuM_main()
 
 				if(0u == EcuM_PostRunTimer)
 				{
-					EcuM_SWState = 3u;
-					EcuM_ResetInfo = 0u;
-					EcuM_ResetReason = 0u;
-					Nvm_WriteAll();
-					/* Enable PWR clock */
-					__HAL_RCC_PWR_CLK_ENABLE();
-					/* Clear Wakeup flag */
-					__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
-					/* Clear Standby flag */
-					__HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
-					/* Enable Wakeup pin (PA0) */
-					HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
-					/* Enter Standby mode */
-					HAL_PWR_EnterSTANDBYMode();
+					/* NM3 loss alone must not enter MCU standby: bxCAN cannot
+					 * receive the next NM3 while the core is in this mode, and
+					 * no verified CAN wake source is configured for this board.
+					 * Stay in post-run with diagnostics and CAN RX alive.
+					 */
+					EcuM_SWState = 2u;
+
 				}
 				else
 				{
@@ -138,6 +135,16 @@ void EcuM_main()
 	{
 		/* Do nothing. */
 	}
+
+    /* Do not mark an asynchronous persistence request successful on submission. */
+    if(EcuM_SWState==2u && EcuM_PostRunTimer==0u){
+        if(EcuM_PostRunPersisted==0u){
+            Dem_SetOperationCycle(0u);
+            if(!Nvm_WriteAll())EcuM_PostRunPersisted=2u;
+        }else if(EcuM_PostRunPersisted==2u && Nvm_GetErrorStatus(0u)!=NVM_PENDING){
+            EcuM_PostRunPersisted=Nvm_GetErrorStatus(0u)==NVM_OK?1u:3u;
+        }
+    }
 
 	EcuM_MainCounter++;
 }

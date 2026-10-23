@@ -16,6 +16,10 @@
 #include "adc.h"
 #include "tim.h"
 #include "Dem.h"
+#include "Nvm.h"
+#include "../BSW/Com/Can/Can.h"
+#include "../BSW/Com/CanIf/CanIf.h"
+#include "../BSW/Com/CanTp/CanTp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -230,12 +234,12 @@ void QM_BSW_TASK(void *argument)
 {
   /* USER CODE BEGIN QM_BSW_TASK */
 	/* Infinite loop */
+	TickType_t wake=xTaskGetTickCount();
 	for(;;)
 	{
 		EcuM_main();
-		Dem_main();
 		CanH_MainFunction();
-		vTaskSuspend(NULL);
+		vTaskDelayUntil(&wake,pdMS_TO_TICKS(5));
 	}
   /* USER CODE END QM_BSW_TASK */
 }
@@ -251,10 +255,11 @@ void QM_APPL_TASK(void *argument)
 {
   /* USER CODE BEGIN QM_APPL_TASK */
 	/* Infinite loop */
+	TickType_t wake=xTaskGetTickCount();
 	for(;;)
 	{
 		SMon_main();
-		vTaskSuspend(NULL);
+		vTaskDelayUntil(&wake,pdMS_TO_TICKS(5));
 	}
   /* USER CODE END QM_APPL_TASK */
 }
@@ -270,10 +275,13 @@ void QM_DIAG_TASK(void *argument)
 {
   /* USER CODE BEGIN QM_DIAG_TASK */
 	/* Infinite loop */
+	TickType_t wake=xTaskGetTickCount();
+	uint32_t diagCycle=0;
 	for(;;)
 	{
-		Dcm_main();
-		vTaskSuspend(NULL);
+		Can_MainFunction();CanIf_MainFunction();
+		if((diagCycle++ % 5u)==0u){CanTp_MainFunction();Dcm_main();Dem_main();if(CanTp_IsIdle())Nvm_MainFunction();}
+		vTaskDelayUntil(&wake,pdMS_TO_TICKS(1));
 	}
   /* USER CODE END QM_DIAG_TASK */
 }
@@ -347,9 +355,9 @@ void Alarm5ms_Callback(void *argument)
 		/* Do nothing. */
 	}
 
-	vTaskResume(QM_APPLHandle);
-	vTaskResume(QM_BSWHandle);
-	vTaskResume(QM_DIAGHandle);
+
+
+
 
   /* USER CODE END Alarm5ms_Callback */
 }

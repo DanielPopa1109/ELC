@@ -1771,5 +1771,6 @@ void SMon_main(void)
 	SMon_LoadSwitchState();
 	SMon_BatteryData();
 
+	CanH_PublishMeasurements();
 	SMon_MainCnt++;
 }
