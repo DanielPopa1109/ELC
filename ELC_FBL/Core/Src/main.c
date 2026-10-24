@@ -227,7 +227,7 @@ int main(void)
         Boot_MainFunction(&boot,HAL_GetTick());
         if(bootTail!=bootHead){
             BootRxFrame frame=bootQueue[bootTail];bootTail=(bootTail+1u)%16u;
-            Boot_Rx(&boot,frame.data,frame.len,HAL_GetTick());
+            BootTp_RxIndication(&boot,frame.data,frame.len,HAL_GetTick());
         }
 		if (g_run_ram_updater)
 		{

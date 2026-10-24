@@ -1,36 +1,161 @@
 #include "PduR.h"
 #include "../CanIf/CanIf.h"
-#include "../Com/Com.h"
 #include "../CanTp/CanTp.h"
+#include "../Com/Com.h"
 #include "../../Diag/Dcm/Dcm.h"
 
-static uint8_t initialized;
+static const PduR_ConfigType *PduR_ConfigPtr;
 
-int PduR_DcmTransmit(const uint8_t *data,uint16_t len){return initialized?CanTp_Transmit(data,len):-1;}
-void PduR_CanTpRxIndication(const uint8_t *data,uint16_t len,int result){if(initialized)Dcm_RxIndication(data,len,result);}
-void PduR_CanTpTxConfirmation(int result){if(initialized)Dcm_TxConfirmation(result);}
-void PduR_CanIfTxConfirmation(uint16_t id,int result){if(initialized)Com_TxConfirmation(id,result);}
-int PduR_ComTransmitFault(const uint8_t *data){return initialized?CanIf_TransmitFault(data):-1;}
-
-void PduR_Init(void) { initialized = 1u; }
-
-int PduR_ComTransmit(uint8_t txPduId, const uint8_t *data, uint8_t len)
+/* Returns the destination of `srcPduId`, or 0xFF when the PDU is not routed. */
+static PduIdType PduR_Route(const PduR_RoutingPathType *paths, uint8 count, PduIdType srcPduId)
 {
-    if ((initialized == 0u) || (txPduId != PDUR_TX_LOADSTATUS)) return -1;
-    return CanIf_Transmit(CANIF_TX_LOADSTATUS, data, len);
+    uint8 i;
+
+    for (i = 0u; i < count; ++i)
+    {
+        if (paths[i].srcPduId == srcPduId)
+        {
+            return paths[i].destPduId;
+        }
+    }
+    return 0xFFu;
 }
 
-int PduR_ComTransmitTelemetry(uint16_t canId, const uint8_t *data, uint8_t len)
+void PduR_Init(const PduR_ConfigType *ConfigPtr)
 {
-    if (initialized == 0u) return -1;
-    return CanIf_TransmitTelemetry(canId, data, len);
+    PduR_ConfigPtr = (ConfigPtr != NULL_PTR) ? ConfigPtr : &PduR_Config;
 }
 
-void PduR_CanIfRxIndication(uint8_t rxPduId, const uint8_t *data, uint8_t len)
+Std_ReturnType PduR_ComTransmit(PduIdType TxPduId, const PduInfoType *PduInfoPtr)
 {
-    if (initialized == 0u) return;
-    if (rxPduId == PDUR_RX_LOADREQUEST)
-        Com_RxIndication(COM_RX_LOADREQUEST, data, len);
-    else if (rxPduId == PDUR_RX_VEHICLESTATE)
-        Com_RxIndication(COM_RX_VEHICLESTATE, data, len);
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return E_NOT_OK;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->ifTx, PduR_ConfigPtr->numIfTx, TxPduId);
+    return (dest != 0xFFu) ? CanIf_Transmit(dest, PduInfoPtr) : E_NOT_OK;
+}
+
+Std_ReturnType PduR_DcmTransmit(PduIdType TxPduId, const PduInfoType *PduInfoPtr)
+{
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return E_NOT_OK;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->tpTx, PduR_ConfigPtr->numTpTx, TxPduId);
+    return (dest != 0xFFu) ? CanTp_Transmit(dest, PduInfoPtr) : E_NOT_OK;
+}
+
+void PduR_CanIfRxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr)
+{
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->ifRx, PduR_ConfigPtr->numIfRx, RxPduId);
+    if (dest != 0xFFu)
+    {
+        Com_RxIndication(dest, PduInfoPtr);
+    }
+}
+
+void PduR_CanIfTxConfirmation(PduIdType TxPduId)
+{
+    uint8 i;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return;
+    }
+    for (i = 0u; i < PduR_ConfigPtr->numIfTx; ++i)
+    {
+        if (PduR_ConfigPtr->ifTx[i].destPduId == TxPduId)
+        {
+            Com_TxConfirmation(PduR_ConfigPtr->ifTx[i].srcPduId);
+            return;
+        }
+    }
+}
+
+BufReq_ReturnType PduR_CanTpStartOfReception(PduIdType id, const PduInfoType *info,
+                                             PduLengthType TpSduLength, PduLengthType *bufferSizePtr)
+{
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return BUFREQ_E_NOT_OK;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->tpRx, PduR_ConfigPtr->numTpRx, id);
+    return (dest != 0xFFu) ? Dcm_StartOfReception(dest, info, TpSduLength, bufferSizePtr) : BUFREQ_E_NOT_OK;
+}
+
+BufReq_ReturnType PduR_CanTpCopyRxData(PduIdType id, const PduInfoType *info, PduLengthType *bufferSizePtr)
+{
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return BUFREQ_E_NOT_OK;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->tpRx, PduR_ConfigPtr->numTpRx, id);
+    return (dest != 0xFFu) ? Dcm_CopyRxData(dest, info, bufferSizePtr) : BUFREQ_E_NOT_OK;
+}
+
+void PduR_CanTpRxIndication(PduIdType id, Std_ReturnType result)
+{
+    PduIdType dest;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return;
+    }
+    dest = PduR_Route(PduR_ConfigPtr->tpRx, PduR_ConfigPtr->numTpRx, id);
+    if (dest != 0xFFu)
+    {
+        Dcm_TpRxIndication(dest, result);
+    }
+}
+
+BufReq_ReturnType PduR_CanTpCopyTxData(PduIdType id, const PduInfoType *info, const RetryInfoType *retry,
+                                       PduLengthType *availableDataPtr)
+{
+    uint8 i;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return BUFREQ_E_NOT_OK;
+    }
+    for (i = 0u; i < PduR_ConfigPtr->numTpTx; ++i)
+    {
+        if (PduR_ConfigPtr->tpTx[i].destPduId == id)
+        {
+            return Dcm_CopyTxData(PduR_ConfigPtr->tpTx[i].srcPduId, info, retry, availableDataPtr);
+        }
+    }
+    return BUFREQ_E_NOT_OK;
+}
+
+void PduR_CanTpTxConfirmation(PduIdType id, Std_ReturnType result)
+{
+    uint8 i;
+
+    if (PduR_ConfigPtr == NULL_PTR)
+    {
+        return;
+    }
+    for (i = 0u; i < PduR_ConfigPtr->numTpTx; ++i)
+    {
+        if (PduR_ConfigPtr->tpTx[i].destPduId == id)
+        {
+            Dcm_TpTxConfirmation(PduR_ConfigPtr->tpTx[i].srcPduId, result);
+            return;
+        }
+    }
 }

@@ -1,22 +1,17 @@
 #include "CanH.h"
 #include "Dem.h"
 #include "SMon.h"
-#include "EcuM.h"
-#include "Dcm.h"
+#include "main.h"
 #include "../Com/Com.h"
 #include "../CanIf/CanIf.h"
 #include "../CanNm/CanNm.h"
-#include "../CanSM/CanSM.h"
 #include "../ComM/ComM.h"
-#include "../Can/Can.h"
+#include <string.h>
 
 Xcp_State_t Xcp_State = {0u, 0u, 0u, 0u};
 uint8_t Xcp_TxData[8u];
-CAN_TxHeaderTypeDef Xcp_TxHeader;
 CanH_ComStat_t CanH_CommunicationState = PARTIAL_COMMUNICATION;
 uint8_t CanH_NM3PN1_Value = 0u;
-uint8_t CanH_RxData[8u] = {0u};
-uint8_t CanH_TxData[8u] = {0u};
 uint8_t CSBSDAT_Year = 0u;
 uint8_t CSBSDAT_Month = 0u;
 uint8_t CSBSDAT_Day = 0u;
@@ -25,17 +20,21 @@ uint8_t CSBSDAT_Minute = 0u;
 uint8_t CSBSDAT_Second = 0u;
 volatile uint8_t CanH_VehicleStatus = 0u;
 volatile uint8_t CanH_AliveCounter_LoadRequest = 0u;
-CAN_RxHeaderTypeDef CanH_RxHeader = {0u, 0u, 0u, 0u, 0u, 0u, 0u};
-CAN_TxHeaderTypeDef CanH_TxHeader = {0u, 0u, 0u, 0u, 0u, 0u};
 uint32_t CanH_MainCounter = 0u;
-uint32_t CanH_TxMailbox = 0u;
 uint32_t CanH_NoCommCounter = 0u;
 uint32_t CanH_MissingLoadRequest = 0u;
 uint32_t CanH_MissingVehicleData = 0u;
 uint32_t CanH_E2eErrCnt = 0u;
-const uint32_t CanH_P_DelayTxParam = 1200u;
 static uint8_t loadRequestSeenInFullCom = 0u;
 static uint8_t vehicleStatusSeenInFullCom = 0u;
+
+/* XCP response transmission: one outstanding response, retried until the CAN TX
+ * confirmation arrives (lost confirmations re-arm after XCP_TX_TIMEOUT_MS). */
+#define XCP_TX_TIMEOUT_MS 150u
+static uint8_t Xcp_TxLength;
+static volatile uint8_t Xcp_TxPending;
+static volatile uint8_t Xcp_TxInFlight;
+static uint8_t Xcp_TxTimer;
 
 static struct {
     SMon_BatteryData_t battery;uint16_t l1,t30;uint32_t i2t;
@@ -49,12 +48,8 @@ void CanH_PublishMeasurements(void)
     measurements.ntc=SMon_NTC_Temperature_L1;measurements.mcu=SMon_McuTempValue;
     __set_PRIMASK(mask);
 }
-void CanH_MainFunction(void);
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
 static void Xcp_HandleCommand(const uint8_t *data, uint8_t len);
-static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data);
 
 static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 {
@@ -82,10 +77,53 @@ static bool Xcp_AddrAllowed(uint32_t addr, uint32_t len)
 	return true;
 }
 
+
 static void Xcp_Send(uint8_t len)
 {
-    (void)CanIf_TransmitXcp(Xcp_TxData,len);
+	/* XCP is request/response: one response in flight. Gated like all application traffic. */
+	if ((ComM_IsTxAllowed(COMM_CHANNEL_CAN) == 0u) || (Xcp_TxPending != 0u) || (len == 0u) || (len > 8u))
+	{
+		return;
+	}
+	Xcp_TxLength = len;
+	Xcp_TxPending = 1u;
 }
+
+/* Called every 1 ms from the diagnostic task (same context as the CAN driver main functions). */
+void Xcp_MainFunction(void)
+{
+	PduInfoType info;
+
+	if (Xcp_TxInFlight != 0u)
+	{
+		if ((Xcp_TxTimer != 0u) && (--Xcp_TxTimer == 0u))
+		{
+			Xcp_TxInFlight = 0u;     /* confirmation lost: retransmit */
+		}
+		return;
+	}
+	if ((Xcp_TxPending != 0u) && (ComM_IsTxAllowed(COMM_CHANNEL_CAN) != 0u))
+	{
+		info.SduDataPtr = Xcp_TxData;
+		info.MetaDataPtr = NULL_PTR;
+		info.SduLength = Xcp_TxLength;
+		if (CanIf_Transmit(CANIF_TXPDU_XCP_RES, &info) == E_OK)
+		{
+			Xcp_TxInFlight = 1u;
+			Xcp_TxTimer = (uint8_t)XCP_TX_TIMEOUT_MS;
+		}
+	}
+}
+
+void CanH_TxConfirmation(PduIdType TxPduId)
+{
+	if (TxPduId == CANIF_TXPDU_XCP_RES)
+	{
+		Xcp_TxPending = 0u;
+		Xcp_TxInFlight = 0u;
+	}
+}
+
 
 static void Xcp_SendError(uint8_t err)
 {
@@ -144,7 +182,7 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 
 		Xcp_Send(8u);
 
-		Dem_SetDtc(0x61u, 0x2fu);
+		(void)Dem_SetEventStatus(DEM_EVENT_XCP_USED, DEM_EVENT_STATUS_FAILED);
 
 		break;
 	}
@@ -165,9 +203,9 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 		Xcp_TxData[7] = 0u;
 		Xcp_Send(8u);
 
-		if(0x2f == Dem_GetDtcStatus(0x61u))
+		if(Dem_IsEventFailed(DEM_EVENT_XCP_USED) != 0u)
 		{
-			Dem_SetDtc(0x61u, 0x2eu);
+			(void)Dem_SetEventStatus(DEM_EVENT_XCP_USED, DEM_EVENT_STATUS_PASSED);
 		}
 		else
 		{
@@ -489,38 +527,59 @@ static void Xcp_HandleCommand(const uint8_t *data, uint8_t len)
 	}
 }
 
-static bool Xcp_CanRx(const CAN_RxHeaderTypeDef *rh, const uint8_t *data)
+/* Telemetry signal n is CAN 0x6EE + n. */
+static void CanH_SendTelemetry(uint8_t n, const uint8_t *data)
 {
-	if ((rh->IDE != CAN_ID_STD) || (rh->StdId != XCP_CAN_RX_ID))
-	{
-		return false;
-	}
-	else
-	{
-		// do nothing.
-	}
+	(void)Com_SendSignal((Com_SignalIdType)(COM_SIGNAL_TELEMETRY_FIRST + n), data);
+}
 
-	Xcp_HandleCommand(data, rh->DLC);
+static void CanH_SendFloatPair(uint8_t n, float first, float second)
+{
+	uint8_t data[8];
 
-	return true;
+	(void)memcpy(&data[0], &first, sizeof(float));
+	(void)memcpy(&data[4], &second, sizeof(float));
+	CanH_SendTelemetry(n, data);
+}
+
+/* Event reporting helper: failed while the condition holds, passed once it clears. */
+static void CanH_ReportEvent(Dem_EventIdType event, boolean failed)
+{
+	if (failed != 0u)
+	{
+		(void)Dem_SetEventStatus(event, DEM_EVENT_STATUS_FAILED);
+	}
+	else if (Dem_IsEventFailed(event) != 0u)
+	{
+		(void)Dem_SetEventStatus(event, DEM_EVENT_STATUS_PASSED);
+	}
+}
+
+void CanH_Init(void)
+{
+	Xcp_TxPending = 0u;
+	Xcp_TxInFlight = 0u;
 }
 
 void CanH_MainFunction(void)
 {
-	uint8_t loadRequest;
-	uint8_t vehicleStatus;
-	CanNm_MainFunction();
-	ComM_MainFunction();
-	CanSM_MainFunction();
+	uint8_t loadRequest = 0u;
+	uint8_t vehicleStatus = 0u;
+	uint8_t loadStatus;
+	ComM_ModeType mode = COMM_SILENT_COMMUNICATION;
+	boolean fullCom;
+
+	(void)ComM_GetCurrentComMode(COMM_CHANNEL_CAN, &mode);
+	fullCom = (mode == COMM_FULL_COMMUNICATION) ? TRUE : FALSE;
 	CanH_NM3PN1_Value = CanNm_GetPn1();
 	CanH_NoCommCounter = CanNm_GetInactiveTicks();
-	CanH_CommunicationState = (CanSM_GetCurrentComMode() == CANSM_FULL_COMMUNICATION) ?
-		FULL_COMMUNICATION : NO_COMMUNICATION;
-	Com_SetLoadStatus(SMon_L1ST, (FULL_COMMUNICATION == CanH_CommunicationState && 0u == (Dcm_CC&1u)) ? 1u : 0u);
-	Com_MainFunctionTx();
-	Com_MainFunctionRx();
-	if ((CanH_CommunicationState == FULL_COMMUNICATION) && Dcm_CC<2u &&
-	    (Com_GetLoadRequest(&loadRequest) == 0))
+	CanH_CommunicationState = (fullCom != 0u) ? FULL_COMMUNICATION : NO_COMMUNICATION;
+
+	loadStatus = SMon_L1ST;
+	(void)Com_SendSignal(COM_SIGNAL_LOADSTATUS, &loadStatus);
+
+	if ((fullCom != 0u) && (ComM_IsRxAllowed(COMM_CHANNEL_CAN) != 0u) &&
+	    (Com_ReceiveSignal(COM_SIGNAL_LOADREQUEST, &loadRequest) == E_OK))
 	{
 		SMon_CmdStat = loadRequest;
 		CanH_MissingLoadRequest = 0u;
@@ -529,10 +588,10 @@ void CanH_MainFunction(void)
 	else
 	{
 		SMon_CmdStat = 0u;
-		if (CanH_CommunicationState == FULL_COMMUNICATION)
+		if (fullCom != 0u)
 		{
 			if ((loadRequestSeenInFullCom != 0u) &&
-			    (Com_LoadRequestTimedOut() != 0u))
+			    ((Com_GetRxStatus(COM_SIGNAL_LOADREQUEST) & COM_RXSTATUS_TIMEOUT) != 0u))
 				CanH_MissingLoadRequest = 201u;
 			else if (CanH_MissingLoadRequest < 201u)
 				++CanH_MissingLoadRequest;
@@ -543,22 +602,19 @@ void CanH_MainFunction(void)
 			loadRequestSeenInFullCom = 0u;
 		}
 	}
-	if (Com_GetVehicleStatus(&vehicleStatus) == 0)
+	if (Com_ReceiveSignal(COM_SIGNAL_VEHICLESTATE, &vehicleStatus) == E_OK)
 	{
 		CanH_VehicleStatus = vehicleStatus;
 		CanH_MissingVehicleData = 0u;
-		if (CanH_CommunicationState == FULL_COMMUNICATION)
-			vehicleStatusSeenInFullCom = 1u;
-		else
-			vehicleStatusSeenInFullCom = 0u;
+		vehicleStatusSeenInFullCom = (fullCom != 0u) ? 1u : 0u;
 	}
 	else
 	{
 		CanH_VehicleStatus = 0u;
-		if (CanH_CommunicationState == FULL_COMMUNICATION)
+		if (fullCom != 0u)
 		{
 			if ((vehicleStatusSeenInFullCom != 0u) &&
-			    (Com_VehicleStatusTimedOut() != 0u))
+			    ((Com_GetRxStatus(COM_SIGNAL_VEHICLESTATE) & COM_RXSTATUS_TIMEOUT) != 0u))
 				CanH_MissingVehicleData = 201u;
 			else if (CanH_MissingVehicleData < 201u)
 				++CanH_MissingVehicleData;
@@ -569,314 +625,94 @@ void CanH_MainFunction(void)
 			vehicleStatusSeenInFullCom = 0u;
 		}
 	}
-	if (Com_HasInvalidVehicleStatus() != 0u)
-		Dem_SetDtc(0x5Eu, 0x2fu);
-	else if (Dem_GetDtcStatus(0x5Eu) == 0x2fu)
-		Dem_SetDtc(0x5Eu, 0x2eu);
-	CanH_E2eErrCnt = Com_GetInvalidFrameCount();
+	CanH_ReportEvent(DEM_EVENT_VEHICLESTATUS_INVALID,
+	                 ((Com_GetRxStatus(COM_SIGNAL_VEHICLESTATE) & COM_RXSTATUS_INVALID) != 0u) ? TRUE : FALSE);
+	CanH_E2eErrCnt = Com_GetE2eErrorCount();
 
-	if(FULL_COMMUNICATION == CanH_CommunicationState && 0u == (Dcm_CC&1u))
+	if (ComM_IsTxAllowed(COMM_CHANNEL_CAN) != 0u)
 	{
-		if(CanH_MainCounter % 40u == 0u && (CanH_NM3PN1_Value & ((1u << 6u))))
+		const uint8_t networkRequested = ((CanH_NM3PN1_Value & (1u << 6u)) != 0u) ? 1u : 0u;
+
+		if ((CanH_MainCounter % 40u == 0u) && (networkRequested != 0u))
 		{
-			memcpy(&CanH_TxData[0u], &measurements.battery.Charge_Ah_Acc, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.Discharge_Ah_Acc, sizeof(float));
+			uint8_t flags;
 
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f1;
+			CanH_SendFloatPair(3u, measurements.battery.Charge_Ah_Acc, measurements.battery.Discharge_Ah_Acc);   /* 0x6F1 */
+			CanH_SendFloatPair(4u, measurements.battery.SoC_CC_pct, measurements.battery.SoC_OCV_pct);           /* 0x6F2 */
+			CanH_SendFloatPair(5u, measurements.battery.SoC_pct, measurements.battery.SoH_pct);                  /* 0x6F3 */
+			CanH_SendFloatPair(6u, measurements.battery.AvailableCapacity_Ah, measurements.battery.InternalResistance_Ohm); /* 0x6F4 */
+			CanH_SendFloatPair(7u, measurements.battery.AvgChargeCurrent_A, measurements.battery.AvgDischargeCurrent_A);    /* 0x6F5 */
+			CanH_SendFloatPair(8u, measurements.battery.RuntimeRemaining_h, measurements.battery.TimeToFull_h);              /* 0x6F6 */
 
-			HAL_StatusTypeDef st;
-			uint32_t cnt = 0u;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memcpy(&CanH_TxData[0u], &measurements.battery.SoC_CC_pct, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.SoC_OCV_pct, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f2;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memcpy(&CanH_TxData[0u], &measurements.battery.SoC_pct, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.SoH_pct, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f3;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memcpy(&CanH_TxData[0u], &measurements.battery.AvailableCapacity_Ah, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.InternalResistance_Ohm, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f4;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memcpy(&CanH_TxData[0u], &measurements.battery.AvgChargeCurrent_A, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.AvgDischargeCurrent_A, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f5;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memcpy(&CanH_TxData[0u], &measurements.battery.RuntimeRemaining_h, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.battery.TimeToFull_h, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6f6;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			/* ZGW BattDiagnosis 0x6F7 is one packed byte, not eight
-			 * separate boolean bytes. Bit 2 remains 0: ZGW defines a
-			 * boolean but ELC computes a percentage with no agreed mapping.
-			 */
-			CanH_TxData[0] =
+			/* ZGW BattDiagnosis 0x6F7 is one packed byte, not eight separate boolean bytes. Bit 2
+			 * remains 0: ZGW defines a boolean but ELC computes a percentage with no agreed mapping. */
+			flags = (uint8_t)(
 				((measurements.battery.BatteryRested != 0u) ? 0x01u : 0u) |
 				((measurements.battery.Charging != 0u) ? 0x02u : 0u) |
 				((measurements.battery.CrankingEvent != 0u) ? 0x08u : 0u) |
 				((measurements.battery.DeepDischarge != 0u) ? 0x10u : 0u) |
 				((measurements.battery.Discharging != 0u) ? 0x20u : 0u) |
 				((measurements.battery.ValidOcvCalibration != 0u) ? 0x40u : 0u) |
-				((measurements.battery.WeakBattery != 0u) ? 0x80u : 0u);
-
-			CanH_TxHeader.DLC = 1;
-			CanH_TxHeader.StdId = 0x6f7;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			memset(CanH_TxData, 0u, sizeof(CanH_TxData));
+				((measurements.battery.WeakBattery != 0u) ? 0x80u : 0u));
+			CanH_SendTelemetry(9u, &flags);                                                                      /* 0x6F7 */
 		}
 
-		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
+		if ((CanH_MainCounter != 0u) && (networkRequested != 0u))
 		{
-			CanH_TxData[0] = (uint8_t)(measurements.t30);
-			CanH_TxData[1] = (uint8_t)(measurements.t30 >> 8u);
-			CanH_TxData[2] = (uint8_t)(measurements.l1);
-			CanH_TxData[3] = (uint8_t)(measurements.l1 >> 8u);
+			uint8_t data[8];
 
-			memcpy(&CanH_TxData[4u], &measurements.current, sizeof(float));
+			data[0] = (uint8_t)(measurements.t30);
+			data[1] = (uint8_t)(measurements.t30 >> 8u);
+			data[2] = (uint8_t)(measurements.l1);
+			data[3] = (uint8_t)(measurements.l1 >> 8u);
+			(void)memcpy(&data[4], &measurements.current, sizeof(float));
+			CanH_SendTelemetry(1u, data);                                                                       /* 0x6EF */
 
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6ef;
+			CanH_SendFloatPair(0u, measurements.ntc, measurements.mcu);                                         /* 0x6EE */
 
-			HAL_StatusTypeDef st;
-			uint32_t cnt = 0u;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
+			data[0] = (uint8_t)(measurements.i2t);
+			data[1] = (uint8_t)(measurements.i2t >> 8u);
+			data[2] = (uint8_t)(measurements.i2t >> 16u);
+			data[3] = (uint8_t)(measurements.i2t >> 24u);
+			CanH_SendTelemetry(2u, data);                                                                       /* 0x6F0 */
 		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
-		{
-			memcpy(&CanH_TxData[0u], &measurements.ntc, sizeof(float));
-			memcpy(&CanH_TxData[4u], &measurements.mcu, sizeof(float));
-
-			CanH_TxHeader.DLC = 8;
-			CanH_TxHeader.StdId = 0x6ee;
-
-			HAL_StatusTypeDef st;
-			uint32_t cnt = 0u;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-		if(CanH_MainCounter != 0 && (CanH_NM3PN1_Value & ((1u << 6))))
-		{
-			CanH_TxData[0] = (uint8_t)(measurements.i2t);
-			CanH_TxData[1] = (uint8_t)(measurements.i2t >> 8u);
-			CanH_TxData[2] = (uint8_t)(measurements.i2t >> 16u);
-			CanH_TxData[3] = (uint8_t)(measurements.i2t >> 24u);
-			CanH_TxHeader.DLC = 4;
-			CanH_TxHeader.StdId = 0x6f0;
-
-			HAL_StatusTypeDef st;
-			uint32_t cnt = 0u;
-
-			do
-			{
-				st = Com_QueueTelemetry((uint16_t)CanH_TxHeader.StdId, CanH_TxData, (uint8_t)CanH_TxHeader.DLC);
-				cnt++;
-			} while (st != HAL_OK  && cnt < CanH_P_DelayTxParam);
-
-			cnt = 0u;
-
-			for(uint8_t i = 0; i < 8; i++)
-			{
-				CanH_TxData[i] = 0;
-			}
-
-			CanH_TxHeader.DLC = 0;
-			CanH_TxHeader.StdId = 0;
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-
-	}
-	else
-	{
-		/* Do nothing. */
 	}
 
 	CanH_MainCounter++;
 
-	if(200u < CanH_MissingLoadRequest)
+	if (CanH_MissingLoadRequest > 200u)
 	{
 		SMon_CmdStat = 0u;
-		Dem_SetDtc(0x5Au, 0x2f);
 	}
-	else
-	{
-		if(0x2f == Dem_GetDtcStatus(0x5Au))
-		{
-			Dem_SetDtc(0x5Au, 0x2e);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	if(200u < CanH_MissingVehicleData)
-	{
-		Dem_SetDtc(0x5Du, 0x2f);
-	}
-	else
-	{
-		if(0x2f == Dem_GetDtcStatus(0x5Du))
-		{
-			Dem_SetDtc(0x5Du, 0x2e);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	if(50u < CanH_E2eErrCnt)
-	{
-		Dem_SetDtc(0x5Bu, 0x2f);
-	}
-	else
-	{
-		if(0x2f == Dem_GetDtcStatus(0x5Bu))
-		{
-			Dem_SetDtc(0x5Bu, 0x2e);
-		}
-		else
-		{
-			/* Do nothing. */
-		}
-	}
-
-	for(uint8_t i = 0; i < 8u; i++)
-	{
-		CanH_TxData[i] = 0u;
-	}
+	CanH_ReportEvent(DEM_EVENT_LOADREQUEST_MISSING, (CanH_MissingLoadRequest > 200u) ? TRUE : FALSE);
+	CanH_ReportEvent(DEM_EVENT_VEHICLEDATA_TIMEOUT, (CanH_MissingVehicleData > 200u) ? TRUE : FALSE);
+	CanH_ReportEvent(DEM_EVENT_LOADREQUEST_E2E, (CanH_E2eErrCnt > 50u) ? TRUE : FALSE);
 }
 
-static void CanH_Receive(CAN_HandleTypeDef *handle,uint32_t fifo)
+void CanH_RxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr)
 {
-    CAN_RxHeaderTypeDef rh;uint8_t data[8];
-    while(HAL_CAN_GetRxFifoFillLevel(handle,fifo)) {
-        if(HAL_CAN_GetRxMessage(handle,fifo,&rh,data)!=HAL_OK)break;
-        if(rh.IDE==CAN_ID_STD && rh.RTR==CAN_RTR_DATA && rh.DLC<=8u)
-            Can_QueueRx((uint16_t)rh.StdId,data,(uint8_t)rh.DLC);
-    }
-}
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){CanH_Receive(hcan,CAN_RX_FIFO0);}
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){CanH_Receive(hcan,CAN_RX_FIFO1);}
-void CanH_RxIndication(uint16_t id,const uint8_t *data,uint8_t len)
-{
-    if(id==0x202u && len>=4u){
-        uint32_t t=(uint32_t)data[0]|((uint32_t)data[1]<<8)|((uint32_t)data[2]<<16)|((uint32_t)data[3]<<24);
-        CSBSDAT_Year=t&63u;CSBSDAT_Month=(t>>6)&15u;CSBSDAT_Day=(t>>10)&31u;
-        CSBSDAT_Hour=(t>>15)&31u;CSBSDAT_Minute=(t>>20)&63u;CSBSDAT_Second=(t>>26)&63u;
-    }
-    if(FULL_COMMUNICATION==CanH_CommunicationState && Dcm_CC<2u){
-        CAN_RxHeaderTypeDef rh={0};rh.StdId=id;rh.DLC=len;rh.IDE=CAN_ID_STD;
-        Xcp_CanRx(&rh,data);
-    }
+	const uint8_t *data;
+
+	if ((PduInfoPtr == NULL_PTR) || (PduInfoPtr->SduDataPtr == NULL_PTR))
+	{
+		return;
+	}
+	data = PduInfoPtr->SduDataPtr;
+	if ((RxPduId == CANIF_RXPDU_TIMEDATE) && (PduInfoPtr->SduLength >= 4u))
+	{
+		uint32_t t = (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
+		CSBSDAT_Year = t & 63u; CSBSDAT_Month = (t >> 6) & 15u; CSBSDAT_Day = (t >> 10) & 31u;
+		CSBSDAT_Hour = (t >> 15) & 31u; CSBSDAT_Minute = (t >> 20) & 63u; CSBSDAT_Second = (t >> 26) & 63u;
+	}
+	else if ((RxPduId == CANIF_RXPDU_XCP_CMD) && (PduInfoPtr->SduLength != 0u))
+	{
+		if ((CanH_CommunicationState == FULL_COMMUNICATION) && (ComM_IsRxAllowed(COMM_CHANNEL_CAN) != 0u))
+		{
+			Xcp_HandleCommand(data, (uint8_t)PduInfoPtr->SduLength);
+		}
+	}
+	else
+	{
+		/* other PDUs are not handled here */
+	}
 }

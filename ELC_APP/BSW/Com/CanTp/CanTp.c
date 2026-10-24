@@ -2,101 +2,575 @@
 #include "../CanIf/CanIf.h"
 #include "../PduR/PduR.h"
 #include <string.h>
-enum {IDLE,SEND,FIRST_CONF,WAIT_FC,CF_SEND,CF_CONF,SF_CONF};
-static uint8_t rxBuffer[CANTP_RX_MAX],rxSn,rxBlock,rxActive,fcPending,fcInFlight;
-static uint16_t rxLength,rxExpected,rxTimer;
-static const uint8_t *txData;
-static uint16_t txLength,txOffset,txTimer;
-static uint8_t txState,txSn,txBlock,txBs,txWait,txSt,txDelay;
-static uint8_t earlyFc[3],earlyFcValid;
-static void rxAbort(void){rxActive=0;fcPending=0;rxTimer=0;PduR_CanTpRxIndication(0,0,-1);}
-static void txDone(int result){txState=IDLE;txData=0;earlyFcValid=0;PduR_CanTpTxConfirmation(result);}
-void CanTp_Init(void){rxActive=fcPending=fcInFlight=earlyFcValid=0;txState=IDLE;txData=0;}
-int CanTp_IsIdle(void){return txState==IDLE && !rxActive && !fcInFlight && !fcPending;}
-void CanTp_Cancel(void){if(rxActive)rxAbort();if(txState!=IDLE)txDone(-1);}
-int CanTp_Transmit(const uint8_t *data,uint16_t len)
+
+/* N_PCI frame types (high nibble of the PCI byte). */
+#define CANTP_NPCI_SF   0u
+#define CANTP_NPCI_FF   1u
+#define CANTP_NPCI_CF   2u
+#define CANTP_NPCI_FC   3u
+/* Flow status (low nibble of FC). */
+#define CANTP_FS_CTS    0u
+#define CANTP_FS_WAIT   1u
+#define CANTP_FS_OVFLW  2u
+/* Largest SF_DL / first-frame payload with one address byte on classic CAN. */
+#define CANTP_SF_MAX    6u
+#define CANTP_FF_DATA   5u
+#define CANTP_CF_DATA   6u
+/* STmin: 0x00..0x7F ms, 0xF1..0xF9 100..900 us, everything else reserved (use 127 ms). */
+#define CANTP_STMIN_MAX_MS 127u
+
+typedef enum
 {
-    if(!data||!len||len>4095u||txState!=IDLE||fcInFlight||fcPending)return -1;
-    txData=data;txLength=len;txOffset=0;txState=SEND;txTimer=200;txSn=1;txWait=0;return 0;
+    CANTP_TX_IDLE = 0u,
+    CANTP_TX_SEND_FIRST,       /* SF or FF waiting to be handed to CanIf */
+    CANTP_TX_WAIT_FIRST_CONF,
+    CANTP_TX_WAIT_FC,
+    CANTP_TX_SEND_CF,
+    CANTP_TX_WAIT_CF_CONF
+} CanTp_TxStateType;
+
+static const CanTp_ChannelConfigType *CanTp_Ch;
+
+/* Receive (ISO 15765-2 receiver). */
+static uint8  CanTp_RxActive;      /* reception open at the upper layer */
+static uint8  CanTp_FcPending;     /* 0 none, 1 CTS, 2 OVFLW still to be sent */
+static uint8  CanTp_FcInFlight;    /* FC handed to CanIf, confirmation outstanding */
+static uint8  CanTp_FcWasOvfl;
+static uint8  CanTp_RxSn;
+static uint8  CanTp_RxBlock;
+static uint16 CanTp_RxExpected;
+static uint16 CanTp_RxCopied;
+static uint16 CanTp_RxTimer;
+static uint16 CanTp_FcTimer;       /* N_Ar: own FC queued/in flight but not confirmed */
+
+/* Transmit (ISO 15765-2 sender). */
+static CanTp_TxStateType CanTp_TxState;
+static uint8  CanTp_TxFrame[8];
+static uint8  CanTp_TxFrameReady;
+static uint8  CanTp_TxChunk;       /* payload bytes in CanTp_TxFrame */
+static uint8  CanTp_TxSn;
+static uint8  CanTp_TxBlock;
+static uint8  CanTp_TxBs;
+static uint8  CanTp_TxStTicks;
+static uint8  CanTp_TxDelay;
+static uint8  CanTp_TxWft;
+static uint16 CanTp_TxLength;
+static uint16 CanTp_TxOffset;
+static uint16 CanTp_TxTimer;
+static uint8  CanTp_EarlyFc[3];    /* FC that overtook our own TX confirmation */
+static uint8  CanTp_EarlyFcValid;
+
+volatile uint8 CanTp_LastRxResult;
+volatile uint8 CanTp_LastTxResult;
+
+static void CanTp_RxAbort(NotifResultType why)
+{
+    if (CanTp_RxActive != 0u)
+    {
+        CanTp_RxActive = 0u;
+        CanTp_FcPending = 0u;
+        CanTp_RxTimer = 0u;
+        CanTp_LastRxResult = (uint8)why;
+        PduR_CanTpRxIndication(CanTp_Ch->rxNSduId, E_NOT_OK);
+    }
 }
-static void flow(const uint8_t *d)
+
+static void CanTp_QueueFc(uint8 kind)
 {
-    if(d[0]==0x30u){
-        if(d[2]>0x7Fu && (d[2]<0xF1u||d[2]>0xF9u)){txDone(-1);return;}
-        txBs=d[1];txSt=(d[2]>=0xF1u)?1u:(uint8_t)((d[2]+4u)/5u);
-        txBlock=0;txDelay=txSt;txState=CF_SEND;txTimer=200;
-    }else if(d[0]==0x31u && ++txWait<=3u)txTimer=200;
-    else txDone(-1);
+    CanTp_FcPending = kind;
+    CanTp_FcTimer = CanTp_Ch->nArTicks;
 }
-void CanTp_RxIndication(const uint8_t *d,uint8_t len)
+
+static void CanTp_TxFinish(Std_ReturnType result, NotifResultType why)
 {
-    if(!d||len<2u||len>8u||d[0]!=CANTP_RX_ADDRESS)return;
-    uint8_t type=d[1]>>4,n=d[1]&15u;
-    if(type==3){
-        if(len<4u)return;
-        if(txState==WAIT_FC)flow(d+1);
-        else if(txState==FIRST_CONF || (txState==CF_CONF && txBs && txBlock+1u>=txBs)){
-            memcpy(earlyFc,d+1,3);earlyFcValid=1;
+    CanTp_TxState = CANTP_TX_IDLE;
+    CanTp_TxFrameReady = 0u;
+    CanTp_EarlyFcValid = 0u;
+    if (result != E_OK)
+    {
+        CanTp_LastTxResult = (uint8)why;
+    }
+    PduR_CanTpTxConfirmation(CanTp_Ch->txNSduId, result);
+}
+
+void CanTp_Init(const CanTp_ConfigType *CfgPtr)
+{
+    const CanTp_ConfigType *cfg = (CfgPtr != NULL_PTR) ? CfgPtr : &CanTp_Config;
+
+    CanTp_Ch = (cfg->numChannels != 0u) ? &cfg->channels[0] : NULL_PTR;
+    CanTp_RxActive = 0u;
+    CanTp_FcPending = 0u;
+    CanTp_FcInFlight = 0u;
+    CanTp_TxState = CANTP_TX_IDLE;
+    CanTp_TxFrameReady = 0u;
+    CanTp_EarlyFcValid = 0u;
+    CanTp_LastRxResult = (uint8)NTFRSLT_OK;
+    CanTp_LastTxResult = (uint8)NTFRSLT_OK;
+}
+
+uint8 CanTp_IsIdle(void)
+{
+    return (uint8)((CanTp_TxState == CANTP_TX_IDLE) && (CanTp_RxActive == 0u) &&
+                   (CanTp_FcInFlight == 0u) && (CanTp_FcPending == 0u));
+}
+
+Std_ReturnType CanTp_CancelTransmit(PduIdType TxPduId)
+{
+    if ((CanTp_Ch == NULL_PTR) || (TxPduId != CanTp_Ch->txNSduId) || (CanTp_TxState == CANTP_TX_IDLE))
+    {
+        return E_NOT_OK;
+    }
+    CanTp_TxFinish(E_NOT_OK, NTFRSLT_E_CANCELATION_OK);
+    return E_OK;
+}
+
+Std_ReturnType CanTp_CancelReceive(PduIdType RxPduId)
+{
+    if ((CanTp_Ch == NULL_PTR) || (RxPduId != CanTp_Ch->rxNSduId) || (CanTp_RxActive == 0u))
+    {
+        return E_NOT_OK;
+    }
+    CanTp_RxAbort(NTFRSLT_E_CANCELATION_OK);
+    return E_OK;
+}
+
+Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType *PduInfoPtr)
+{
+    if ((CanTp_Ch == NULL_PTR) || (TxPduId != CanTp_Ch->txNSduId) || (PduInfoPtr == NULL_PTR) ||
+        (PduInfoPtr->SduLength == 0u) || (PduInfoPtr->SduLength > CANTP_MAX_SDU_LEN) ||
+        (CanTp_TxState != CANTP_TX_IDLE) || (CanTp_IsIdle() == 0u))
+    {
+        return E_NOT_OK;
+    }
+    CanTp_TxLength = PduInfoPtr->SduLength;
+    CanTp_TxOffset = 0u;
+    CanTp_TxSn = 1u;
+    CanTp_TxWft = 0u;
+    CanTp_TxFrameReady = 0u;
+    CanTp_TxTimer = CanTp_Ch->nAsTicks;
+    CanTp_TxState = CANTP_TX_SEND_FIRST;
+    return E_OK;
+}
+
+static uint8 CanTp_StMinToTicks(uint8 stMin)
+{
+    if (stMin <= CANTP_STMIN_MAX_MS)
+    {
+        return (uint8)((stMin + CANTP_MAIN_PERIOD_MS - 1u) / CANTP_MAIN_PERIOD_MS);
+    }
+    if ((stMin >= 0xF1u) && (stMin <= 0xF9u))
+    {
+        return 1u;
+    }
+    /* ISO 15765-2: a reserved STmin must be treated as the longest value (127 ms). */
+    return (uint8)((CANTP_STMIN_MAX_MS + CANTP_MAIN_PERIOD_MS - 1u) / CANTP_MAIN_PERIOD_MS);
+}
+
+/* ---- Sender: flow control received ---------------------------------------- */
+static void CanTp_TxFlowControl(const uint8 *fc)
+{
+    uint8 fs = (uint8)(fc[0] & 0x0Fu);
+
+    if (fs == CANTP_FS_CTS)
+    {
+        CanTp_TxBs = fc[1];
+        CanTp_TxStTicks = CanTp_StMinToTicks(fc[2]);
+        CanTp_TxDelay = CanTp_TxStTicks;
+        CanTp_TxBlock = 0u;
+        CanTp_TxWft = 0u;
+        CanTp_TxState = CANTP_TX_SEND_CF;
+        CanTp_TxTimer = CanTp_Ch->nAsTicks;
+    }
+    else if (fs == CANTP_FS_WAIT)
+    {
+        if (++CanTp_TxWft > CanTp_Ch->wftMax)
+        {
+            CanTp_TxFinish(E_NOT_OK, NTFRSLT_E_WFT_OVRN);
+        }
+        else
+        {
+            CanTp_TxTimer = CanTp_Ch->nBsTicks;
+        }
+    }
+    else
+    {
+        CanTp_TxFinish(E_NOT_OK, (fs == CANTP_FS_OVFLW) ? NTFRSLT_E_NOT_OK : NTFRSLT_E_INVALID_FS);
+    }
+}
+
+/* ---- Receiver ---------------------------------------------------------------- */
+static void CanTp_RxSingleFrame(const uint8 *d, uint8 len)
+{
+    uint8 n = (uint8)(d[1] & 0x0Fu);
+    PduInfoType info;
+    PduLengthType avail = 0u;
+
+    if ((n == 0u) || (n > CANTP_SF_MAX) || (len < (uint8)(2u + n)))
+    {
+        return;                              /* invalid SF_DL: ignore */
+    }
+    CanTp_RxAbort(NTFRSLT_E_UNEXP_PDU);      /* a new SF terminates a running reception */
+    if ((PduR_CanTpStartOfReception(CanTp_Ch->rxNSduId, NULL_PTR, n, &avail) != BUFREQ_OK) || (avail < n))
+    {
+        return;
+    }
+    info.SduDataPtr = (uint8 *)&d[2];
+    info.MetaDataPtr = NULL_PTR;
+    info.SduLength = n;
+    if (PduR_CanTpCopyRxData(CanTp_Ch->rxNSduId, &info, &avail) == BUFREQ_OK)
+    {
+        PduR_CanTpRxIndication(CanTp_Ch->rxNSduId, E_OK);
+    }
+    else
+    {
+        PduR_CanTpRxIndication(CanTp_Ch->rxNSduId, E_NOT_OK);
+    }
+}
+
+static void CanTp_RxFirstFrame(const uint8 *d, uint8 len)
+{
+    uint16 total = (uint16)(((uint16)(d[1] & 0x0Fu) << 8) | d[2]);
+    PduInfoType info;
+    PduLengthType avail = 0u;
+    BufReq_ReturnType br;
+
+    /* FF_DL must exceed the largest SF_DL; a shorter value is an invalid FF and is ignored. */
+    if ((len != 8u) || (total <= CANTP_SF_MAX))
+    {
+        return;
+    }
+    CanTp_RxAbort(NTFRSLT_E_UNEXP_PDU);
+    br = PduR_CanTpStartOfReception(CanTp_Ch->rxNSduId, NULL_PTR, total, &avail);
+    if (br == BUFREQ_E_OVFL)
+    {
+        CanTp_QueueFc(2u);                   /* FC.OVFLW, no reception opened */
+        return;
+    }
+    if (br != BUFREQ_OK)
+    {
+        return;
+    }
+    info.SduDataPtr = (uint8 *)&d[3];
+    info.MetaDataPtr = NULL_PTR;
+    info.SduLength = CANTP_FF_DATA;
+    if ((avail < CANTP_FF_DATA) || (PduR_CanTpCopyRxData(CanTp_Ch->rxNSduId, &info, &avail) != BUFREQ_OK))
+    {
+        PduR_CanTpRxIndication(CanTp_Ch->rxNSduId, E_NOT_OK);
+        return;
+    }
+    CanTp_RxActive = 1u;
+    CanTp_RxExpected = total;
+    CanTp_RxCopied = CANTP_FF_DATA;
+    CanTp_RxSn = 1u;
+    CanTp_RxBlock = 0u;
+    CanTp_RxTimer = CanTp_Ch->nCrTicks;
+    CanTp_QueueFc(1u);
+}
+
+static void CanTp_RxConsecutiveFrame(const uint8 *d, uint8 len)
+{
+    uint16 remain;
+    uint8 count;
+    PduInfoType info;
+    PduLengthType avail = 0u;
+
+    if (CanTp_RxActive == 0u)
+    {
+        return;                              /* unexpected CF: ignore */
+    }
+    if (CanTp_FcPending != 0u)
+    {
+        CanTp_RxAbort(NTFRSLT_E_UNEXP_PDU);  /* CF before our FC was even sent */
+        return;
+    }
+    if ((uint8)(d[1] & 0x0Fu) != CanTp_RxSn)
+    {
+        CanTp_RxAbort(NTFRSLT_E_WRONG_SN);
+        return;
+    }
+    remain = (uint16)(CanTp_RxExpected - CanTp_RxCopied);
+    count = (remain > CANTP_CF_DATA) ? (uint8)CANTP_CF_DATA : (uint8)remain;
+    if (len < (uint8)(2u + count))
+    {
+        CanTp_RxAbort(NTFRSLT_E_NOT_OK);
+        return;
+    }
+    info.SduDataPtr = (uint8 *)&d[2];
+    info.MetaDataPtr = NULL_PTR;
+    info.SduLength = count;
+    if (PduR_CanTpCopyRxData(CanTp_Ch->rxNSduId, &info, &avail) != BUFREQ_OK)
+    {
+        CanTp_RxAbort(NTFRSLT_E_NO_BUFFER);
+        return;
+    }
+    CanTp_RxCopied = (uint16)(CanTp_RxCopied + count);
+    CanTp_RxSn = (uint8)((CanTp_RxSn + 1u) & 0x0Fu);
+    CanTp_RxTimer = CanTp_Ch->nCrTicks;
+    if (CanTp_RxCopied == CanTp_RxExpected)
+    {
+        CanTp_RxActive = 0u;
+        CanTp_RxTimer = 0u;
+        PduR_CanTpRxIndication(CanTp_Ch->rxNSduId, E_OK);
+    }
+    else if ((CanTp_Ch->blockSize != 0u) && (++CanTp_RxBlock >= CanTp_Ch->blockSize))
+    {
+        CanTp_RxBlock = 0u;
+        CanTp_QueueFc(1u);
+    }
+}
+
+void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr)
+{
+    const uint8 *d;
+    uint8 len;
+
+    if ((CanTp_Ch == NULL_PTR) || (RxPduId != CanTp_Ch->rxNPduId) || (PduInfoPtr == NULL_PTR) ||
+        (PduInfoPtr->SduDataPtr == NULL_PTR) || (PduInfoPtr->SduLength < 2u) || (PduInfoPtr->SduLength > 8u))
+    {
+        return;
+    }
+    d = PduInfoPtr->SduDataPtr;
+    len = (uint8)PduInfoPtr->SduLength;
+    if ((d[0] != CanTp_Ch->rxAddress) &&
+        !((d[0] == CanTp_Ch->fcAddress) && ((uint8)(d[1] >> 4) == CANTP_NPCI_FC)))
+    {
+        return;
+    }
+
+    switch ((uint8)(d[1] >> 4))
+    {
+    case CANTP_NPCI_FC:
+        if (len < 4u)
+        {
+            return;
+        }
+        if (CanTp_TxState == CANTP_TX_WAIT_FC)
+        {
+            CanTp_TxFlowControl(&d[1]);
+        }
+        else if ((CanTp_TxState == CANTP_TX_WAIT_FIRST_CONF) ||
+                 ((CanTp_TxState == CANTP_TX_WAIT_CF_CONF) && (CanTp_TxBs != 0u) &&
+                  ((CanTp_TxBlock + 1u) >= CanTp_TxBs)))
+        {
+            (void)memcpy(CanTp_EarlyFc, &d[1], 3u);
+            CanTp_EarlyFcValid = 1u;
+        }
+        else
+        {
+            /* unexpected FC: ignore */
+        }
+        break;
+    case CANTP_NPCI_SF:
+        if (CanTp_TxState == CANTP_TX_IDLE) { CanTp_RxSingleFrame(d, len); }
+        break;
+    case CANTP_NPCI_FF:
+        if (CanTp_TxState == CANTP_TX_IDLE) { CanTp_RxFirstFrame(d, len); }
+        break;
+    case CANTP_NPCI_CF:
+        if (CanTp_TxState == CANTP_TX_IDLE) { CanTp_RxConsecutiveFrame(d, len); }
+        break;
+    default:
+        break;
+    }
+}
+
+void CanTp_TxConfirmation(PduIdType TxPduId)
+{
+    if ((CanTp_Ch == NULL_PTR) || (TxPduId != CanTp_Ch->txNPduId))
+    {
+        return;
+    }
+    if (CanTp_FcInFlight != 0u)
+    {
+        CanTp_FcInFlight = 0u;
+        if (CanTp_FcWasOvfl == 0u)
+        {
+            CanTp_RxTimer = CanTp_Ch->nCrTicks;
         }
         return;
     }
-    if(txState!=IDLE)return;
-    if(type==0){
-        if(!n||n>6u||len<2u+n)return;
-        if(rxActive)rxAbort();
-        PduR_CanTpRxIndication(d+2,n,0);return;
+
+    switch (CanTp_TxState)
+    {
+    case CANTP_TX_WAIT_FIRST_CONF:
+        if (CanTp_TxLength <= CANTP_SF_MAX)
+        {
+            CanTp_TxFinish(E_OK, NTFRSLT_OK);
+            return;
+        }
+        CanTp_TxOffset = CANTP_FF_DATA;
+        CanTp_TxState = CANTP_TX_WAIT_FC;
+        break;
+    case CANTP_TX_WAIT_CF_CONF:
+        CanTp_TxOffset = (uint16)(CanTp_TxOffset + CanTp_TxChunk);
+        CanTp_TxSn = (uint8)((CanTp_TxSn + 1u) & 0x0Fu);
+        if (CanTp_TxOffset == CanTp_TxLength)
+        {
+            CanTp_TxFinish(E_OK, NTFRSLT_OK);
+            return;
+        }
+        CanTp_TxBlock++;
+        CanTp_TxDelay = CanTp_TxStTicks;
+        CanTp_TxState = ((CanTp_TxBs != 0u) && (CanTp_TxBlock >= CanTp_TxBs)) ?
+                        CANTP_TX_WAIT_FC : CANTP_TX_SEND_CF;
+        break;
+    default:
+        return;
     }
-    if(type==1){
-        if(len!=8u)return;
-        uint16_t total=(uint16_t)((n<<8)|d[2]);
-        if(rxActive)rxAbort();
-        if(total<=6u||total>CANTP_RX_MAX){fcPending=2;return;}
-        rxExpected=total;rxLength=5;memcpy(rxBuffer,d+3,5);rxSn=1;rxBlock=0;
-        rxActive=1;rxTimer=200;fcPending=1;return;
-    }
-    if(type==2 && rxActive){
-        if(fcPending||fcInFlight||n!=rxSn||len<3u){rxAbort();return;}
-        uint16_t remain=rxExpected-rxLength;uint8_t count=remain>6u?6u:(uint8_t)remain;
-        if(len<2u+count){rxAbort();return;}
-        memcpy(rxBuffer+rxLength,d+2,count);rxLength+=count;rxSn=(rxSn+1u)&15u;rxTimer=200;
-        if(rxLength==rxExpected){rxActive=0;PduR_CanTpRxIndication(rxBuffer,rxLength,0);}
-        else if(++rxBlock==8u){rxBlock=0;fcPending=1;}
+    CanTp_TxTimer = (CanTp_TxState == CANTP_TX_WAIT_FC) ? CanTp_Ch->nBsTicks : CanTp_Ch->nAsTicks;
+    if ((CanTp_TxState == CANTP_TX_WAIT_FC) && (CanTp_EarlyFcValid != 0u))
+    {
+        CanTp_EarlyFcValid = 0u;
+        CanTp_TxFlowControl(CanTp_EarlyFc);
     }
 }
-void CanTp_TxConfirmation(int result)
+
+static void CanTp_InitFrame(uint8 *frame)
 {
-    if(fcInFlight){fcInFlight=0;if(result){rxAbort();return;}rxTimer=200;return;}
-    if(txState!=FIRST_CONF && txState!=CF_CONF && txState!=SF_CONF)return;
-    if(result){txDone(-1);return;}
-    if(txState==SF_CONF){txDone(0);return;}
-    if(txState==FIRST_CONF){txOffset=5;txState=WAIT_FC;}
-    else {
-        uint16_t remain=txLength-txOffset;txOffset+=remain>6u?6u:remain;txSn=(txSn+1u)&15u;
-        if(txOffset==txLength){txDone(0);return;}
-        txBlock++;txDelay=txSt;
-        txState=(txBs && txBlock>=txBs)?WAIT_FC:CF_SEND;
-    }
-    txTimer=200;
-    if(txState==WAIT_FC && earlyFcValid){earlyFcValid=0;flow(earlyFc);}
+    (void)memset(frame, CanTp_Ch->paddingByte, 8u);
+    frame[0] = CanTp_Ch->txAddress;
 }
+
+static Std_ReturnType CanTp_SendFrame(const uint8 *frame)
+{
+    PduInfoType info;
+
+    info.SduDataPtr = (uint8 *)frame;
+    info.MetaDataPtr = NULL_PTR;
+    info.SduLength = 8u;
+    return CanIf_Transmit(CanTp_Ch->txNPduId, &info);
+}
+
+/* Fetch `count` payload bytes from the upper layer into `dst`.
+ * Returns E_OK, or E_NOT_OK when the frame is not available yet / the transfer failed. */
+static Std_ReturnType CanTp_FetchPayload(uint8 *dst, uint8 count)
+{
+    PduInfoType info;
+    PduLengthType available = 0u;
+    BufReq_ReturnType br;
+
+    info.SduDataPtr = dst;
+    info.MetaDataPtr = NULL_PTR;
+    info.SduLength = count;
+    br = PduR_CanTpCopyTxData(CanTp_Ch->txNSduId, &info, NULL_PTR, &available);
+    if (br == BUFREQ_E_BUSY)
+    {
+        return E_NOT_OK;                     /* try again next cycle */
+    }
+    if (br != BUFREQ_OK)
+    {
+        CanTp_TxFinish(E_NOT_OK, NTFRSLT_E_NO_BUFFER);
+        return E_NOT_OK;
+    }
+    return E_OK;
+}
+
+static void CanTp_MainTx(void)
+{
+    uint8 *f = CanTp_TxFrame;
+
+    if (CanTp_TxState == CANTP_TX_IDLE)
+    {
+        return;
+    }
+    if ((CanTp_TxTimer != 0u) && (--CanTp_TxTimer == 0u))
+    {
+        CanTp_TxFinish(E_NOT_OK, (CanTp_TxState == CANTP_TX_WAIT_FC) ? NTFRSLT_E_TIMEOUT_BS : NTFRSLT_E_TIMEOUT_A);
+        return;
+    }
+
+    if (CanTp_TxState == CANTP_TX_SEND_FIRST)
+    {
+        if (CanTp_TxFrameReady == 0u)
+        {
+            CanTp_InitFrame(f);
+            if (CanTp_TxLength <= CANTP_SF_MAX)
+            {
+                CanTp_TxChunk = (uint8)CanTp_TxLength;
+                f[1] = (uint8)((CANTP_NPCI_SF << 4) | CanTp_TxChunk);
+                if (CanTp_FetchPayload(&f[2], CanTp_TxChunk) != E_OK) { return; }
+            }
+            else
+            {
+                CanTp_TxChunk = CANTP_FF_DATA;
+                f[1] = (uint8)((CANTP_NPCI_FF << 4) | (CanTp_TxLength >> 8));
+                f[2] = (uint8)CanTp_TxLength;
+                if (CanTp_FetchPayload(&f[3], CanTp_TxChunk) != E_OK) { return; }
+            }
+            CanTp_TxFrameReady = 1u;
+        }
+    }
+    else if (CanTp_TxState == CANTP_TX_SEND_CF)
+    {
+        uint16 remain;
+
+        if (CanTp_TxDelay != 0u)
+        {
+            CanTp_TxDelay--;
+            return;
+        }
+        if (CanTp_TxFrameReady == 0u)
+        {
+            remain = (uint16)(CanTp_TxLength - CanTp_TxOffset);
+            CanTp_TxChunk = (remain > CANTP_CF_DATA) ? (uint8)CANTP_CF_DATA : (uint8)remain;
+            CanTp_InitFrame(f);
+            f[1] = (uint8)((CANTP_NPCI_CF << 4) | CanTp_TxSn);
+            if (CanTp_FetchPayload(&f[2], CanTp_TxChunk) != E_OK) { return; }
+            CanTp_TxFrameReady = 1u;
+        }
+    }
+    else
+    {
+        return;
+    }
+
+    if (CanTp_SendFrame(f) == E_OK)
+    {
+        CanTp_TxFrameReady = 0u;
+        CanTp_TxState = (CanTp_TxState == CANTP_TX_SEND_FIRST) ? CANTP_TX_WAIT_FIRST_CONF : CANTP_TX_WAIT_CF_CONF;
+        CanTp_TxTimer = CanTp_Ch->nAsTicks;
+    }
+}
+
+static void CanTp_MainRx(void)
+{
+    uint8 f[8];
+
+    if ((CanTp_RxActive != 0u) && (CanTp_RxTimer != 0u) && (--CanTp_RxTimer == 0u))
+    {
+        CanTp_RxAbort(NTFRSLT_E_TIMEOUT_CR);
+    }
+    if (((CanTp_FcPending != 0u) || (CanTp_FcInFlight != 0u)) && (CanTp_FcTimer != 0u) && (--CanTp_FcTimer == 0u))
+    {
+        /* Own flow control never reached the bus (N_Ar). */
+        CanTp_FcPending = 0u;
+        CanTp_FcInFlight = 0u;
+        CanTp_RxAbort(NTFRSLT_E_TIMEOUT_A);
+    }
+    if ((CanTp_FcPending != 0u) && (CanTp_FcInFlight == 0u))
+    {
+        CanTp_InitFrame(f);
+        f[1] = (uint8)((CANTP_NPCI_FC << 4) | ((CanTp_FcPending == 1u) ? CANTP_FS_CTS : CANTP_FS_OVFLW));
+        f[2] = CanTp_Ch->blockSize;
+        f[3] = CanTp_Ch->stMin;
+        if (CanTp_SendFrame(f) == E_OK)
+        {
+            CanTp_FcWasOvfl = (uint8)(CanTp_FcPending == 2u);
+            CanTp_FcPending = 0u;
+            CanTp_FcInFlight = 1u;
+        }
+    }
+}
+
 void CanTp_MainFunction(void)
 {
-    uint8_t f[8]={CANTP_TX_ADDRESS,0,0,0,0,0,0,0};
-    if(rxActive && rxTimer && !--rxTimer)rxAbort();
-    if(txState!=IDLE && txTimer && !--txTimer){txDone(-1);return;}
-    if(fcPending && !fcInFlight){
-        f[1]=(fcPending==1u)?0x30u:0x32u;f[2]=8;f[3]=5;
-        if(!CanIf_TransmitDiagnostic(f,8)){fcPending=0;fcInFlight=1;}return;
+    if (CanTp_Ch == NULL_PTR)
+    {
+        return;
     }
-    if(fcInFlight)return;
-    if(txState==SEND){
-        if(txLength<=6u){f[1]=(uint8_t)txLength;memcpy(f+2,txData,txLength);}
-        else {f[1]=0x10u|(uint8_t)(txLength>>8);f[2]=(uint8_t)txLength;memcpy(f+3,txData,5);}
-        if(!CanIf_TransmitDiagnostic(f,8)){txState=(txLength<=6u)?SF_CONF:FIRST_CONF;txTimer=200;}
-    } else if(txState==CF_SEND){
-        if(txDelay){txDelay--;return;}
-        uint16_t remain=txLength-txOffset;uint8_t count=remain>6u?6u:(uint8_t)remain;
-        f[1]=0x20u|txSn;memcpy(f+2,txData+txOffset,count);
-        if(!CanIf_TransmitDiagnostic(f,8)){txState=CF_CONF;txTimer=200;}
+    CanTp_MainRx();
+    if (CanTp_FcInFlight == 0u)
+    {
+        CanTp_MainTx();
     }
 }

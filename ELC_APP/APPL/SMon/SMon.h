@@ -169,4 +169,11 @@ extern float SMon_P_BattRestDetectCurrent_A;
 
 extern void SMon_main(void);
 
+/* Calibration page loader (SMon_Calib.c). */
+#define SMON_CALIB_SIZE_BYTES 292u
+extern uint8_t SMon_CalibImage[SMON_CALIB_SIZE_BYTES];
+extern uint8_t SMon_CalibIntegrity; /* 0 defaults/invalid, 1 legacy image without checksum, 2 CRC-validated */
+extern void SMon_CalibInit(void);
+extern uint8_t SMon_CalibGetVersion(void);
+
 #endif /* SMON_H */

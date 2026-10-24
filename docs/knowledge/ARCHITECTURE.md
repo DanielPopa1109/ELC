@@ -1,4 +1,4 @@
-> Source baseline updated 2026-10-19. Historical details below are superseded by [functional closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md) and [validation](../modernization/ELC_VALIDATION_RESULTS.md). Verify current source before using older protocol or memory descriptions.
+> Source baseline updated 2026-10-24. Historical details below are superseded by [functional closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md) and [validation](../modernization/ELC_VALIDATION_RESULTS.md). Verify current source before using older protocol or memory descriptions.
 
 # Architecture
 
@@ -11,7 +11,7 @@
 
 ## Application layering
 
-The application combines STM32 HAL/generated peripheral setup with custom BSW modules: `EcuM`, `Nvm`, `Dem`, `Dcm`, and `CanH`; `APPL/SMon` provides load and battery monitoring/control. FreeRTOS CMSIS-RTOS v2 schedules BSW, application and diagnostic functions. Details are in [APPLICATION](APPLICATION.md).
+The application combines STM32 HAL/generated peripheral setup with an AUTOSAR-lab style BSW called directly (no RTE): `Can`, `CanIf`, `CanTp`, `PduR`, `Com`, `CanNm`, `CanSM`, `ComM`, `CanH`, `Dcm`, `Dem`, `NvM`/`Fee`/`Fls`, `Crc` and `EcuM`, configured through static `*_Cfg.c` tables and the common types in `BSW/Common`; `APPL/SMon` provides load and battery monitoring/control and `APPL/DcmAppl` the diagnostic callouts. See [AUTOSAR-lab alignment](../autosar/AUTOSAR_LAB_ALIGNMENT.md). FreeRTOS CMSIS-RTOS v2 schedules BSW, application and diagnostic functions. Details are in [APPLICATION](APPLICATION.md).
 
 ## Update boundary
 

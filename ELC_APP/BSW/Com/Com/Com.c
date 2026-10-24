@@ -1,216 +1,289 @@
 #include "Com.h"
 #include "main.h"
-#include <string.h>
 #include "../PduR/PduR.h"
+#include "../../Sys/Crc/Crc.h"
+#include <string.h>
 
-/* ELC subset of ZGW COM config: 0x050/DLC2 RX, 0x051/DLC1 TX. */
-#define COM_LOADREQUEST_TIMEOUT_TICKS 200u
-#define COM_LOADSTATUS_PERIOD_TICKS   100u
-#define COM_TELEMETRY_FIRST_ID 0x6EEu
-#define COM_TELEMETRY_LAST_ID  0x6F7u
-#define COM_TELEMETRY_COUNT    10u
+/* LoadRequest 0x050: byte0 = alive[3:0] | dataId[6:4] | request[7], byte1 = low byte of the
+ * reflected CRC32 over { alive, request, dataId } (ZGW GatewaySwc / DBC). */
+#define COM_LOADREQUEST_DATAID   7u
 
-typedef struct {
-    uint8_t data[8];
-    uint8_t pending;
-    uint8_t inFlight;
-    uint32_t revision,submitted;
-} Com_TelemetryPduType;
+/* Per TX I-PDU payload length, index == COM_TXPDU_*. */
+static const uint8 Com_TxLength[COM_NUM_TX_PDUS] = { 1u, 8u, 8u, 4u, 8u, 8u, 8u, 8u, 8u, 8u, 1u, 4u };
 
-static volatile uint8_t requestValue;
-static volatile uint8_t requestValid;
-static volatile uint16_t requestAge;
-static volatile uint32_t invalidStreak;
-static volatile uint8_t vehicleStatus;
-static volatile uint16_t vehicleAge;
-static volatile uint8_t invalidVehicleStatus;
-static uint8_t statusInFlight;
-static uint32_t statusRevision,statusSubmitted;
-static uint8_t faultData[4],faultPending,faultInFlight;
-static uint8_t statusValue;
-static uint8_t statusEnabled;
-static uint8_t statusPending;
-static uint16_t statusAge;
-static Com_TelemetryPduType telemetry[COM_TELEMETRY_COUNT];
+typedef struct
+{
+    uint8  data[8];
+    uint8  pending;
+    uint8  inFlight;
+    uint8  timer;        /* TX confirmation supervision */
+    uint32 revision;     /* bumped on every new value */
+    uint32 submitted;    /* revision handed to the lower layer */
+} Com_TxPduStateType;
+
+static Com_TxPduStateType Com_TxPdu[COM_NUM_TX_PDUS];
+static uint16 Com_LoadStatusAge;
+static boolean Com_RxAllowed;
+static boolean Com_TxAllowed;
+
+static volatile uint8  Com_RequestValue;
+static volatile uint8  Com_RequestValid;
+static volatile uint16 Com_RequestAge;
+static volatile uint32 Com_InvalidStreak;
+static volatile uint8  Com_VehicleStatus;
+static volatile uint16 Com_VehicleAge;
+static volatile uint8  Com_VehicleInvalid;
 
 void Com_Init(void)
 {
-    statusInFlight=faultPending=faultInFlight=0;statusRevision=statusSubmitted=0;
-    requestValue = 0u;
-    requestValid = 0u;
-    requestAge = COM_LOADREQUEST_TIMEOUT_TICKS;
-    invalidStreak = 0u;
-    vehicleStatus = 0u;
-    vehicleAge = COM_LOADREQUEST_TIMEOUT_TICKS;
-    invalidVehicleStatus = 0u;
-    statusValue = 0u;
-    statusEnabled = 0u;
-    statusPending = 1u;
-    statusAge = COM_LOADSTATUS_PERIOD_TICKS;
-    for (uint8_t i = 0u; i < COM_TELEMETRY_COUNT; ++i)
-        memset(&telemetry[i],0,sizeof telemetry[i]);
+    (void)memset(Com_TxPdu, 0, sizeof(Com_TxPdu));
+    Com_TxPdu[COM_TXPDU_LOADSTATUS].pending = 1u;
+    Com_LoadStatusAge = COM_LOADSTATUS_PERIOD;
+    Com_RxAllowed = TRUE;
+    Com_TxAllowed = FALSE;
+    Com_RequestValue = 0u;
+    Com_RequestValid = 0u;
+    Com_RequestAge = COM_RX_DEADLINE_TICKS;
+    Com_InvalidStreak = 0u;
+    Com_VehicleStatus = 0u;
+    Com_VehicleAge = COM_RX_DEADLINE_TICKS;
+    Com_VehicleInvalid = 0u;
 }
 
-void Com_RxIndication(uint8_t rxPduId, const uint8_t *data, uint8_t len)
+void Com_SetRxAllowed(boolean Allowed)
 {
-    uint8_t alive, dataId, request;
-    uint8_t crcData[3];
-    uint32_t crc = 0xFFFFFFFFu;
-    if (rxPduId == COM_RX_VEHICLESTATE)
+    Com_RxAllowed = (Allowed != 0u) ? TRUE : FALSE;
+}
+
+void Com_SetTxAllowed(boolean Allowed)
+{
+    if ((Allowed != 0u) && (Com_TxAllowed == FALSE))
     {
-        if ((data != 0) && (len == 1u) && ((data[0] & 0xF0u) == 0u) &&
-            ((data[0] & 0x0Fu) <= 6u))
+        Com_TxPdu[COM_TXPDU_LOADSTATUS].pending = 1u;   /* announce the state when TX is (re)enabled */
+    }
+    Com_TxAllowed = (Allowed != 0u) ? TRUE : FALSE;
+}
+
+/* ---- Reception --------------------------------------------------------------- */
+void Com_RxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr)
+{
+    const uint8 *data;
+    uint8 len;
+    uint8 crcData[3];
+
+    if (Com_RxAllowed == FALSE)
+    {
+        return;
+    }
+    data = (PduInfoPtr != NULL_PTR) ? PduInfoPtr->SduDataPtr : NULL_PTR;
+    len = (PduInfoPtr != NULL_PTR) ? (uint8)PduInfoPtr->SduLength : 0u;
+
+    if (RxPduId == COM_RXPDU_VEHICLESTATE)
+    {
+        if ((data != NULL_PTR) && (len == 1u) && ((data[0] & 0xF0u) == 0u) && ((data[0] & 0x0Fu) <= 6u))
         {
-            vehicleStatus = data[0] & 0x0Fu;
-            vehicleAge = 0u;
-            invalidVehicleStatus = 0u;
+            Com_VehicleStatus = data[0] & 0x0Fu;
+            Com_VehicleAge = 0u;
+            Com_VehicleInvalid = 0u;
         }
         else
         {
-            invalidVehicleStatus = 1u;
-            vehicleStatus = 0u;
+            Com_VehicleInvalid = 1u;
+            Com_VehicleStatus = 0u;
         }
         return;
     }
-    if ((rxPduId != COM_RX_LOADREQUEST) || (data == 0) || (len != 2u))
+    if (RxPduId != COM_RXPDU_LOADREQUEST)
     {
-        if (rxPduId == COM_RX_LOADREQUEST) requestValid = 0u;
-        if (invalidStreak != UINT32_MAX) ++invalidStreak;
         return;
     }
-    alive = data[0] & 0x0Fu;
-    dataId = (data[0] >> 4u) & 7u;
-    request = (data[0] >> 7u) & 1u;
-    crcData[0] = alive;
-    crcData[1] = request;
-    crcData[2] = dataId;
-    for (uint8_t i = 0u; i < 3u; ++i)
+
+    if ((data == NULL_PTR) || (len != 2u))
     {
-        crc ^= crcData[i];
-        for (uint8_t bit = 0u; bit < 8u; ++bit)
-            crc = (crc >> 1u) ^ ((crc & 1u) ? 0xEDB88320u : 0u);
-    }
-    if ((dataId != 7u) || ((uint8_t)~crc != data[1]))
-    {
-        requestValid = 0u;
-        if (invalidStreak != UINT32_MAX) ++invalidStreak;
+        Com_RequestValid = 0u;
+        if (Com_InvalidStreak != UINT32_MAX) { ++Com_InvalidStreak; }
         return;
     }
-    requestValue = request;
-    requestAge = 0u;
-    requestValid = 1u;
-    invalidStreak = 0u;
+    crcData[0] = data[0] & 0x0Fu;            /* alive */
+    crcData[1] = (data[0] >> 7u) & 1u;       /* request */
+    crcData[2] = (data[0] >> 4u) & 7u;       /* data id */
+    if ((crcData[2] != COM_LOADREQUEST_DATAID) ||
+        ((uint8)Crc_CalculateCRC32(crcData, 3u, 0u, TRUE) != data[1]))
+    {
+        Com_RequestValid = 0u;
+        if (Com_InvalidStreak != UINT32_MAX) { ++Com_InvalidStreak; }
+        return;
+    }
+    /* The alive nibble is protected by the CRC but not required to advance: ZGW increments it
+     * while generating signals and COM repeats the PDU independently, so identical frames are legal. */
+    Com_RequestValue = crcData[1];
+    Com_RequestAge = 0u;
+    Com_RequestValid = 1u;
+    Com_InvalidStreak = 0u;
 }
 
 void Com_MainFunctionRx(void)
 {
-    if (requestAge < COM_LOADREQUEST_TIMEOUT_TICKS) ++requestAge;
-    if (vehicleAge < COM_LOADREQUEST_TIMEOUT_TICKS) ++vehicleAge;
+    if (Com_RequestAge < COM_RX_DEADLINE_TICKS) { ++Com_RequestAge; }
+    if (Com_VehicleAge < COM_RX_DEADLINE_TICKS) { ++Com_VehicleAge; }
 }
 
-void Com_SetLoadStatus(uint8_t status, uint8_t txEnabled)
+Std_ReturnType Com_ReceiveSignal(Com_SignalIdType SignalId, void *SignalDataPtr)
 {
-    status &= 1u;
-    if (status != statusValue) {statusPending = 1u;statusRevision++;}
-    if ((txEnabled != 0u) && (statusEnabled == 0u)) statusPending = 1u;
-    statusValue = status;
-    statusEnabled = (txEnabled != 0u) ? 1u : 0u;
+    if (SignalDataPtr == NULL_PTR)
+    {
+        return E_NOT_OK;
+    }
+    if (SignalId == COM_SIGNAL_LOADREQUEST)
+    {
+        if ((Com_RequestValid == 0u) || (Com_RequestAge >= COM_RX_DEADLINE_TICKS)) { return E_NOT_OK; }
+        *(uint8 *)SignalDataPtr = Com_RequestValue;
+        return E_OK;
+    }
+    if (SignalId == COM_SIGNAL_VEHICLESTATE)
+    {
+        if ((Com_VehicleInvalid != 0u) || (Com_VehicleAge >= COM_RX_DEADLINE_TICKS)) { return E_NOT_OK; }
+        *(uint8 *)SignalDataPtr = Com_VehicleStatus;
+        return E_OK;
+    }
+    return E_NOT_OK;
 }
 
-int Com_QueueTelemetry(uint16_t canId, const uint8_t *data, uint8_t len)
+uint8 Com_GetRxStatus(Com_SignalIdType SignalId)
 {
-    uint8_t index;
-    uint8_t expectedLen;
-    if ((data == 0) || (canId < COM_TELEMETRY_FIRST_ID) ||
-        (canId > COM_TELEMETRY_LAST_ID)) return -1;
-    expectedLen = (canId == 0x6F0u) ? 4u :
-                  (canId == 0x6F7u) ? 1u : 8u;
-    if (len != expectedLen) return -1;
-    index = (uint8_t)(canId - COM_TELEMETRY_FIRST_ID);
-    uint32_t mask=__get_PRIMASK();__disable_irq();
-    memcpy(telemetry[index].data,data,len);telemetry[index].revision++;
-    telemetry[index].pending = 1u;__set_PRIMASK(mask);
-    return 0;
+    if (SignalId == COM_SIGNAL_LOADREQUEST)
+    {
+        return (Com_RequestAge >= COM_RX_DEADLINE_TICKS) ? COM_RXSTATUS_TIMEOUT : 0u;
+    }
+    if (SignalId == COM_SIGNAL_VEHICLESTATE)
+    {
+        return (uint8)(((Com_VehicleAge >= COM_RX_DEADLINE_TICKS) ? COM_RXSTATUS_TIMEOUT : 0u) |
+                       ((Com_VehicleInvalid != 0u) ? COM_RXSTATUS_INVALID : 0u));
+    }
+    return COM_RXSTATUS_TIMEOUT;
+}
+
+uint32 Com_GetE2eErrorCount(void)
+{
+    return Com_InvalidStreak;
+}
+
+/* ---- Transmission ------------------------------------------------------------ */
+Std_ReturnType Com_SendSignal(Com_SignalIdType SignalId, const void *SignalDataPtr)
+{
+    Com_TxPduStateType *pdu;
+    uint32 primask;
+
+    if ((SignalDataPtr == NULL_PTR) || (SignalId >= COM_NUM_TX_PDUS))
+    {
+        return E_NOT_OK;
+    }
+    pdu = &Com_TxPdu[SignalId];
+    primask = __get_PRIMASK();
+    __disable_irq();
+    if (SignalId == COM_SIGNAL_LOADSTATUS)
+    {
+        uint8 status = *(const uint8 *)SignalDataPtr & 1u;
+        if (status != pdu->data[0])
+        {
+            pdu->pending = 1u;
+            pdu->revision++;
+        }
+        pdu->data[0] = status;
+    }
+    else if (SignalId == COM_SIGNAL_DTC_BROADCAST)
+    {
+        if ((pdu->pending != 0u) || (pdu->inFlight != 0u))
+        {
+            __set_PRIMASK(primask);
+            return E_NOT_OK;                 /* one broadcast at a time; Dem retries */
+        }
+        (void)memcpy(pdu->data, SignalDataPtr, Com_TxLength[SignalId]);
+        pdu->pending = 1u;
+    }
+    else
+    {
+        (void)memcpy(pdu->data, SignalDataPtr, Com_TxLength[SignalId]);
+        pdu->revision++;
+        pdu->pending = 1u;
+    }
+    __set_PRIMASK(primask);
+    return E_OK;
 }
 
 void Com_MainFunctionTx(void)
 {
-	uint8_t i;
-    if (statusAge < COM_LOADSTATUS_PERIOD_TICKS) ++statusAge;
-	if (statusEnabled == 0u)
-	{
-		for (i = 0u; i < COM_TELEMETRY_COUNT; ++i)
-			telemetry[i].pending = 0u;
-		return;
-	}
-    if ((statusEnabled != 0u) && !statusInFlight &&
-        ((statusPending != 0u) || (statusAge >= COM_LOADSTATUS_PERIOD_TICKS)))
+    uint8 i;
+
+    if (Com_LoadStatusAge < COM_LOADSTATUS_PERIOD) { ++Com_LoadStatusAge; }
+    if (Com_TxAllowed == FALSE)
     {
-        if (PduR_ComTransmit(PDUR_TX_LOADSTATUS, &statusValue, 1u) == 0)
+        for (i = COM_TXPDU_TELEMETRY_FIRST; i < (COM_TXPDU_TELEMETRY_FIRST + COM_TXPDU_TELEMETRY_COUNT); ++i)
         {
-            statusInFlight=1;statusSubmitted=statusRevision;
+            Com_TxPdu[i].pending = 0u;
+        }
+        return;
+    }
+    if (Com_LoadStatusAge >= COM_LOADSTATUS_PERIOD)
+    {
+        Com_TxPdu[COM_TXPDU_LOADSTATUS].pending = 1u;
+    }
+
+    for (i = 0u; i < COM_NUM_TX_PDUS; ++i)
+    {
+        Com_TxPduStateType *pdu = &Com_TxPdu[i];
+        uint32 primask = __get_PRIMASK();
+
+        __disable_irq();
+        if (pdu->inFlight != 0u)
+        {
+            if ((pdu->timer != 0u) && (--pdu->timer == 0u))
+            {
+                pdu->inFlight = 0u;          /* confirmation lost: stay pending, retry */
+            }
+        }
+        else if (pdu->pending != 0u)
+        {
+            PduInfoType info;
+
+            info.SduDataPtr = pdu->data;
+            info.MetaDataPtr = NULL_PTR;
+            info.SduLength = Com_TxLength[i];
+            if (PduR_ComTransmit(i, &info) == E_OK)
+            {
+                pdu->inFlight = 1u;
+                pdu->submitted = pdu->revision;
+                pdu->timer = COM_TX_TIMEOUT_TICKS;
+            }
+        }
+        __set_PRIMASK(primask);
+    }
+}
+
+void Com_TxConfirmation(PduIdType TxPduId)
+{
+    Com_TxPduStateType *pdu;
+    uint32 primask;
+
+    if (TxPduId >= COM_NUM_TX_PDUS)
+    {
+        return;
+    }
+    pdu = &Com_TxPdu[TxPduId];
+    primask = __get_PRIMASK();
+    __disable_irq();
+    if (pdu->inFlight != 0u)
+    {
+        pdu->inFlight = 0u;
+        /* A newer value queued while this one was on the bus stays pending. */
+        if (pdu->submitted == pdu->revision)
+        {
+            pdu->pending = 0u;
+        }
+        if (TxPduId == COM_TXPDU_LOADSTATUS)
+        {
+            Com_LoadStatusAge = 0u;
         }
     }
-    if(faultPending && !faultInFlight && !PduR_ComTransmitFault(faultData))faultInFlight=1;
-	for (i = 0u; i < COM_TELEMETRY_COUNT; ++i)
-	{
-		if (telemetry[i].pending != 0u && !telemetry[i].inFlight)
-		{
-			uint16_t id = (uint16_t)(COM_TELEMETRY_FIRST_ID + i);
-			uint8_t len = (id == 0x6F0u) ? 4u :
-							  (id == 0x6F7u) ? 1u : 8u;
-			uint32_t mask=__get_PRIMASK();__disable_irq();
-            if (PduR_ComTransmitTelemetry(id, telemetry[i].data, len) == 0) {
-                telemetry[i].inFlight=1;telemetry[i].submitted=telemetry[i].revision;
-            }
-            __set_PRIMASK(mask);
-		}
-	}
-}
-
-int Com_GetLoadRequest(uint8_t *request)
-{
-    if ((request == 0) || (requestValid == 0u) ||
-        (requestAge >= COM_LOADREQUEST_TIMEOUT_TICKS)) return -1;
-    *request = requestValue;
-    return 0;
-}
-
-uint32_t Com_GetInvalidFrameCount(void) { return invalidStreak; }
-
-uint8_t Com_LoadRequestTimedOut(void)
-{
-    return (requestAge >= COM_LOADREQUEST_TIMEOUT_TICKS) ? 1u : 0u;
-}
-
-uint8_t Com_VehicleStatusTimedOut(void)
-{
-    return (vehicleAge >= COM_LOADREQUEST_TIMEOUT_TICKS) ? 1u : 0u;
-}
-
-int Com_GetVehicleStatus(uint8_t *status)
-{
-    if ((status == 0) || (invalidVehicleStatus != 0u) ||
-        (vehicleAge >= COM_LOADREQUEST_TIMEOUT_TICKS)) return -1;
-    *status = vehicleStatus;
-    return 0;
-}
-
-uint8_t Com_HasInvalidVehicleStatus(void)
-{
-    return invalidVehicleStatus;
-}
-
-int Com_QueueFault(const uint8_t *data)
-{
-    if(!data||faultPending||faultInFlight)return -1;
-    memcpy(faultData,data,4);faultPending=1;return 0;
-}
-void Com_TxConfirmation(uint16_t id,int result)
-{
-    uint32_t mask=__get_PRIMASK();__disable_irq();
-    if(id==0x051u){statusInFlight=0;if(!result){statusAge=0;if(statusSubmitted==statusRevision)statusPending=0;}else statusPending=1;}
-    else if(id==0x7FEu){faultInFlight=0;if(!result)faultPending=0;}
-    else if(id>=0x6EEu && id<=0x6F7u){Com_TelemetryPduType *p=&telemetry[id-0x6EEu];p->inFlight=0;if(!result && p->submitted==p->revision)p->pending=0;}
-    __set_PRIMASK(mask);
+    __set_PRIMASK(primask);
 }

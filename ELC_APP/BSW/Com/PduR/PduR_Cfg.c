@@ -1,0 +1,38 @@
+/* PduR_Cfg.c - static routing tables (see ComStack_Cfg.h for the PDU ids). */
+#include "PduR.h"
+
+/* Com TX I-PDU -> CanIf TX PDU */
+static const PduR_RoutingPathType PduR_IfTxPaths[COM_NUM_TX_PDUS] =
+{
+    { COM_TXPDU_LOADSTATUS,            CANIF_TXPDU_LOADSTATUS },
+    { COM_TXPDU_TELEMETRY_FIRST + 0u,  CANIF_TXPDU_TELEMETRY_FIRST + 0u },
+    { COM_TXPDU_TELEMETRY_FIRST + 1u,  CANIF_TXPDU_TELEMETRY_FIRST + 1u },
+    { COM_TXPDU_TELEMETRY_FIRST + 2u,  CANIF_TXPDU_TELEMETRY_FIRST + 2u },
+    { COM_TXPDU_TELEMETRY_FIRST + 3u,  CANIF_TXPDU_TELEMETRY_FIRST + 3u },
+    { COM_TXPDU_TELEMETRY_FIRST + 4u,  CANIF_TXPDU_TELEMETRY_FIRST + 4u },
+    { COM_TXPDU_TELEMETRY_FIRST + 5u,  CANIF_TXPDU_TELEMETRY_FIRST + 5u },
+    { COM_TXPDU_TELEMETRY_FIRST + 6u,  CANIF_TXPDU_TELEMETRY_FIRST + 6u },
+    { COM_TXPDU_TELEMETRY_FIRST + 7u,  CANIF_TXPDU_TELEMETRY_FIRST + 7u },
+    { COM_TXPDU_TELEMETRY_FIRST + 8u,  CANIF_TXPDU_TELEMETRY_FIRST + 8u },
+    { COM_TXPDU_TELEMETRY_FIRST + 9u,  CANIF_TXPDU_TELEMETRY_FIRST + 9u },
+    { COM_TXPDU_DTC_BROADCAST,         CANIF_TXPDU_DTC_BROADCAST }
+};
+
+/* CanIf RX PDU -> Com RX I-PDU */
+static const PduR_RoutingPathType PduR_IfRxPaths[COM_NUM_RX_PDUS] =
+{
+    { CANIF_RXPDU_LOADREQUEST,  COM_RXPDU_LOADREQUEST },
+    { CANIF_RXPDU_VEHICLESTATE, COM_RXPDU_VEHICLESTATE }
+};
+
+/* Dcm TX PDU -> CanTp TX N-SDU, CanTp RX N-SDU -> Dcm RX PDU */
+static const PduR_RoutingPathType PduR_TpTxPaths[1] = { { DCM_TXPDU_DIAG, CANTP_TXNSDU_DIAG } };
+static const PduR_RoutingPathType PduR_TpRxPaths[1] = { { CANTP_RXNSDU_DIAG, DCM_RXPDU_DIAG } };
+
+const PduR_ConfigType PduR_Config =
+{
+    PduR_IfTxPaths, COM_NUM_TX_PDUS,
+    PduR_IfRxPaths, COM_NUM_RX_PDUS,
+    PduR_TpTxPaths, 1u,
+    PduR_TpRxPaths, 1u
+};

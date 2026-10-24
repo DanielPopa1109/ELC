@@ -1,8 +1,8 @@
 #include "SMon.h"
 #include "CanH.h"
 #include "Dem.h"
-#include "Nvm.h"
-#include "Dcm.h"
+#include "NvM.h"
+#include "DcmAppl.h"
 #include "EcuM.h"
 
 uint8_t SMon_NtcError = 0u;
@@ -174,7 +174,7 @@ static void SMon_I2TAccumulation(void)
 	if(I2TCounter_Float > SMon_P_I2TRating)
 	{
 		SMon_I2TError = 1u;
-		Dem_SetDtc(0x53u, 0x2fu);
+		(void)Dem_SetEventStatus(DEM_EVENT_OVERCURRENT_L1, DEM_EVENT_STATUS_FAILED);
 	}
 	else if(0u == I2TCounter_Float && 1u == SMon_I2TError)
 	{
@@ -182,9 +182,9 @@ static void SMon_I2TAccumulation(void)
 	}
 	else
 	{
-		if(0x2fu == Dem_GetDtcStatus(0x53u))
+		if(Dem_IsEventFailed(DEM_EVENT_OVERCURRENT_L1))
 		{
-			Dem_SetDtc(0x53u, 0x2eu);
+			(void)Dem_SetEventStatus(DEM_EVENT_OVERCURRENT_L1, DEM_EVENT_STATUS_PASSED);
 		}
 		else
 		{
@@ -953,7 +953,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if(SMon_T30P50 <= SMon_VfbL1)
 					{
-						Dem_SetDtc(0x52, 0x2f);
+						(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P1, DEM_EVENT_STATUS_FAILED);
 
 						SMon_ShortToPlusTest = 2u; // go-to next phase
 						SMon_S2BErrorStatus = 1u;
@@ -970,9 +970,9 @@ static void SMon_ProcessShortToPlusTest(void)
 						SMon_ShortToPlusTest = 2u; // go-to next phase
 						SMon_S2BErrorStatus = 0u;
 
-						if(0x2f == Dem_GetDtcStatus(0x52u))
+						if(Dem_IsEventFailed(DEM_EVENT_SHORT_TO_BATT_L1_P1))
 						{
-							Dem_SetDtc(0x52, 0x2e);
+							(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P1, DEM_EVENT_STATUS_PASSED);
 						}
 						else
 						{
@@ -993,7 +993,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if((SMon_VfbT30 * 3 / 10) <= SMon_VfbL1)
 					{
-						Dem_SetDtc(0x5f, 0x2f);
+						(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P2, DEM_EVENT_STATUS_FAILED);
 
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 2u;
@@ -1010,9 +1010,9 @@ static void SMon_ProcessShortToPlusTest(void)
 						SMon_ShortToPlusTest = 3u; // go-to next phase
 						SMon_S2BErrorStatus = 0u;
 
-						if(0x2f == Dem_GetDtcStatus(0x5fu))
+						if(Dem_IsEventFailed(DEM_EVENT_SHORT_TO_BATT_L1_P2))
 						{
-							Dem_SetDtc(0x5f, 0x2e);
+							(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P2, DEM_EVENT_STATUS_PASSED);
 						}
 						else
 						{
@@ -1033,7 +1033,7 @@ static void SMon_ProcessShortToPlusTest(void)
 				{
 					if(SMon_P_LowVoltage <= SMon_VfbL1)
 					{
-						Dem_SetDtc(0x60, 0x2f);
+						(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P3, DEM_EVENT_STATUS_FAILED);
 						SMon_S2BErrorStatus = 3u;
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 					}
@@ -1049,9 +1049,9 @@ static void SMon_ProcessShortToPlusTest(void)
 						SMon_ShortToPlusTest = 4u; // finish short to plus test
 						SMon_S2BErrorStatus = 0u;
 
-						if(0x2f == Dem_GetDtcStatus(0x60u))
+						if(Dem_IsEventFailed(DEM_EVENT_SHORT_TO_BATT_L1_P3))
 						{
-							Dem_SetDtc(0x60, 0x2e);
+							(void)Dem_SetEventStatus(DEM_EVENT_SHORT_TO_BATT_L1_P3, DEM_EVENT_STATUS_PASSED);
 
 						}
 						else
@@ -1107,11 +1107,11 @@ static void SMon_ProcessLoadCurrentState(void)
 		/* no change */
 	}
 
-	if (Dcm_LoadStatus == 1u)
+	if (DcmAppl_LoadStatus == 1u)
 	{
 		calculatedCommand = 1u;
 	}
-	else if (Dcm_LoadStatus == 0u)
+	else if (DcmAppl_LoadStatus == 0u)
 	{
 		calculatedCommand = 0u;
 	}
@@ -1211,14 +1211,14 @@ static void SMon_ProcessEcuVoltageState(void)
 				if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - CounterUVKL30)) // de-bounce for UV
 				{
 					SMon_ECU_UV = 1u;
-					Dem_SetDtc(0x50, 0x2f);
+					(void)Dem_SetEventStatus(DEM_EVENT_UV_KL30, DEM_EVENT_STATUS_FAILED);
 				}
 				else
 				{
 					SMon_ECU_UV = 0u;
-					if(0x2f == Dem_GetDtcStatus(0x50))
+					if(Dem_IsEventFailed(DEM_EVENT_UV_KL30))
 					{
-						Dem_SetDtc(0x50, 0x2e);
+						(void)Dem_SetEventStatus(DEM_EVENT_UV_KL30, DEM_EVENT_STATUS_PASSED);
 					}
 					else
 					{
@@ -1243,16 +1243,16 @@ static void SMon_ProcessEcuVoltageState(void)
 				if(SMon_P_WaitTimeOVUV < (SMon_MainCnt - CounterOVKL30)) // de-bounce for OV - 300ms
 				{
 					SMon_ECU_OV = 1u;
-					Dem_SetDtc(0x51, 0x2f);
+					(void)Dem_SetEventStatus(DEM_EVENT_OV_KL30, DEM_EVENT_STATUS_FAILED);
 
 				}
 				else
 				{
 					SMon_ECU_OV = 0u;
 
-					if(0x2f == Dem_GetDtcStatus(0x51))
+					if(Dem_IsEventFailed(DEM_EVENT_OV_KL30))
 					{
-						Dem_SetDtc(0x51, 0x2e);
+						(void)Dem_SetEventStatus(DEM_EVENT_OV_KL30, DEM_EVENT_STATUS_PASSED);
 
 					}
 					else
@@ -1322,7 +1322,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 	        {
 	            SMon_RequestPhysicalStatus = 0u;
 	            SMon_NtcError = 1u;
-	            Dem_SetDtc(0x58u, 0x2f);
+	            (void)Dem_SetEventStatus(DEM_EVENT_NTC_ERROR, DEM_EVENT_STATUS_FAILED);
 	        }
 	    }
 	}
@@ -1339,9 +1339,9 @@ static void SMon_ProcessLoadErrorStatus(void)
 	        {
 	            SMon_NtcError = 0u;
 
-	            if (Dem_GetDtcStatus(0x58u) == 0x2f)
+	            if (Dem_IsEventFailed(DEM_EVENT_NTC_ERROR))
 	            {
-	                Dem_SetDtc(0x58u, 0x2e);
+	                (void)Dem_SetEventStatus(DEM_EVENT_NTC_ERROR, DEM_EVENT_STATUS_PASSED);
 	            }
 	        }
 	    }
@@ -1364,7 +1364,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 				SMon_ExternalChargerDetected = 1u;
 				SMon_RequestPhysicalStatus = 1u;
 
-				Dem_SetDtc(0x59u, 0x2f);
+				(void)Dem_SetEventStatus(DEM_EVENT_EXTERNAL_CHARGER, DEM_EVENT_STATUS_FAILED);
 
 				localTimeStamp2 = 0;
 			}
@@ -1386,9 +1386,9 @@ static void SMon_ProcessLoadErrorStatus(void)
 			{
 				SMon_ExternalChargerDetected = 0u;
 
-				if(0x2f == Dem_GetDtcStatus(0x59u))
+				if(Dem_IsEventFailed(DEM_EVENT_EXTERNAL_CHARGER))
 				{
-					Dem_SetDtc(0x59u, 0x2e);
+					(void)Dem_SetEventStatus(DEM_EVENT_EXTERNAL_CHARGER, DEM_EVENT_STATUS_PASSED);
 				}
 				else
 				{
@@ -1474,7 +1474,7 @@ static void SMon_ProcessLoadErrorStatus(void)
 	if(SMon_P_Rtcntmax == SMon_RetryCnt)
 	{
 		SMon_LockSupply = 1u;
-		Dem_SetDtc(0x54, 0x2f);
+		(void)Dem_SetEventStatus(DEM_EVENT_L1_LOCKED, DEM_EVENT_STATUS_FAILED);
 	}
 	else
 	{
@@ -1511,9 +1511,9 @@ static void SMon_ProcessLoadErrorStatus(void)
 					SMon_CounterUVL1 = 0u;
 					l1_uv_recovery_ts = 0u;
 
-					if (0x2fu == Dem_GetDtcStatus(0x56u))
+					if (Dem_IsEventFailed(DEM_EVENT_UV_L1))
 					{
-						Dem_SetDtc(0x56u, 0x2eu);
+						(void)Dem_SetEventStatus(DEM_EVENT_UV_L1, DEM_EVENT_STATUS_PASSED);
 					}
 					else
 					{
@@ -1575,9 +1575,9 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 0u;
 
-				if(0x2f == Dem_GetDtcStatus(0x55))
+				if(Dem_IsEventFailed(DEM_EVENT_CLS_FAILURE_L1))
 				{
-					Dem_SetDtc(0x55, 0x2e);
+					(void)Dem_SetEventStatus(DEM_EVENT_CLS_FAILURE_L1, DEM_EVENT_STATUS_PASSED);
 
 				}
 				else
@@ -1589,7 +1589,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 1u;
 				SMon_RequestPhysicalStatus = 0u;
-				Dem_SetDtc(0x55, 0x2f);
+				(void)Dem_SetEventStatus(DEM_EVENT_CLS_FAILURE_L1, DEM_EVENT_STATUS_FAILED);
 			}
 		}
 		else
@@ -1603,9 +1603,9 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 0u;
 
-				if(0x2f == Dem_GetDtcStatus(0x55))
+				if(Dem_IsEventFailed(DEM_EVENT_CLS_FAILURE_L1))
 				{
-					Dem_SetDtc(0x55, 0x2e);
+					(void)Dem_SetEventStatus(DEM_EVENT_CLS_FAILURE_L1, DEM_EVENT_STATUS_PASSED);
 				}
 				else
 				{
@@ -1616,7 +1616,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 			{
 				SMon_CLS_Failure = 1u;
 				SMon_RequestPhysicalStatus = 0u;
-				Dem_SetDtc(0x55, 0x2f);
+				(void)Dem_SetEventStatus(DEM_EVENT_CLS_FAILURE_L1, DEM_EVENT_STATUS_FAILED);
 			}
 		}
 		else
@@ -1647,7 +1647,7 @@ static void SMon_LoadSwitchingDiagnosis(void)
 						{
 							SMon_L1_UVStatus = 1u;
 							SMon_RequestPhysicalStatus = 0u;
-							Dem_SetDtc(0x56, 0x2f);
+							(void)Dem_SetEventStatus(DEM_EVENT_UV_L1, DEM_EVENT_STATUS_FAILED);
 
 						}
 						else
@@ -1658,9 +1658,9 @@ static void SMon_LoadSwitchingDiagnosis(void)
 				}
 				else
 				{
-					if(0x2f == Dem_GetDtcStatus(0x56))
+					if(Dem_IsEventFailed(DEM_EVENT_UV_L1))
 					{
-						Dem_SetDtc(0x56, 0x2e);
+						(void)Dem_SetEventStatus(DEM_EVENT_UV_L1, DEM_EVENT_STATUS_PASSED);
 					}
 					else
 					{

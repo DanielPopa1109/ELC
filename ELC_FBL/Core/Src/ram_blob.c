@@ -363,6 +363,6 @@ RAM_CODE void ram_updater_start(void)
         previous+=elapsed*72000u;now+=elapsed;
         Boot_MainFunction(&boot,now);
         uint8_t d[8],len;uint16_t id;
-        if(can_rx_poll(&id,&len,d) && id==BOOT_RX_ID && len<=8u)Boot_Rx(&boot,d,len,now);
+        if(can_rx_poll(&id,&len,d) && id==BOOT_RX_ID && len<=8u)BootTp_RxIndication(&boot,d,len,now);
     }
 }

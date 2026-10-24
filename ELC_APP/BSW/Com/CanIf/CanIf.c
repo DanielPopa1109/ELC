@@ -1,75 +1,144 @@
 #include "CanIf.h"
-#include "../Can/Can.h"
 #include "../PduR/PduR.h"
-#include "../CanNm/CanNm.h"
 #include "../CanTp/CanTp.h"
-#include <string.h>
+#include "../CanNm/CanNm.h"
+#include "../CanSM/CanSM.h"
 
-static uint8_t initialized;
-static uint8_t applicationTxEnabled;
-static uint8_t normalRxEnabled=1,normalTxEnabled=1,nmRxEnabled=1;
-static uint8_t xcpData[8],xcpLength,xcpPending,xcpInFlight;
+/* Application (non-AUTOSAR-module) users of CanIf: XCP slave and time stamp in CanH. */
+extern void CanH_RxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr);
+extern void CanH_TxConfirmation(PduIdType TxPduId);
 
-void CanIf_Init(void) { applicationTxEnabled = 0u; initialized = 1u;normalRxEnabled=normalTxEnabled=nmRxEnabled=1;xcpPending=xcpInFlight=0; }
-void CanIf_SetCommunicationControl(uint8_t control,uint8_t communicationType)
+#define CANIF_MODE_RX 0x01u
+#define CANIF_MODE_TX 0x02u
+
+static const CanIf_ConfigType *CanIf_ConfigPtr;
+static uint8 CanIf_Mode = CANIF_MODE_RX | CANIF_MODE_TX;
+
+void CanIf_Init(const CanIf_ConfigType *ConfigPtr)
 {
-    normalRxEnabled=control<2u;normalTxEnabled=(control&1u)==0;
-    nmRxEnabled=communicationType==3u?normalRxEnabled:1u;
-}
-void CanIf_MainFunction(void)
-{
-    if(initialized && applicationTxEnabled && normalTxEnabled && xcpPending && !xcpInFlight &&
-       !Can_Write(0x7C1u,xcpData,xcpLength))xcpInFlight=1;
-}
-void CanIf_SetApplicationTxEnabled(uint8_t enabled)
-{
-    applicationTxEnabled = enabled ? 1u : 0u;
+    CanIf_ConfigPtr = (ConfigPtr != NULL_PTR) ? ConfigPtr : &CanIf_Config;
+    CanIf_Mode = CANIF_MODE_RX | CANIF_MODE_TX;
 }
 
-int CanIf_Transmit(uint8_t txPduId, const uint8_t *data, uint8_t len)
+Std_ReturnType CanIf_SetPduMode(uint8 ControllerId, CanIf_PduSetModeType PduModeRequest)
 {
-    if ((initialized == 0u) || (applicationTxEnabled == 0u) || !normalTxEnabled ||
-        (txPduId != CANIF_TX_LOADSTATUS) || (len != 1u)) return -1;
-    return Can_Write(0x051u, data, len);
+    if (ControllerId != ELC_CAN_CONTROLLER_ID)
+    {
+        return E_NOT_OK;
+    }
+    switch (PduModeRequest)
+    {
+    case CANIF_SET_OFFLINE:    CanIf_Mode = 0u; break;
+    case CANIF_SET_RX_OFFLINE: CanIf_Mode &= (uint8)~CANIF_MODE_RX; break;
+    case CANIF_SET_RX_ONLINE:  CanIf_Mode |= CANIF_MODE_RX; break;
+    case CANIF_SET_TX_OFFLINE: CanIf_Mode &= (uint8)~CANIF_MODE_TX; break;
+    case CANIF_SET_TX_ONLINE:  CanIf_Mode |= CANIF_MODE_TX; break;
+    case CANIF_SET_ONLINE:     CanIf_Mode = CANIF_MODE_RX | CANIF_MODE_TX; break;
+    default:                   return E_NOT_OK;
+    }
+    return E_OK;
 }
 
-int CanIf_TransmitTelemetry(uint16_t canId, const uint8_t *data, uint8_t len)
+Std_ReturnType CanIf_GetPduMode(uint8 ControllerId, CanIf_PduModeType *PduModePtr)
 {
-    uint8_t expectedLen;
-    if ((initialized == 0u) || (applicationTxEnabled == 0u) || !normalTxEnabled ||
-        (data == 0) || (canId < 0x6EEu) || (canId > 0x6F7u)) return -1;
-    expectedLen = (canId == 0x6F0u) ? 4u :
-                  (canId == 0x6F7u) ? 1u : 8u;
-    if (len != expectedLen) return -1;
-    return Can_Write(canId, data, len);
+    if ((ControllerId != ELC_CAN_CONTROLLER_ID) || (PduModePtr == NULL_PTR))
+    {
+        return E_NOT_OK;
+    }
+    *PduModePtr = ((CanIf_Mode & CANIF_MODE_TX) != 0u) ? CANIF_ONLINE : CANIF_TX_OFFLINE;
+    if ((CanIf_Mode & CANIF_MODE_RX) == 0u)
+    {
+        *PduModePtr = CANIF_OFFLINE;
+    }
+    return E_OK;
 }
 
-void CanIf_RxIndication(uint16_t canId, const uint8_t *data, uint8_t len)
+Std_ReturnType CanIf_GetControllerMode(uint8 ControllerId, Can_ControllerStateType *ControllerModePtr)
 {
-    if ((initialized == 0u) || (data == 0) || (len > 8u)) return;
-    if(!normalRxEnabled && (canId==0x050u || canId==0x3A0u))return;
-    if (canId == CANTP_RX_ID)
-        CanTp_RxIndication(data,len);
-    else if (canId == 0x050u)
-        PduR_CanIfRxIndication(CANIF_RX_LOADREQUEST, data, len);
-    else if (canId == 0x3A0u)
-        PduR_CanIfRxIndication(CANIF_RX_VEHICLESTATE, data, len);
-    else if (canId == 0x3FFu && nmRxEnabled)
-        CanNm_RxIndication(data, len);
+    return Can_GetControllerMode(ControllerId, ControllerModePtr);
 }
 
-int CanIf_TransmitDiagnostic(const uint8_t *data,uint8_t len)
-{return initialized?Can_Write(CANTP_TX_ID,data,len):-1;}
-int CanIf_TransmitFault(const uint8_t *data)
-{return initialized && applicationTxEnabled && normalTxEnabled?Can_Write(0x7FEu,data,4):-1;}
-int CanIf_TransmitXcp(const uint8_t *data,uint8_t len)
+Std_ReturnType CanIf_Transmit(PduIdType CanIfTxSduId, const PduInfoType *PduInfoPtr)
 {
-    if(!initialized||!applicationTxEnabled||!normalTxEnabled||!data||len>8||xcpPending)return -1;
-    memcpy(xcpData,data,len);xcpLength=len;xcpPending=1;return 0;
+    const CanIf_TxPduConfigType *pdu;
+    Can_PduType canPdu;
+
+    if ((CanIf_ConfigPtr == NULL_PTR) || (PduInfoPtr == NULL_PTR) || (PduInfoPtr->SduDataPtr == NULL_PTR) ||
+        (CanIfTxSduId >= CanIf_ConfigPtr->numTxPdus))
+    {
+        return E_NOT_OK;
+    }
+    pdu = &CanIf_ConfigPtr->txPdus[CanIfTxSduId];
+    if ((((pdu->flags & CANIF_PDU_VARIABLE_DLC) != 0u) ?
+         ((PduInfoPtr->SduLength == 0u) || (PduInfoPtr->SduLength > pdu->dlc)) :
+         (PduInfoPtr->SduLength != pdu->dlc)) ||
+        (((pdu->flags & CANIF_PDU_ALWAYS_ONLINE) == 0u) && ((CanIf_Mode & CANIF_MODE_TX) == 0u)))
+    {
+        return E_NOT_OK;
+    }
+    canPdu.swPduHandle = CanIfTxSduId;
+    canPdu.length = (uint8)PduInfoPtr->SduLength;
+    canPdu.id = pdu->canId;
+    canPdu.sdu = PduInfoPtr->SduDataPtr;
+    return (Can_Write(0u, &canPdu) == E_OK) ? E_OK : E_NOT_OK;
 }
-void CanIf_TxConfirmation(uint16_t id,int result)
+
+void CanIf_RxIndication(const Can_HwType *Mailbox, const PduInfoType *PduInfoPtr)
 {
-    if(id==CANTP_TX_ID)CanTp_TxConfirmation(result);
-    else if(id==0x7C1u){xcpInFlight=0;if(!result)xcpPending=0;}
-    else PduR_CanIfTxConfirmation(id,result);
+    uint8 i;
+
+    if ((CanIf_ConfigPtr == NULL_PTR) || (Mailbox == NULL_PTR) || (PduInfoPtr == NULL_PTR))
+    {
+        return;
+    }
+    for (i = 0u; i < CanIf_ConfigPtr->numRxPdus; ++i)
+    {
+        const CanIf_RxPduConfigType *pdu = &CanIf_ConfigPtr->rxPdus[i];
+
+        if (pdu->canId != Mailbox->CanId)
+        {
+            continue;
+        }
+        if ((PduInfoPtr->SduLength < pdu->minDlc) ||
+            (((pdu->flags & CANIF_PDU_ALWAYS_ONLINE) == 0u) && ((CanIf_Mode & CANIF_MODE_RX) == 0u)))
+        {
+            return;
+        }
+        switch (pdu->upper)
+        {
+        case CANIF_UPPER_CANTP: CanTp_RxIndication(pdu->upperPduId, PduInfoPtr); break;
+        case CANIF_UPPER_PDUR:  PduR_CanIfRxIndication(pdu->upperPduId, PduInfoPtr); break;
+        case CANIF_UPPER_CANNM: CanNm_RxIndication(pdu->upperPduId, PduInfoPtr); break;
+        default:                CanH_RxIndication(pdu->upperPduId, PduInfoPtr); break;
+        }
+        return;
+    }
+}
+
+void CanIf_TxConfirmation(PduIdType CanTxPduId)
+{
+    const CanIf_TxPduConfigType *pdu;
+
+    if ((CanIf_ConfigPtr == NULL_PTR) || (CanTxPduId >= CanIf_ConfigPtr->numTxPdus))
+    {
+        return;
+    }
+    pdu = &CanIf_ConfigPtr->txPdus[CanTxPduId];
+    switch (pdu->upper)
+    {
+    case CANIF_UPPER_CANTP: CanTp_TxConfirmation(pdu->upperPduId); break;
+    case CANIF_UPPER_PDUR:  PduR_CanIfTxConfirmation(pdu->upperPduId); break;
+    case CANIF_UPPER_CANNM: break;
+    default:                CanH_TxConfirmation(pdu->upperPduId); break;
+    }
+}
+
+void CanIf_ControllerBusOff(uint8 ControllerId)
+{
+    CanSM_ControllerBusOff(ControllerId);
+}
+
+void CanIf_ControllerModeIndication(uint8 ControllerId, Can_ControllerStateType ControllerMode)
+{
+    CanSM_ControllerModeIndication(ControllerId, ControllerMode);
 }

@@ -7,6 +7,7 @@ typedef int HAL_StatusTypeDef;
 typedef struct {uint32_t ESR,TSR;} CAN_TypeDef;
 typedef struct {CAN_TypeDef *Instance;} CAN_HandleTypeDef;
 typedef struct {uint32_t StdId,ExtId,IDE,RTR,DLC,TransmitGlobalTime;} CAN_TxHeaderTypeDef;
+typedef struct {uint32_t StdId,ExtId,IDE,RTR,DLC,Timestamp,FilterMatchIndex;} CAN_RxHeaderTypeDef;
 typedef struct {uint32_t TypeErase,PageAddress,NbPages;} FLASH_EraseInitTypeDef;
 #define HAL_CAN_STATE_LISTENING 1
 #define CAN_ESR_BOFF 4u
@@ -14,6 +15,8 @@ typedef struct {uint32_t TypeErase,PageAddress,NbPages;} FLASH_EraseInitTypeDef;
 #define CAN_TSR_RQCP0 1u
 #define CAN_TX_MAILBOX0 1u
 #define CAN_TX_MAILBOX1 2u
+#define CAN_RX_FIFO0 0u
+#define CAN_RX_FIFO1 1u
 #define CAN_ID_STD 0
 #define CAN_RTR_DATA 0
 #define FLASH_TYPEERASE_PAGES 0
@@ -27,6 +30,8 @@ int HAL_CAN_GetState(CAN_HandleTypeDef *h);
 int HAL_CAN_IsTxMessagePending(CAN_HandleTypeDef *h,uint32_t mailbox);
 int HAL_CAN_AddTxMessage(CAN_HandleTypeDef *h,CAN_TxHeaderTypeDef *header,uint8_t *data,uint32_t *mailbox);
 int HAL_CAN_AbortTxRequest(CAN_HandleTypeDef *h,uint32_t mailbox);
+uint32_t HAL_CAN_GetRxFifoFillLevel(CAN_HandleTypeDef *h,uint32_t fifo);
+int HAL_CAN_GetRxMessage(CAN_HandleTypeDef *h,uint32_t fifo,CAN_RxHeaderTypeDef *header,uint8_t *data);
 int HAL_FLASH_Unlock(void);
 int HAL_FLASH_Lock(void);
 int HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *erase,uint32_t *error);

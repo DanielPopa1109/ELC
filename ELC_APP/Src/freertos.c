@@ -16,10 +16,13 @@
 #include "adc.h"
 #include "tim.h"
 #include "Dem.h"
-#include "Nvm.h"
+#include "NvM.h"
 #include "../BSW/Com/Can/Can.h"
-#include "../BSW/Com/CanIf/CanIf.h"
 #include "../BSW/Com/CanTp/CanTp.h"
+#include "../BSW/Com/Com/Com.h"
+#include "../BSW/Com/CanNm/CanNm.h"
+#include "../BSW/Com/CanSM/CanSM.h"
+#include "../BSW/Com/ComM/ComM.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -139,7 +142,7 @@ void vApplicationTickHook( void )
 {
 	oscnt++;
 
-	if (EcuM_SWState < 3)
+	if (EcuM_SWState < ECUM_STATE_SLEEP)
 	{
 		uint32_t adcState = HAL_ADC_GetState(&hadc1);
 
@@ -237,8 +240,13 @@ void QM_BSW_TASK(void *argument)
 	TickType_t wake=xTaskGetTickCount();
 	for(;;)
 	{
-		EcuM_main();
+		EcuM_MainFunction();
+		CanNm_MainFunction();
+		ComM_MainFunction();
+		CanSM_MainFunction();
+		Com_MainFunctionRx();
 		CanH_MainFunction();
+		Com_MainFunctionTx();
 		vTaskDelayUntil(&wake,pdMS_TO_TICKS(5));
 	}
   /* USER CODE END QM_BSW_TASK */
@@ -279,8 +287,17 @@ void QM_DIAG_TASK(void *argument)
 	uint32_t diagCycle=0;
 	for(;;)
 	{
-		Can_MainFunction();CanIf_MainFunction();
-		if((diagCycle++ % 5u)==0u){CanTp_MainFunction();Dcm_main();Dem_main();if(CanTp_IsIdle())Nvm_MainFunction();}
+		Can_MainFunction_Read();
+		Can_MainFunction_Write();
+		Can_MainFunction_BusOff();
+		Xcp_MainFunction();
+		if((diagCycle++ % 5u)==0u)
+		{
+			CanTp_MainFunction();
+			Dcm_MainFunction();
+			Dem_MainFunction();
+			if(CanTp_IsIdle())NvM_MainFunction();
+		}
 		vTaskDelayUntil(&wake,pdMS_TO_TICKS(1));
 	}
   /* USER CODE END QM_DIAG_TASK */

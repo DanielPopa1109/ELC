@@ -16,11 +16,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
-#include "Nvm.h"
+#include "NvM.h"
 #include "SMon.h"
 #include "EcuM.h"
 #include "Dcm.h"
 #include "Dem.h"
+#include "CanH.h"
 #include "../BSW/Com/Can/Can.h"
 #include "../BSW/Com/CanTp/CanTp.h"
 #include "../BSW/Com/PduR/PduR.h"
@@ -235,13 +236,14 @@ int main(void)
   MX_CRC_Init();
   MX_TIM3_Init();
 	Can_Init();
-	CanTp_Init();
-	PduR_Init();
-	CanIf_Init();
+	CanIf_Init(NULL_PTR);
+	CanTp_Init(NULL_PTR);
+	PduR_Init(NULL_PTR);
 	Com_Init();
 	CanNm_Init();
 	CanSM_Init();
 	ComM_Init();
+	CanH_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -260,16 +262,16 @@ int main(void)
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ain_DmaBuffer, 5u);
 
+	EcuM_Init();
+
+	/* The retained window is undefined after a Standby wake-up and after a software version change. */
+	uint8_t clearRetained = (ECUM_WKSOURCE_NONE != EcuM_GetWakeupReason());
+
 	for(uint8_t i = 0u; i < 4u; i++)
 	{
-		if(EcuM_SWV[i] != Dcm_SWV[i])
+		if(EcuM_SWV[i] != EcuM_SoftwareVersion[i])
 		{
-			for(uint32_t* addr = ((uint32_t*)0x20004fc0); addr <= ((uint32_t*)0x20004fff); addr++)
-			{
-				*addr = 0;
-			}
-
-			break;
+			clearRetained = 1u;
 		}
 		else
 		{
@@ -277,10 +279,23 @@ int main(void)
 		}
 	}
 
-	Dcm_Init();
-	Nvm_ReadAll();
-	Dem_Init();
-	Nvm_InitParamFlash();
+	if(0u != clearRetained)
+	{
+		for(uint32_t* addr = ((uint32_t*)0x20004fc0); addr <= ((uint32_t*)0x20004fff); addr++)
+		{
+			*addr = 0;
+		}
+	}
+	else
+	{
+		/* Do nothing. */
+	}
+
+	Dcm_Init(NULL_PTR);
+	NvM_Init();
+	NvM_ReadAll();
+	Dem_Init(NULL_PTR);
+	SMon_CalibInit();
 
 	__enable_irq();
   /* USER CODE END 2 */

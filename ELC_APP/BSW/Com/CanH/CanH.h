@@ -2,14 +2,14 @@
 #define CANH_H
 
 #include <stdint.h>
-#include "can.h"
 #include <stdbool.h>
-#include "crc.h"
-#include <string.h>
-#include <stdlib.h>
+#include "ComStack_Types.h"
 
-#define XCP_CAN_RX_ID      0x7C0u
-#define XCP_CAN_TX_ID      0x7C1u
+/* CanH is the ELC application-side CAN handler: it feeds the Com signal layer
+ * (LoadStatus, telemetry), consumes the Com RX signals for the SMon load logic
+ * and hosts the XCP slave (CAN 0x7C0 / 0x7C1) and the time stamp PDU (0x202).
+ * All bus access goes through CanIf/Com/PduR. */
+
 #define XCP_PID_RES        0xFFu
 #define XCP_PID_ERR        0xFEu
 #define XCP_CMD_CONNECT            0xFFu
@@ -43,11 +43,8 @@ typedef struct
 
 extern Xcp_State_t Xcp_State;
 extern uint8_t Xcp_TxData[8u];
-extern CAN_TxHeaderTypeDef Xcp_TxHeader;
 extern CanH_ComStat_t CanH_CommunicationState;
 extern uint8_t CanH_NM3PN1_Value;
-extern uint8_t CanH_RxData[8u];
-extern uint8_t CanH_TxData[8u];
 extern uint8_t CSBSDAT_Year;
 extern uint8_t CSBSDAT_Month;
 extern uint8_t CSBSDAT_Day;
@@ -56,20 +53,17 @@ extern uint8_t CSBSDAT_Minute;
 extern uint8_t CSBSDAT_Second;
 extern volatile uint8_t CanH_VehicleStatus;
 extern volatile uint8_t CanH_AliveCounter_LoadRequest;
-extern CAN_RxHeaderTypeDef CanH_RxHeader;
-extern CAN_TxHeaderTypeDef CanH_TxHeader;
 extern uint32_t CanH_MainCounter;
-extern uint32_t CanH_TxMailbox;
 extern uint32_t CanH_NoCommCounter;
 extern uint32_t CanH_MissingLoadRequest;
 extern uint32_t CanH_MissingVehicleData;
 extern uint32_t CanH_E2eErrCnt;
-extern const uint32_t CanH_P_DelayTxParam;
 
-extern void CanH_MainFunction(void);
-extern void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-extern void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
-
+void CanH_Init(void);
+void Xcp_MainFunction(void);                                            /* 1 ms, with the CAN driver main functions */
+void CanH_MainFunction(void);                                           /* 5 ms, after Com_MainFunctionRx */
+void CanH_RxIndication(PduIdType RxPduId, const PduInfoType *PduInfoPtr); /* from CanIf */
+void CanH_TxConfirmation(PduIdType TxPduId);                              /* from CanIf */
 void CanH_PublishMeasurements(void);
 
 #endif /* CANH_H */

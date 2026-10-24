@@ -1,4 +1,4 @@
-> Historical report: superseded by [functional closure](ELC_FUNCTIONAL_GAP_CLOSURE.md) and [executed validation](ELC_VALIDATION_RESULTS.md) dated2026-10-19.
+> Historical report: superseded by [functional closure](ELC_FUNCTIONAL_GAP_CLOSURE.md), [AUTOSAR-lab alignment](../autosar/AUTOSAR_LAB_ALIGNMENT.md) and [executed validation](ELC_VALIDATION_RESULTS.md) dated 2026-10-24. Module names and APIs below (`Nvm`, `Dem_SetDtc`, `CanIf_Transmit*`) predate that pass.
 
 # ELC modernization implementation report (2026-10-17)
 

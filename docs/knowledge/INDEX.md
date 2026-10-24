@@ -1,4 +1,4 @@
-> Source baseline updated 2026-10-19. Historical details below are superseded by [functional closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md) and [validation](../modernization/ELC_VALIDATION_RESULTS.md). Verify current source before using older protocol or memory descriptions.
+> Source baseline updated 2026-10-24. Historical details below are superseded by [functional closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md) and [validation](../modernization/ELC_VALIDATION_RESULTS.md). Verify current source before using older protocol or memory descriptions.
 
 # ELC knowledge bank
 
@@ -18,4 +18,4 @@ Start here. This repository is a STM32F103C8T6 load-control ECU, with independen
 
 Claims are derived from tracked source/configuration. Binary outputs, historical tests and board files do not independently prove the behavior of a currently connected ECU. See each page for unresolved items.
 
-Current results: [functional coverage](../autosar/BSW_FUNCTIONAL_COVERAGE.md), [gap closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md), [executed validation](../modernization/ELC_VALIDATION_RESULTS.md).
+Current results: [AUTOSAR-lab / UDS / ISO-TP alignment](../autosar/AUTOSAR_LAB_ALIGNMENT.md), [functional coverage](../autosar/BSW_FUNCTIONAL_COVERAGE.md), [gap closure](../modernization/ELC_FUNCTIONAL_GAP_CLOSURE.md), [executed validation](../modernization/ELC_VALIDATION_RESULTS.md).

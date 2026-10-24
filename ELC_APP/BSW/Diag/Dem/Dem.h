@@ -1,44 +1,49 @@
-#ifndef DEM_H
-#define DEM_H
+/* Dem.h - Diagnostic Event Manager (ELC subset, AUTOSAR API shape).
+ *
+ * Monitors (SMon, CanH, XCP, EcuM) report PASSED/FAILED through Dem_SetEventStatus();
+ * debouncing stays in the monitors, so PREPASSED/PREFAILED are rejected. One failed report
+ * confirms the DTC; there is no calibrated aging threshold, so confirmed history is kept
+ * until it is cleared. Status and freeze frames are persisted through NvM. */
+#ifndef ELC_BSW_DEM_H
+#define ELC_BSW_DEM_H
 
-#include <stdint.h>
+#include "Dem_Types.h"
+#include "Dem_Cfg.h"
 
-#define DEM_MAX_FF_DTC        18u
+void Dem_Init(const Dem_ConfigType *ConfigPtr);
+void Dem_MainFunction(void);   /* 5 ms: persistence, deferred reports, DTC broadcast */
 
-typedef struct __attribute__((packed))
-{
-    uint16_t occurrenceCnt;
-    uint8_t  year;
-    uint8_t  month;
-    uint8_t  day;
-    uint8_t  hour;
-    uint8_t  minute;
-    uint8_t  second;
-    uint8_t  vehStatus;
-    uint16_t L1VFB;
-    uint16_t T30VFB;
-    float    L1NTC;
-    float    L1ISENSE;
-    uint16_t padding2;
-    uint8_t  padding1;
-} Dem_FreezeFrame_t;
+Std_ReturnType Dem_SetEventStatus(Dem_EventIdType EventId, Dem_EventStatusType EventStatus);
+Std_ReturnType Dem_GetEventFailed(Dem_EventIdType EventId, boolean *EventFailed);
+Std_ReturnType Dem_GetEventUdsStatus(Dem_EventIdType EventId, Dem_UdsStatusByteType *EventStatusByte);
+Std_ReturnType Dem_GetDTCOfEvent(Dem_EventIdType EventId, Dem_DTCFormatType DTCFormat, Dem_DTCType *DTCOfEvent);
+boolean Dem_IsEventFailed(Dem_EventIdType EventId);   /* convenience wrapper of Dem_GetEventFailed() */
 
-extern Dem_FreezeFrame_t Dem_FF[DEM_MAX_FF_DTC];
-extern const uint32_t Dem_PreDefined_DTC_Table[DEM_MAX_FF_DTC];
-extern uint32_t Dem_DTC_Stat[DEM_MAX_FF_DTC];
+Std_ReturnType Dem_SetOperationCycleState(Dem_OperationCycleIdType OperationCycleId,
+                                          Dem_OperationCycleStateType CycleState);
+Std_ReturnType Dem_SetDtcSetting(boolean Enabled);     /* UDS 0x85 */
+boolean Dem_IsDtcSettingEnabled(void);
+boolean Dem_IsPersistencePending(void);                /* changed DEM data is not yet durable (EcuM: no sleep) */
 
-extern void Dem_SetDtc(uint32_t id, uint8_t stat);
-extern void Dem_CaptureFreezeFrame(uint8_t idx);
-extern uint8_t Dem_GetDtcStatus(uint32_t id);
-extern void Dem_main(void);
-#define DEM_STATUS_MASK 0x7Fu
-void Dem_Init(void);
-void Dem_SetOperationCycle(uint8_t start);
-int Dem_GetEvent(uint8_t index, uint32_t *dtc, uint8_t *status);
-int Dem_GetSnapshot(uint32_t dtc, Dem_FreezeFrame_t *snapshot);
-int Dem_ClearDTC(uint32_t group);
-int Dem_GetClearResult(void); /* 1 pending, 0 durable success, -1 failure */
-void Dem_SetDTCSetting(uint8_t enabled);
-void Dem_AppCapture(Dem_FreezeFrame_t *snapshot);
+uint8 Dem_GetDTCStatusAvailabilityMask(void);
+Std_ReturnType Dem_GetStatusOfDTC(Dem_DTCType DTC, Dem_DTCFormatType DTCFormat, Dem_DTCOriginType DTCOrigin,
+                                  Dem_UdsStatusByteType *DTCStatus);
 
-#endif /* DEM_H */
+/* DTC filter (UDS 0x19 0x01/0x02). */
+Std_ReturnType Dem_SetDTCFilter(uint8 DTCStatusMask, Dem_DTCFormatType DTCFormat, Dem_DTCOriginType DTCOrigin);
+Std_ReturnType Dem_GetNumberOfFilteredDTC(uint16 *NumberOfFilteredDTC);
+Std_ReturnType Dem_GetNextFilteredDTC(Dem_DTCType *DTC, Dem_UdsStatusByteType *DTCStatus);
+
+/* Freeze frame (UDS 0x19 0x04): writes numberOfIdentifiers followed by DID/data pairs. */
+Std_ReturnType Dem_GetSnapshotDataByDTC(Dem_DTCType DTC, Dem_DTCFormatType DTCFormat, Dem_DTCOriginType DTCOrigin,
+                                        uint8 RecordNumber, uint8 *DestBuffer, uint16 *BufSize);
+
+/* Extended data (UDS 0x19 0x06): record 0x01 (or 0xFF) returns record number + occurrence counter. */
+Std_ReturnType Dem_GetExtendedDataRecordByDTC(Dem_DTCType DTC, Dem_DTCFormatType DTCFormat, Dem_DTCOriginType DTCOrigin,
+                                              uint8 RecordNumber, uint8 *DestBuffer, uint16 *BufSize);
+
+/* UDS 0x14. Call repeatedly while DEM_CLEAR_PENDING is returned; the final result is
+ * DEM_CLEAR_OK only after the cleared state is durable. */
+Dem_ReturnClearDTCType Dem_ClearDTC(Dem_DTCType DTC, Dem_DTCFormatType DTCFormat, Dem_DTCOriginType DTCOrigin);
+
+#endif /* ELC_BSW_DEM_H */
