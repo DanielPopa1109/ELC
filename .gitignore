@@ -2,3 +2,6 @@ codex_credentials.env
 .tools/
 build/
 __pycache__/
+
+# Large CAN/logger captures stay local; no Git LFS
+Logging/
